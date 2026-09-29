@@ -1,11 +1,15 @@
 # Belay
 
-Belay answers classification tasks with a small model on the user's device, and calls a cloud
-model only for the inputs the small model is unsure about. You get the cloud model's accuracy
-(sometimes better) for a fraction of its cost, and most inputs never leave the device.
+Belay answers AI tasks with a small model on the user's device, and calls a cloud model only for
+the inputs the small model is unsure about. You get the cloud model's accuracy (sometimes better)
+for a fraction of its cost, and most inputs never leave the device.
 
-**Who it's for:** web apps that classify text many times a day: routing support tickets,
-moderating comments, detecting intents, tagging content. Each cloud call costs money and adds
+It is built for classification (labels, yes/no, ratings), where the local model's own
+probability is the confidence. It also runs [generation tasks](#generation-tasks-prompt-api) with
+structured (JSON) output: an on-device LLM writes the answer, and a judge model scores it.
+
+**Who it's for:** web apps that run the same AI task on text many times a day: routing support
+tickets, moderating comments, detecting intents, tagging content, extracting fields. Each cloud call costs money and adds
 latency. Each on-device answer is free, private and fast, but on its own it isn't accurate enough
 to trust.
 
@@ -25,7 +29,7 @@ to trust.
 4. **Track savings in production.** Every run emits telemetry, and `savingsMeter()` adds up spend
    and savings from it.
 
-**What it did on real data:** three public datasets with 300 labeled examples each, the Laya
+**What it did on real data:** three classification tasks on public datasets with 300 labeled examples each, the Laya
 model on device, and the cloud model each example escalates to. Accuracy is cross-validated; cloud
 costs are per million runs at the recommended threshold, priced from measured token usage.
 Details [below](#a-real-calibration).
