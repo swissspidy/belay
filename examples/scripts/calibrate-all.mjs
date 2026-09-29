@@ -17,6 +17,8 @@ const TASKS = {
   'ticket-triage': ['claude', 'jev'],
   'content-moderation': ['jev', 'claude'],
   'intent-detection': ['jev-claude', 'claude', 'jev'],
+  // Structured output: Jev answers choice and yes/no questions only.
+  'event-extraction': ['claude'],
 };
 const only = process.argv.slice(2);
 

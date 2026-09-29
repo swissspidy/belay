@@ -1,12 +1,14 @@
 # Belay examples
 
-Three tasks, each with a labeled dataset of 300 examples and a calibration config.
+Four tasks, each with a labeled dataset of 300 examples and a calibration config: three
+classification tasks and one generation task.
 
 | Example | Schema | Dataset (license) |
 | --- | --- | --- |
 | [`ticket-triage`](ticket-triage) | categorical, 5 teams | [Bitext customer support](https://huggingface.co/datasets/bitext/Bitext-customer-support-llm-chatbot-training-dataset) (CDLA-Sharing-1.0), categories mapped to teams |
 | [`content-moderation`](content-moderation) | binary | [Civil Comments](https://huggingface.co/datasets/google/civil_comments) (CC0-1.0), toxic when ≥ 50% of raters said so, non-toxic when ≤ 10% did |
 | [`intent-detection`](intent-detection) | categorical, 8 intents | [MASSIVE en-US](https://huggingface.co/datasets/AmazonScience/massive) (CC BY 4.0), 8 intents |
+| [`event-extraction`](event-extraction) | structured (JSON), 5 fields | [MASSIVE en-US](https://github.com/alexa/massive) (CC BY 4.0), `calendar_set` slot annotations |
 
 Data sources, licenses and changes: [DATA-LICENSES.md](DATA-LICENSES.md).
 
@@ -28,7 +30,9 @@ npm install && npm run build      # from the repository root
 # Local model: the WebAI Studio extension, which polyfills the Classifier API with Laya.
 # Build it from https://github.com/etiennenoel/web-ai.studio/tree/master/extension (npm run package)
 export WEBAI_EXTENSION=/path/to/web-ai.studio/extension/release
-# Or use Chrome's native API (chrome://flags/#classifier-api) and leave WEBAI_EXTENSION unset.
+
+# Event extraction also uses Gemini Nano through Chrome's Prompt API (see "Gemini Nano" below).
+export BELAY_FORCE_CPU=1          # no supported GPU: run it on the CPU (16 GB RAM, 4 cores)
 
 # Cloud model: Claude and/or Jev, if you have credentials…
 export ANTHROPIC_API_KEY=…         # Claude
@@ -36,12 +40,12 @@ export JEV_API_KEY=…               # TypeSafe AI's Jev (TYPESAFE_API_KEY works
 # …otherwise the reference labels (a perfect cloud, an upper bound; see below):
 export BELAY_CLOUD=reference
 
-npm run calibrate:triage --workspace examples       # or calibrate:moderation, calibrate:intent
+npm run calibrate:triage --workspace examples       # or calibrate:moderation, :intent, :extraction
 npm run calibrate:all --workspace examples          # every task against Claude and Jev
 ```
 
-Each example uses the cloud that suited it best: Claude for ticket triage, Jev for content
-moderation, and Jev → Claude (`jevThenClaude()`: Claude only where Jev's confidence is below 0.8)
+Each example uses the cloud that suited it best: Claude for ticket triage and event extraction
+(Jev can't produce structured output), Jev for content moderation, and Jev → Claude (`jevThenClaude()`: Claude only where Jev's confidence is below 0.8)
 for intent detection. `BELAY_CLOUD=claude|jev|jev-claude|reference` overrides it; without
 credentials for an example's cloud, the reference labels stand in.
 
@@ -58,6 +62,22 @@ and [docs.typesafe.ai/models](https://docs.typesafe.ai/models). Update them when
 
 The first run downloads the models (about 680 MB)
 and caches every output in `.belay-cache/`. Later runs replay the cache and write identical files.
+
+### Gemini Nano (Prompt API) in automation
+
+Belay's calibration browser is Google Chrome (Playwright's `channel: 'chrome'`). Chromium and
+Chrome for Testing don't ship the component updater that downloads Gemini Nano. What it takes, as
+verified with Chrome 154 on a CPU-only Linux VM (details in
+[ADR 0002](../docs/adr/0002-calibration-in-a-real-browser.md#8-built-in-ai-under-playwright)):
+
+- `belay calibrate` removes Playwright's default switches that disable the model download and
+  the on-device model service, and loads extensions through the DevTools protocol, since Google
+  Chrome ignores `--load-extension`.
+- Without a supported GPU, set `BELAY_FORCE_CPU=1`; Chrome needs 16 GB of RAM and 4 cores.
+- The first run downloads Gemini Nano (about 4 GB) into the profile. Run it with `--headed` (under
+  `xvfb-run` on a server). Set `BELAY_CHROME_PROFILE` to keep the model in one place across examples.
+- Behind a proxy, Chrome must trust its CA (below), and the component updater's plain-HTTP
+  requests are pointed at the same service over HTTPS, since many proxies only tunnel HTTPS.
 
 ### Notes
 

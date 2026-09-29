@@ -8,6 +8,7 @@
     "calibrate:triage": "cd ticket-triage && belay calibrate --task ticket-triage --data examples.jsonl",
     "calibrate:moderation": "cd content-moderation && belay calibrate --task content-moderation --data examples.jsonl",
     "calibrate:intent": "cd intent-detection && belay calibrate --task intent-detection --data examples.jsonl",
+    "calibrate:extraction": "cd event-extraction && belay calibrate --task event-extraction --data examples.jsonl",
     "calibrate:all": "node scripts/calibrate-all.mjs"
   },
   "dependencies": {

@@ -32,7 +32,12 @@ export function webaiBrowser(options = {}) {
     ...(extension ? { extension } : {}),
     ...(process.env.BELAY_CHROME ? { executablePath: process.env.BELAY_CHROME } : {}),
     ...(options.variant && extension ? { setup: selectVariant(options.variant) } : {}),
-    ...(options.profile ? { userDataDir: options.profile } : {}),
+    ...(options.profile || process.env.BELAY_CHROME_PROFILE ? { userDataDir: options.profile ?? process.env.BELAY_CHROME_PROFILE } : {}),
+    // Gemini Nano on the CPU, for machines without a supported GPU (16 GB RAM and 4 cores).
+    ...(process.env.BELAY_FORCE_CPU ? { forceCpu: true } : {}),
+    // The component updater that downloads Gemini Nano talks plain HTTP by default. Proxies that
+    // only tunnel HTTPS block it, so point it at the same service over HTTPS.
+    ...(process.env.HTTPS_PROXY ? { args: ['--component-updater=url-source=https://update.googleapis.com/service/update2/json'] } : {}),
     // Downloads of the ~650 MB model can take a while on a slow connection.
     prepareTimeoutMs: 60 * 60_000,
     timeoutMs: 120_000,

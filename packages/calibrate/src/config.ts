@@ -72,8 +72,15 @@ export interface BrowserConfig {
    * Chrome does not read on its own. `false` disables it. Loopback is always bypassed.
    */
   proxy?: string | false;
-  /** Extra Chrome flags, e.g. to enable built-in AI features. */
+  /** Extra Chrome flags. They come last, so they override Belay's. */
   args?: string[];
+  /** Chrome features to enable (`--enable-features`), e.g. an API behind a flag. */
+  enableFeatures?: string[];
+  /**
+   * Run Gemini Nano on the CPU (`OnDeviceModelForceCpuBackend`) on machines without a supported
+   * GPU. Chrome needs at least 16 GB of RAM and 4 cores for it.
+   */
+  forceCpu?: boolean;
   /** Persistent profile, so downloaded models survive between runs. Defaults to `<cacheDir>/chrome-profile`. */
   userDataDir?: string;
   /**

@@ -29,6 +29,49 @@ const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
 };
 
+/**
+ * Playwright's default switches that break built-in AI (see ADR 0002):
+ * - `--disable-component-update`: the component updater never downloads Gemini Nano;
+ * - `--disable-background-networking`: the model manifest is never fetched;
+ * - `--disable-field-trial-config`: removed so Chrome behaves like a user's install;
+ * - `--disable-extensions`: blocks extension polyfills such as WebAI Studio's Classifier;
+ * - `--disable-component-extensions-with-background-pages`, `--disable-default-apps`.
+ * Playwright's `--disable-features` list (which turns off `OptimizationHints`, the on-device model
+ * service) is overridden by a later `--disable-features` with only the harmless entries.
+ */
+const BUILT_IN_AI_BLOCKING_DEFAULTS = [
+  '--disable-component-update',
+  '--disable-background-networking',
+  '--disable-field-trial-config',
+  '--disable-extensions',
+  '--disable-component-extensions-with-background-pages',
+  '--disable-default-apps',
+];
+
+const KEEP_DISABLED_FEATURES = [
+  'AvoidUnnecessaryBeforeUnloadCheckSync',
+  'DestroyProfileOnBrowserClose',
+  'DialMediaRouteProvider',
+  'GlobalMediaControls',
+  'MediaRouter',
+  'LensOverlay',
+];
+
+/** Loads the unpacked extension through the DevTools protocol and waits for its service worker. */
+async function loadExtension(context: import('playwright-core').BrowserContext, path: string, log: (message: string) => void): Promise<void> {
+  const browser = context.browser();
+  if (!browser) throw new Error('cannot load the extension: no browser-level DevTools session');
+  const cdp = await browser.newBrowserCDPSession();
+  try {
+    const { id } = (await cdp.send('Extensions.loadUnpacked' as never, { path } as never)) as { id: string };
+    log(`Loaded extension ${id}`);
+  } finally {
+    await cdp.detach().catch(() => {});
+  }
+  const hasWorker = () => context.serviceWorkers().some((w) => w.url().startsWith('chrome-extension://'));
+  if (!hasWorker()) await context.waitForEvent('serviceworker', { timeout: 10_000 }).catch(() => {});
+}
+
 function packageDir(specifier: string): string {
   return dirname(fileURLToPath(import.meta.resolve(specifier)));
 }
@@ -116,9 +159,14 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
   }
 
   const { server, origin } = await startServer();
-  const args = [...(browser.args ?? [])];
   const extension = browser.extension ? resolve(browser.extension) : undefined;
-  if (extension) args.push(`--disable-extensions-except=${extension}`, `--load-extension=${extension}`);
+  const enable = [...(browser.enableFeatures ?? []), ...(browser.forceCpu ? ['OnDeviceModelForceCpuBackend'] : [])];
+  // Chrome uses the last occurrence of a switch, so these override Playwright's own feature lists.
+  const args = [`--disable-features=${KEEP_DISABLED_FEATURES.join(',')}`, ...(enable.length ? [`--enable-features=${enable.join(',')}`] : [])];
+  // Google Chrome 137+ ignores --load-extension, so the extension is loaded through the DevTools
+  // protocol (Extensions.loadUnpacked), which needs this switch. Chromium supports it too.
+  if (extension) args.push('--enable-unsafe-extension-debugging');
+  args.push(...(browser.args ?? []));
   const userDataDir = resolve(browser.userDataDir ?? join(options.cacheDir, 'chrome-profile'));
   const executablePath = browser.executablePath ?? process.env['BELAY_CHROME'];
 
@@ -132,7 +180,7 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
       ...(executablePath ? { executablePath } : { channel: browser.channel ?? 'chrome' }),
       args,
       ...(proxy ? { proxy: { server: proxy, bypass: '127.0.0.1,localhost' } } : {}),
-      ...(extension ? { ignoreDefaultArgs: ['--disable-extensions'] } : {}),
+      ignoreDefaultArgs: BUILT_IN_AI_BLOCKING_DEFAULTS,
     });
   } catch (err) {
     server.close();
@@ -145,9 +193,11 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
   };
 
   try {
+    if (extension) await loadExtension(context, extension, log);
     if (options.initScript) await context.addInitScript(options.initScript);
     await browser.setup?.(context);
-    const page = context.pages()[0] ?? (await context.newPage());
+    // Tabs opened before the extension was loaded never get its content scripts: use a new one.
+    const page = extension ? await context.newPage() : (context.pages()[0] ?? (await context.newPage()));
     let progress: ((loaded: number) => void) | undefined;
     await page.exposeFunction('__belayProgress', (loaded: number) => progress?.(loaded));
     page.on('console', (msg) => {
@@ -157,7 +207,7 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
     await page.waitForFunction(() => (globalThis as { belayHarness?: { ready: boolean } }).belayHarness?.ready === true, null, { timeout: 30_000 });
 
     // Extensions inject their polyfill at document_start, but give a slow extension a moment.
-    if (options.local.runner === 'classifier-api') {
+    if (options.local.runner === 'classifier-api' || options.judge?.judge === 'classifier-judge') {
       await page
         .waitForFunction(() => typeof (globalThis as { Classifier?: unknown }).Classifier !== 'undefined', null, { timeout: extension ? 10_000 : 1_000 })
         .catch(() => log('window.Classifier is not defined in the calibration browser'));

@@ -5,10 +5,11 @@
  *
  *   node examples/scripts/fetch-datasets.mjs
  *
- * Pass dataset names (triage, moderation, intent) to fetch only those.
+ * Pass dataset names (triage, moderation, intent, extraction) to fetch only those.
  * Behind a proxy, run with NODE_USE_ENV_PROXY=1 (Node >= 22.21).
  */
 import { writeFile } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
 
 const API = 'https://datasets-server.huggingface.co';
 const only = process.argv.slice(2);
@@ -176,4 +177,39 @@ if (want('intent')) {
     pick(rows.filter((r) => r.label_text === intent), i < 4 ? 38 : 37, (r) => r.text, 'intent').map((r) => ({ input: r.text, label: intent })),
   );
   await write(new URL('../intent-detection/examples.jsonl', import.meta.url), interleave(groups));
+}
+
+// ---- Event extraction: MASSIVE en-US slot annotations (CC BY 4.0) -------------------------------
+if (want('extraction')) {
+  // The annotated utterances (`annot_utt`) are only in the release archive, not on the datasets server.
+  const archive = gunzipSync(Buffer.from(await (await request('https://amazon-massive-nlu-dataset.s3.amazonaws.com/amazon-massive-dataset-1.1.tar.gz', { timeoutMs: 300_000 })).arrayBuffer()));
+  const rows = untarFile(archive, '1.1/data/en-US.jsonl').split('\n').filter(Boolean).map((line) => JSON.parse(line));
+  const FIELDS = ['event_name', 'date', 'time', 'person', 'place_name'];
+  const examples = [];
+  for (const r of rows) {
+    if (r.intent !== 'calendar_set') continue;
+    const slots = [...r.annot_utt.matchAll(/\[(\w+) : ([^\]]+)\]/g)].map((m) => [m[1], m[2].trim()]);
+    const kinds = slots.map(([k]) => k);
+    // Only utterances whose annotations the schema covers completely, one value per field.
+    if (!slots.length || kinds.some((k) => !FIELDS.includes(k)) || new Set(kinds).size !== kinds.length) continue;
+    const label = Object.fromEntries(FIELDS.map((f) => [f, null]));
+    for (const [k, v] of slots) label[k] = v;
+    examples.push({ input: r.utt, label, source: r.annot_utt });
+  }
+  await write(new URL('../event-extraction/examples.jsonl', import.meta.url), pick(examples, 300, (e) => e.input, 'extraction'));
+}
+
+/** Reads one file from an uncompressed tar archive (ustar headers, 512-byte blocks). */
+function untarFile(tar, name) {
+  for (let offset = 0; offset + 512 <= tar.length; ) {
+    const header = tar.subarray(offset, offset + 512);
+    const entry = header.subarray(0, 100).toString('utf8').replace(/\0.*$/s, '');
+    if (!entry) break;
+    const prefix = header.subarray(345, 500).toString('utf8').replace(/\0.*$/s, '');
+    const size = parseInt(header.subarray(124, 136).toString('utf8').replace(/\0.*$/s, '').trim() || '0', 8);
+    const path = prefix ? `${prefix}/${entry}` : entry;
+    if (path === name || path === `./${name}`) return tar.subarray(offset + 512, offset + 512 + size).toString('utf8');
+    offset += 512 + Math.ceil(size / 512) * 512;
+  }
+  throw new Error(`${name} not found in the archive`);
 }

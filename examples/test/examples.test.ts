@@ -7,6 +7,7 @@ const examples = [
   { dir: 'content-moderation', task: 'content-moderation' },
   { dir: 'intent-detection', task: 'intent-detection' },
 ];
+const structured = [{ dir: 'event-extraction', task: 'event-extraction' }];
 
 describe.each(examples)('$dir', ({ dir, task }) => {
   it('has a config whose dataset parses against the schema: 300 examples, balanced labels', async () => {
@@ -53,5 +54,31 @@ describe('cloudCascade', () => {
       usage: [{ model: 'a', inputTokens: 1, outputTokens: 0 }, { model: 'b', inputTokens: 2, outputTokens: 1 }],
     });
     expect(calls).toEqual(['a:sure', 'a:unsure', 'b:unsure']);
+  });
+});
+
+describe.each(structured)('$dir', ({ dir, task }) => {
+  it('has a config whose dataset parses against the structured schema: 300 unique examples', async () => {
+    process.env['BELAY_CLOUD'] ??= 'reference';
+    const config = ((await import(`../${dir}/belay.config.mjs`)) as { default: BelayConfig }).default;
+    const dataset = await loadDataset(new URL(`../${dir}/examples.jsonl`, import.meta.url).pathname, config.tasks[task]!.schema);
+    expect(dataset.examples).toHaveLength(300);
+    expect(new Set(dataset.examples.map((e) => e.input.toLowerCase())).size).toBe(300);
+  });
+
+  it('compares extractions field by field, ignoring case, punctuation, articles and prepositions', async () => {
+    const { sameEvent, extractionSchema } = (await import('../event-extraction/task.mjs')) as {
+      sameEvent: (a: unknown, b: unknown) => boolean;
+      extractionSchema: { validate: (v: unknown) => boolean };
+    };
+    const expected = { event_name: 'team meeting', date: 'friday', time: 'three pm', person: null, place_name: null };
+    expect(sameEvent({ ...expected, event_name: 'The team meeting', time: 'at three PM.' }, expected)).toBe(true);
+    expect(sameEvent({ ...expected, person: '' }, expected)).toBe(true);
+    expect(sameEvent({ ...expected, place_name: 'null' }, expected)).toBe(true);
+    expect(sameEvent({ ...expected, date: 'next friday' }, expected)).toBe(false);
+    expect(sameEvent({ ...expected, person: 'joe' }, expected)).toBe(false);
+    expect(extractionSchema.validate(expected)).toBe(true);
+    expect(extractionSchema.validate({ ...expected, extra: 1 })).toBe(false);
+    expect(extractionSchema.validate({ ...expected, date: 5 })).toBe(false);
   });
 });
