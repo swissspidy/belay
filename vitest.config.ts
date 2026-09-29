@@ -4,6 +4,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@belay/core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
+      '@belay/web': new URL('./packages/web/src/index.ts', import.meta.url).pathname,
     },
   },
   test: {

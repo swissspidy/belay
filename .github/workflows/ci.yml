@@ -18,4 +18,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Install Chromium for the browser tests
+        run: |
+          npx playwright-core install --with-deps chromium
+          echo "BELAY_CHROME=$(node -e "import('playwright-core').then(p => console.log(p.chromium.executablePath()))")" >> "$GITHUB_ENV"
       - run: npm run check

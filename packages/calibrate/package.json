@@ -1,0 +1,36 @@
+{
+  "name": "@belay/calibrate",
+  "version": "0.1.0",
+  "description": "Calibrate Belay task thresholds on labeled data in a real Chrome: CLI, calibration file and HTML report.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "belay": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "@belay/core": "^0.1.0",
+    "@belay/web": "^0.1.0"
+  },
+  "peerDependencies": {
+    "playwright-core": ">=1.45"
+  },
+  "peerDependenciesMeta": {
+    "playwright-core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "playwright-core": "^1.56.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

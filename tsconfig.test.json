@@ -5,7 +5,11 @@
     "composite": false,
     "declaration": false,
     "declarationMap": false,
-    "paths": { "@belay/core": ["./packages/core/src/index.ts"] }
+    "types": ["node"],
+    "paths": {
+      "@belay/core": ["./packages/core/src/index.ts"],
+      "@belay/web": ["./packages/web/src/index.ts"]
+    }
   },
   "include": ["packages/*/src", "packages/*/test", "vitest.config.ts"]
 }

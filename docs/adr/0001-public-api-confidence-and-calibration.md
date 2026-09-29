@@ -327,8 +327,13 @@ bug that is worse to discover in production than at the first run.
   `>= target.value`. Local share is non-increasing in *t*, so this maximizes local share subject
   to the accuracy target. If no candidate meets the target, the candidate with the highest
   accuracy is recommended and `expected.accuracy < target.value` shows it. Per-label thresholds,
-  when requested, apply the same rule per local label, holding the other labels at the global
-  threshold.
+  when requested, are fitted greedily in schema option order: each label's threshold is lowered
+  to the smallest candidate (among that label's own confidences) that keeps the cascade at or
+  above the target, given the thresholds already chosen. Overrides therefore only ever lower a
+  threshold and the combined result still meets the target.
+- **Threshold values** are the shortest decimal inside the gap between two consecutive observed
+  confidences (0.82 rather than 0.8123456), which routes the dataset identically but does not
+  sit exactly on one example's score.
 - **Staleness.** A task refuses a calibration whose `task` or `schemaFingerprint` differs from its
   own (changing a prompt, an option or a description changes model behavior). It then falls back
   to `threshold` if given and emits an `error` event, and otherwise throws `invalid-calibration`.
