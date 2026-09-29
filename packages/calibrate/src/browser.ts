@@ -56,6 +56,10 @@ async function startServer(): Promise<{ server: Server; origin: string }> {
   };
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
+    if (url.pathname === '/favicon.ico') {
+      res.writeHead(204).end();
+      return;
+    }
     if (url.pathname === '/' || url.pathname === '/harness.html') {
       res.writeHead(200, { 'content-type': MIME['.html']! }).end(HARNESS_HTML);
       return;
@@ -142,6 +146,7 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
 
   try {
     if (options.initScript) await context.addInitScript(options.initScript);
+    await browser.setup?.(context);
     const page = context.pages()[0] ?? (await context.newPage());
     let progress: ((loaded: number) => void) | undefined;
     await page.exposeFunction('__belayProgress', (loaded: number) => progress?.(loaded));

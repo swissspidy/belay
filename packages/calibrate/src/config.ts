@@ -55,6 +55,11 @@ export interface BrowserConfig {
   args?: string[];
   /** Persistent profile, so downloaded models survive between runs. Defaults to `<cacheDir>/chrome-profile`. */
   userDataDir?: string;
+  /**
+   * Runs once after the browser starts and before the harness page loads, e.g. to change an
+   * extension setting. Receives the Playwright `BrowserContext`.
+   */
+  setup?: (context: import('playwright-core').BrowserContext) => Promise<void>;
   /** Per-example timeout for local runs. Defaults to 60 s. */
   timeoutMs?: number;
   /** Timeout for the initial model download / warm-up. Defaults to 30 min. */

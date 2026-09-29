@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.tsbuildinfo
 coverage/
+**/.belay-cache/chrome-profile*/
+*.log

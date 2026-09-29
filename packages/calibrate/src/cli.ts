@@ -156,7 +156,15 @@ export async function main(argv: string[]): Promise<number> {
 
   let lastLine = '';
   const progress = ({ phase, done, total }: { phase: string; done: number; total: number }) => {
-    if (quiet || !process.stderr.isTTY) return;
+    if (quiet) return;
+    if (!process.stderr.isTTY) {
+      // Logs (CI, redirected output): one line per 10% step.
+      const step = phase === 'prepare' ? Math.floor(done * 10) : Math.floor((done / total) * 10);
+      const line = `${phase} ${step * 10}%`;
+      if (line !== lastLine && (step !== 0 || lastLine === '' || !lastLine.startsWith(phase))) process.stderr.write(`${line}\n`);
+      lastLine = line;
+      return;
+    }
     const line = phase === 'prepare' ? `download ${pct(done, 0)}` : `${phase} ${done}/${total}`;
     if (line !== lastLine) process.stderr.write(`\r${line.padEnd(24)}`);
     lastLine = line;

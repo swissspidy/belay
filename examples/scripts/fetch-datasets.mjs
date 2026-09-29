@@ -1,0 +1,157 @@
+#!/usr/bin/env node
+/**
+ * Builds the example datasets from public, openly licensed Hugging Face datasets. The sampling is
+ * deterministic (FNV-1a hash order), so re-running produces the same files.
+ *
+ *   node examples/scripts/fetch-datasets.mjs
+ *
+ * Pass dataset names (triage, moderation, intent) to fetch only those.
+ * Behind a proxy, run with NODE_USE_ENV_PROXY=1 (Node >= 22.21).
+ */
+import { writeFile } from 'node:fs/promises';
+
+const API = 'https://datasets-server.huggingface.co';
+const only = process.argv.slice(2);
+const want = (name) => only.length === 0 || only.includes(name);
+
+function fnv1a(text) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+async function get(path) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${API}${path}`);
+    if (res.ok) return res.json();
+    if (attempt === 4) throw new Error(`${res.status} ${await res.text()}`);
+    await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+  }
+}
+
+/** All rows of a split through the (fast, cached) /rows endpoint, optionally stopping early. */
+async function allRows(dataset, split, { until } = {}) {
+  const rows = [];
+  for (let offset = 0; ; offset += 100) {
+    const q = new URLSearchParams({ dataset, config: 'default', split, offset: String(offset), length: '100' });
+    const page = await get(`/rows?${q}`);
+    rows.push(...page.rows.map((r) => r.row));
+    if (offset % 2000 === 0) console.error(`${dataset}/${split}: ${rows.length} of ${page.num_rows_total}`);
+    if (page.rows.length < 100 || rows.length >= page.num_rows_total || until?.(rows)) return rows;
+    await new Promise((r) => setTimeout(r, 250)); // be gentle with the public API
+  }
+}
+
+/** Minimal RFC 4180 CSV parser (quoted fields may contain commas, quotes and newlines). */
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') {
+      row.push(field);
+      field = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else field += c;
+  }
+  if (field || row.length) rows.push([...row, field]);
+  const [header, ...body] = rows;
+  return body.filter((r) => r.length === header.length).map((r) => Object.fromEntries(header.map((h, i) => [h, r[i]])));
+}
+
+/** Deterministic pick of `n` rows: sort by hash of the text, dedupe, take the first n. */
+function pick(rows, n, text, seed) {
+  const seen = new Set();
+  return rows
+    .map((row) => ({ row, h: fnv1a(`${seed}:${text(row)}`) }))
+    .sort((a, b) => a.h - b.h)
+    .map((x) => x.row)
+    .filter((row) => {
+      const key = text(row).trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, n);
+}
+
+/** Interleave groups so the file is not sorted by label. */
+function interleave(groups) {
+  const out = [];
+  for (let i = 0; groups.some((g) => i < g.length); i++) for (const g of groups) if (i < g.length) out.push(g[i]);
+  return out;
+}
+
+async function write(path, examples) {
+  await writeFile(path, examples.map((e, i) => JSON.stringify({ id: `${i + 1}`, ...e })).join('\n') + '\n');
+  console.log(`wrote ${examples.length} examples to ${path}`);
+}
+
+// ---- Ticket triage: Bitext customer support (CDLA-Sharing-1.0) ---------------------------------
+if (want('triage')) {
+  const dataset = 'bitext/Bitext-customer-support-llm-chatbot-training-dataset';
+  const mapping = {
+    account: ['ACCOUNT'],
+    billing: ['INVOICE', 'PAYMENT', 'REFUND'],
+    order: ['ORDER', 'CANCEL'],
+    shipping: ['DELIVERY', 'SHIPPING'],
+    feedback: ['FEEDBACK'],
+  };
+  const csv = await fetch(
+    `https://huggingface.co/datasets/${dataset}/resolve/main/Bitext_Sample_Customer_Support_Training_Dataset_27K_responses-v11.csv`,
+    { signal: AbortSignal.timeout(300_000) },
+  ).then((r) => r.text());
+  const all = parseCsv(csv);
+  console.error(`${dataset}: ${all.length} rows`);
+  const groups = [];
+  for (const [label, categories] of Object.entries(mapping)) {
+    const rows = all.filter((r) => categories.includes(r.category));
+    groups.push(pick(rows, 60, (r) => r.instruction, 'triage').map((r) => ({ input: r.instruction, label, source: r.intent })));
+  }
+  await write(new URL('../ticket-triage/examples.jsonl', import.meta.url), interleave(groups));
+}
+
+// ---- Content moderation: Civil Comments (CC0-1.0) ----------------------------------------------
+if (want('moderation')) {
+  const dataset = 'google/civil_comments';
+  // "toxic" = at least half of the annotators marked it toxic; "ok" = at most 10% did.
+  const short = (r) => r.text.length >= 20 && r.text.length <= 400;
+  const rows = await allRows(dataset, 'test', {
+    until: (rs) => rs.filter((r) => r.toxicity >= 0.5 && short(r)).length >= 600,
+  });
+  const toxic = rows.filter((r) => r.toxicity >= 0.5);
+  const ok = rows.filter((r) => r.toxicity <= 0.1);
+  const groups = [
+    pick(toxic.filter(short), 150, (r) => r.text, 'moderation').map((r) => ({ input: r.text, label: true, toxicity: Math.round(r.toxicity * 1000) / 1000 })),
+    pick(ok.filter(short), 150, (r) => r.text, 'moderation').map((r) => ({ input: r.text, label: false, toxicity: Math.round(r.toxicity * 1000) / 1000 })),
+  ];
+  await write(new URL('../content-moderation/examples.jsonl', import.meta.url), interleave(groups));
+}
+
+// ---- Intent detection: MASSIVE en-US (CC BY 4.0) -----------------------------------------------
+if (want('intent')) {
+  const dataset = 'SetFit/amazon_massive_intent_en-US';
+  const intents = ['alarm_set', 'weather_query', 'play_music', 'calendar_set', 'iot_hue_lightoff', 'takeaway_order', 'news_query', 'email_sendemail'];
+  const rows = [...(await allRows(dataset, 'test')), ...(await allRows(dataset, 'validation'))];
+  const groups = intents.map((intent, i) =>
+    pick(rows.filter((r) => r.label_text === intent), i < 4 ? 38 : 37, (r) => r.text, 'intent').map((r) => ({ input: r.text, label: intent })),
+  );
+  await write(new URL('../intent-detection/examples.jsonl', import.meta.url), interleave(groups));
+}

@@ -1,0 +1,300 @@
+{"id":"1","input":"could you tell me more about creating a platinum account?","label":"account","source":"create_account"}
+{"id":"2","input":"can uhelp me to inform of  issues with payments","label":"billing","source":"payment_issue"}
+{"id":"3","input":"i need help to add a product to order {{Order Number}}","label":"order","source":"change_order"}
+{"id":"4","input":"where to see what shipping methods you offer?","label":"shipping","source":"delivery_options"}
+{"id":"5","input":"can I make a consumer reclamation against your organization?","label":"feedback","source":"complaint"}
+{"id":"6","input":"correcting data on {{Account Category}} account","label":"account","source":"edit_account"}
+{"id":"7","input":"i do not know what i need to do to list ur payment methods","label":"billing","source":"check_payment_methods"}
+{"id":"8","input":"i have to check the cancellation penalty","label":"order","source":"check_cancellation_fee"}
+{"id":"9","input":"I can't modify my delivery address","label":"shipping","source":"change_shipping_address"}
+{"id":"10","input":"what do i need to do to leave a comment about ur services","label":"feedback","source":"review"}
+{"id":"11","input":"opening new premium account for daughter","label":"account","source":"create_account"}
+{"id":"12","input":"checking invoices from last month","label":"billing","source":"check_invoice"}
+{"id":"13","input":"i dont know how i can purcase some items","label":"order","source":"place_order"}
+{"id":"14","input":"i have issues submitting another shipping address","label":"shipping","source":"set_up_shipping_address"}
+{"id":"15","input":"want help lodging a customer claim against your organization","label":"feedback","source":"complaint"}
+{"id":"16","input":"can uhelp me restore the password of my user profile","label":"account","source":"recover_password"}
+{"id":"17","input":"I am trying to check the accepted payment modalities","label":"billing","source":"check_payment_methods"}
+{"id":"18","input":"assistance to shop some of ur article","label":"order","source":"place_order"}
+{"id":"19","input":"can I order from {{Delivery City}}?","label":"shipping","source":"delivery_options"}
+{"id":"20","input":"do you have a method to send some feedback for a product ?","label":"feedback","source":"review"}
+{"id":"21","input":"wanna  use the platinum profile help me","label":"account","source":"switch_account"}
+{"id":"22","input":"I'd like to list the fucking payment methods how do i do it","label":"billing","source":"check_payment_methods"}
+{"id":"23","input":"I want assistance to check the ETA of purchase {{Order Number}}","label":"order","source":"track_order"}
+{"id":"24","input":"I need help to enter the secondaryshipping address","label":"shipping","source":"set_up_shipping_address"}
+{"id":"25","input":"io want assistance to leave a comment for a service","label":"feedback","source":"review"}
+{"id":"26","input":"edting info on standard account","label":"account","source":"edit_account"}
+{"id":"27","input":"I want help notifying of troubles with payments","label":"billing","source":"payment_issue"}
+{"id":"28","input":"I don't know how I can check the cancellation charge","label":"order","source":"check_cancellation_fee"}
+{"id":"29","input":"wanna see what delivery options are there i need help","label":"shipping","source":"delivery_options"}
+{"id":"30","input":"making customer claim","label":"feedback","source":"complaint"}
+{"id":"31","input":"open standard account","label":"account","source":"create_account"}
+{"id":"32","input":"I don't know what I have to do to demad my money back","label":"billing","source":"get_refund"}
+{"id":"33","input":"where can I purchase several of your product?","label":"order","source":"place_order"}
+{"id":"34","input":"i have to see how soon can i expect my item ohw can i do it","label":"shipping","source":"delivery_period"}
+{"id":"35","input":"where do I submit my feedback about your products?","label":"feedback","source":"review"}
+{"id":"36","input":"I want assistamce creating a standard account","label":"account","source":"create_account"}
+{"id":"37","input":"I don't know what I need to do to get the bill #37777","label":"billing","source":"get_invoice"}
+{"id":"38","input":"can you help me to see the damn ETA of order {{Order Number}}?","label":"order","source":"track_order"}
+{"id":"39","input":"I have to submit my new delivery address, will you help me?","label":"shipping","source":"set_up_shipping_address"}
+{"id":"40","input":"want assistance writing a comment about a service","label":"feedback","source":"review"}
+{"id":"41","input":"I have errors signing up","label":"account","source":"registration_problems"}
+{"id":"42","input":"I don't know what  to do to find the bills from {{Person Name}}","label":"billing","source":"check_invoice"}
+{"id":"43","input":"i cannot see tge eta of the purchase {{Order Number}}","label":"order","source":"track_order"}
+{"id":"44","input":"I need to check what shipment methods I have","label":"shipping","source":"delivery_options"}
+{"id":"45","input":"product review","label":"feedback","source":"review"}
+{"id":"46","input":"I cannot create a {{Account Type}} account","label":"account","source":"create_account"}
+{"id":"47","input":"I do not know how to look for the bill from {{Person Name}}","label":"billing","source":"check_invoice"}
+{"id":"48","input":"how do i check the eta of purchase {{Order Number}}","label":"order","source":"track_order"}
+{"id":"49","input":"I am calling to check when my order is going to arrive","label":"shipping","source":"delivery_period"}
+{"id":"50","input":"I have to file a complaint against your organization","label":"feedback","source":"complaint"}
+{"id":"51","input":"how to open a standard account for my dad?","label":"account","source":"create_account"}
+{"id":"52","input":"I lost the bill from {{Person Name}}, mail it to me","label":"billing","source":"get_invoice"}
+{"id":"53","input":"assistance to update purchase {{Order Number}}","label":"order","source":"change_order"}
+{"id":"54","input":"I don't know how to update my delivery address","label":"shipping","source":"change_shipping_address"}
+{"id":"55","input":"need to leave a review about ur products how can i do it","label":"feedback","source":"review"}
+{"id":"56","input":"I need assistance creating a {{Account Type}} account for my dad","label":"account","source":"create_account"}
+{"id":"57","input":"I don't know how to list your allowed payment methods","label":"billing","source":"check_payment_methods"}
+{"id":"58","input":"how to swap several items of purchase {{Order Number}}","label":"order","source":"change_order"}
+{"id":"59","input":"I have a trouble trying to modify my shipping address","label":"shipping","source":"change_shipping_address"}
+{"id":"60","input":"I am trying to lodge a customer complaint","label":"feedback","source":"complaint"}
+{"id":"61","input":"i need help to use the {{Account Category}} progile","label":"account","source":"switch_account"}
+{"id":"62","input":"I want help downloading the invoice #00108","label":"billing","source":"get_invoice"}
+{"id":"63","input":"I can't find anything about the cancellation charge","label":"order","source":"check_cancellation_fee"}
+{"id":"64","input":"y i cant submit a different delivery address valid","label":"shipping","source":"set_up_shipping_address"}
+{"id":"65","input":"i do not know what to do to lodge a customer reclamation","label":"feedback","source":"complaint"}
+{"id":"66","input":"need to notify of an issue with registrations","label":"account","source":"registration_problems"}
+{"id":"67","input":"I have got to see in which situations can Irequest a refund","label":"billing","source":"check_refund_policy"}
+{"id":"68","input":"remove something from purchase {{Order Number}}","label":"order","source":"change_order"}
+{"id":"69","input":"troubles setting up another shipping address","label":"shipping","source":"set_up_shipping_address"}
+{"id":"70","input":"do you have an address to send my feedback for a product?","label":"feedback","source":"review"}
+{"id":"71","input":"opening new freemium account for daughter","label":"account","source":"create_account"}
+{"id":"72","input":"see in what cases can I ask for a refund","label":"billing","source":"check_refund_policy"}
+{"id":"73","input":"i cannot pay for these product how do i cancel the order","label":"order","source":"cancel_order"}
+{"id":"74","input":"i cant enter the secondary delivery address","label":"shipping","source":"set_up_shipping_address"}
+{"id":"75","input":"I don't know how I could file a claim","label":"feedback","source":"complaint"}
+{"id":"76","input":"how can i find information about {{Account Type}} account removasl","label":"account","source":"delete_account"}
+{"id":"77","input":"I don't know what to do to download thr invoice #12588","label":"billing","source":"get_invoice"}
+{"id":"78","input":"i have got to order several of ur product","label":"order","source":"place_order"}
+{"id":"79","input":"I have got to see what shipment options I can choose","label":"shipping","source":"delivery_options"}
+{"id":"80","input":"can ya help me to leave a review about a service","label":"feedback","source":"review"}
+{"id":"81","input":"I do not know how to report signup issues","label":"account","source":"registration_problems"}
+{"id":"82","input":"show me in what casescan i request my money back","label":"billing","source":"check_refund_policy"}
+{"id":"83","input":"I can't find the  termination charge","label":"order","source":"check_cancellation_fee"}
+{"id":"84","input":"need to check what shipment options i can choose help me","label":"shipping","source":"delivery_options"}
+{"id":"85","input":"where could I file a consumer claim against your company?","label":"feedback","source":"complaint"}
+{"id":"86","input":"help me creting a {{Account Type}} account","label":"account","source":"create_account"}
+{"id":"87","input":"i have got to get restitutions of my money","label":"billing","source":"get_refund"}
+{"id":"88","input":"i do not know what to do to check the termination penalty","label":"order","source":"check_cancellation_fee"}
+{"id":"89","input":"want help checking what shipment methods you offer","label":"shipping","source":"delivery_options"}
+{"id":"90","input":"do you have a method to leave a review about a service?","label":"feedback","source":"review"}
+{"id":"91","input":"I ain't registered, assistance opening an account with you","label":"account","source":"create_account"}
+{"id":"92","input":"I'm waiting for a restitution oof {{Currency Symbol}}{{Refund Amount}}","label":"billing","source":"track_refund"}
+{"id":"93","input":"I do not know how to check order {{Order Number}} status","label":"order","source":"track_order"}
+{"id":"94","input":"can you tell me about editing the shipping address?","label":"shipping","source":"change_shipping_address"}
+{"id":"95","input":"I'm dissatisfied with ur services help to file a reclamation","label":"feedback","source":"complaint"}
+{"id":"96","input":"removing platinum account","label":"account","source":"delete_account"}
+{"id":"97","input":"want assistance to see how long refunds usually take","label":"billing","source":"check_refund_policy"}
+{"id":"98","input":"i do not know how i can ese the termination charges","label":"order","source":"check_cancellation_fee"}
+{"id":"99","input":"I have got to enter a new shipping address, how do I do it ?","label":"shipping","source":"set_up_shipping_address"}
+{"id":"100","input":"want help filing a claim","label":"feedback","source":"complaint"}
+{"id":"101","input":"where to report issues with a sign-up?","label":"account","source":"registration_problems"}
+{"id":"102","input":"I need assitance getting the invoice #00108","label":"billing","source":"get_invoice"}
+{"id":"103","input":"I don't know how to shop some of your item","label":"order","source":"place_order"}
+{"id":"104","input":"want help checking ohw soon can I expect my package","label":"shipping","source":"delivery_period"}
+{"id":"105","input":"can i lodge a customer reclamation against ur company","label":"feedback","source":"complaint"}
+{"id":"106","input":"i have to retrieve the key of my user how do i do it","label":"account","source":"recover_password"}
+{"id":"107","input":"what do i have to do to report a trouble with payments","label":"billing","source":"payment_issue"}
+{"id":"108","input":"where to acquire several of your item?","label":"order","source":"place_order"}
+{"id":"109","input":"I want to see the methods for delivery, how could I do it?","label":"shipping","source":"delivery_options"}
+{"id":"110","input":"I have got to leave my feedback, I need assistance","label":"feedback","source":"review"}
+{"id":"111","input":"I need assistance retrieving the PIN of my account","label":"account","source":"recover_password"}
+{"id":"112","input":"I need hnelp to solve a trouble with online payment","label":"billing","source":"payment_issue"}
+{"id":"113","input":"I want to locate order {{Order Number}}, could I get some help?","label":"order","source":"track_order"}
+{"id":"114","input":"I don't know how I can check what shipping options you offer","label":"shipping","source":"delivery_options"}
+{"id":"115","input":"I need to leave my feedback, can you help me?","label":"feedback","source":"review"}
+{"id":"116","input":"I have to inform of issues with a registration","label":"account","source":"registration_problems"}
+{"id":"117","input":"i do not know how to check bill #00108","label":"billing","source":"check_invoice"}
+{"id":"118","input":"I have to see purchase {{Order Number}} current status","label":"order","source":"track_order"}
+{"id":"119","input":"i want help trying to modify my delivery address","label":"shipping","source":"change_shipping_address"}
+{"id":"120","input":"help to write an opinion for ur company","label":"feedback","source":"review"}
+{"id":"121","input":"I never use the {{Account Type}} account, can you help me to cancel it?","label":"account","source":"delete_account"}
+{"id":"122","input":"I am trying to see what payment options are available","label":"billing","source":"check_payment_methods"}
+{"id":"123","input":"I need to swqap something of purchase {{Order Number}}, help me","label":"order","source":"change_order"}
+{"id":"124","input":"I have to check how soon can I expect the purchase","label":"shipping","source":"delivery_period"}
+{"id":"125","input":"want help to make a consumer complaint against ur company","label":"feedback","source":"complaint"}
+{"id":"126","input":"update info on premium account","label":"account","source":"edit_account"}
+{"id":"127","input":"I do not know what to do to get my invoice #00108","label":"billing","source":"get_invoice"}
+{"id":"128","input":"could you help me shop a few of your article?","label":"order","source":"place_order"}
+{"id":"129","input":"I do not know what to do to submit my new shipping address","label":"shipping","source":"set_up_shipping_address"}
+{"id":"130","input":"i call to lodge a customer reclamation","label":"feedback","source":"complaint"}
+{"id":"131","input":"can ya tell me more about opening {{Account Type}} accounts","label":"account","source":"create_account"}
+{"id":"132","input":"want help to see what payment methods are allowed","label":"billing","source":"check_payment_methods"}
+{"id":"133","input":"i want help cancelling order {{Order Number}}","label":"order","source":"cancel_order"}
+{"id":"134","input":"want help checking when will my product arrive","label":"shipping","source":"delivery_period"}
+{"id":"135","input":"need help to file a damn claim against your organization","label":"feedback","source":"complaint"}
+{"id":"136","input":"assistance creating a platinum account","label":"account","source":"create_account"}
+{"id":"137","input":"can ya help me inform of errors with online payment","label":"billing","source":"payment_issue"}
+{"id":"138","input":"can you help me check the ETA of the purchase {{Order Number}}?","label":"order","source":"track_order"}
+{"id":"139","input":"i need help entering my new delivery address","label":"shipping","source":"set_up_shipping_address"}
+{"id":"140","input":"could you help me to submit some feedback for your products?","label":"feedback","source":"review"}
+{"id":"141","input":"help changing to the standard account","label":"account","source":"switch_account"}
+{"id":"142","input":"what do I need to do to check your accepted payment methods?","label":"billing","source":"check_payment_methods"}
+{"id":"143","input":"i try ot order a few of ur item","label":"order","source":"place_order"}
+{"id":"144","input":"I need assistance trying to modify the shipping address","label":"shipping","source":"change_shipping_address"}
+{"id":"145","input":"need hedlp filing a consumer claim","label":"feedback","source":"complaint"}
+{"id":"146","input":"modify premium account","label":"account","source":"edit_account"}
+{"id":"147","input":"where can I see the status of the restitution?","label":"billing","source":"track_refund"}
+{"id":"148","input":"prfoblems with cancelling order {{Order Number}}","label":"order","source":"cancel_order"}
+{"id":"149","input":"can uhelp me seeing the options for shipment","label":"shipping","source":"delivery_options"}
+{"id":"150","input":"I am trying to leave feedback for a service","label":"feedback","source":"review"}
+{"id":"151","input":"correct info on standard account","label":"account","source":"edit_account"}
+{"id":"152","input":"I don't know what I have to do to download my invoice #12588","label":"billing","source":"get_invoice"}
+{"id":"153","input":"assistance cancelling purchase {{Order Number}}","label":"order","source":"cancel_order"}
+{"id":"154","input":"I can't modify theaddress","label":"shipping","source":"change_shipping_address"}
+{"id":"155","input":"is there a section to send feedback about a service?","label":"feedback","source":"review"}
+{"id":"156","input":"correcting infornation on premium account","label":"account","source":"edit_account"}
+{"id":"157","input":"I expect a goddamn restitution of {{Currency Symbol}}{{Refund Amount}}","label":"billing","source":"track_refund"}
+{"id":"158","input":"I need help locatin purchase {{Order Number}}","label":"order","source":"track_order"}
+{"id":"159","input":"I want to see the options for shipment, help me","label":"shipping","source":"delivery_options"}
+{"id":"160","input":"can you help me to write an opinion about your products?","label":"feedback","source":"review"}
+{"id":"161","input":"using {{Account Type}} accouny","label":"account","source":"switch_account"}
+{"id":"162","input":"check your money back policy","label":"billing","source":"check_refund_policy"}
+{"id":"163","input":"I do not know what I need to do to purchase several items","label":"order","source":"place_order"}
+{"id":"164","input":"i have to see how long it takes for the package to arrive","label":"shipping","source":"delivery_period"}
+{"id":"165","input":"hdlp me to make a consumer complaint against your company","label":"feedback","source":"complaint"}
+{"id":"166","input":"I want information about my {{Account Category}} account termination","label":"account","source":"delete_account"}
+{"id":"167","input":"i need assistance checking my rebate status","label":"billing","source":"track_refund"}
+{"id":"168","input":"I need to see purchase {{Order Number}} current status","label":"order","source":"track_order"}
+{"id":"169","input":"I can't set a new delivery address up","label":"shipping","source":"set_up_shipping_address"}
+{"id":"170","input":"how to send feedback about your products?","label":"feedback","source":"review"}
+{"id":"171","input":"I want to change to the {{Account Type}} account","label":"account","source":"switch_account"}
+{"id":"172","input":"I do not know what to do to get the invoice #12588","label":"billing","source":"get_invoice"}
+{"id":"173","input":"I have to shop a few of your product, how could I do it?","label":"order","source":"place_order"}
+{"id":"174","input":"can you help me seeing when my article is going to arrive?","label":"shipping","source":"delivery_period"}
+{"id":"175","input":"file consumer reclamation against ur company","label":"feedback","source":"complaint"}
+{"id":"176","input":"I have to report a problem with signup","label":"account","source":"registration_problems"}
+{"id":"177","input":"how long till I obtain a refund of money?","label":"billing","source":"get_refund"}
+{"id":"178","input":"I try to cancel purchase {{Order Number}}","label":"order","source":"cancel_order"}
+{"id":"179","input":"can you help me updating the shipping address?","label":"shipping","source":"change_shipping_address"}
+{"id":"180","input":"i dont know what to do to send my feedback for ur products","label":"feedback","source":"review"}
+{"id":"181","input":"what do i have to do to cancel a standard account","label":"account","source":"delete_account"}
+{"id":"182","input":"help to list your allowed payment options","label":"billing","source":"check_payment_methods"}
+{"id":"183","input":"I have got to see the cancellation charge, can you help me?","label":"order","source":"check_cancellation_fee"}
+{"id":"184","input":"seeing the available options for shipping","label":"shipping","source":"delivery_options"}
+{"id":"185","input":"help me to file a customer claim","label":"feedback","source":"complaint"}
+{"id":"186","input":"I want to inform of an error with a damn signup","label":"account","source":"registration_problems"}
+{"id":"187","input":"what do I have to do to download my invoice #37777?","label":"billing","source":"get_invoice"}
+{"id":"188","input":"can uhelp me to add a bloody item topurchase {{Order Number}}","label":"order","source":"change_order"}
+{"id":"189","input":"assistance to check how soon can I expect my purchase","label":"shipping","source":"delivery_period"}
+{"id":"190","input":"leave review for your company","label":"feedback","source":"review"}
+{"id":"191","input":"opening new platinum account","label":"account","source":"create_account"}
+{"id":"192","input":"I can't locate my invoices from {{Person Name}}","label":"billing","source":"check_invoice"}
+{"id":"193","input":"wqhere to see purchase {{Order Number}} current status","label":"order","source":"track_order"}
+{"id":"194","input":"my address has changed, how could I change it?","label":"shipping","source":"change_shipping_address"}
+{"id":"195","input":"I call to lodge a complaint against your business","label":"feedback","source":"complaint"}
+{"id":"196","input":"I do not need the {{Account Category}} account, can I cancel it?","label":"account","source":"delete_account"}
+{"id":"197","input":"could I see the goddamn available payment methods?","label":"billing","source":"check_payment_methods"}
+{"id":"198","input":"I need help to check purchase {{Order Number}} current status","label":"order","source":"track_order"}
+{"id":"199","input":"how can I check how soon can I expect the parcel?","label":"shipping","source":"delivery_period"}
+{"id":"200","input":"i want help leaving a comment","label":"feedback","source":"review"}
+{"id":"201","input":"new freemium account for wife","label":"account","source":"create_account"}
+{"id":"202","input":"assistance to see what payment methods are accepted","label":"billing","source":"check_payment_methods"}
+{"id":"203","input":"help me seeing the early termination penalties","label":"order","source":"check_cancellation_fee"}
+{"id":"204","input":"want help trying to edit my addres","label":"shipping","source":"change_shipping_address"}
+{"id":"205","input":"I want assistance to lodge a customer reclamation","label":"feedback","source":"complaint"}
+{"id":"206","input":"i want help creating a {{Account Type}} account for my dad","label":"account","source":"create_account"}
+{"id":"207","input":"i dont know how to check the current status of my rebate","label":"billing","source":"track_refund"}
+{"id":"208","input":"I want helo to check the cancellation fee","label":"order","source":"check_cancellation_fee"}
+{"id":"209","input":"information about the delivery period","label":"shipping","source":"delivery_period"}
+{"id":"210","input":"where do I lodge a consumer claim against your business?","label":"feedback","source":"complaint"}
+{"id":"211","input":"can ya help me retrieving my user pin code","label":"account","source":"recover_password"}
+{"id":"212","input":"any news on the refund","label":"billing","source":"track_refund"}
+{"id":"213","input":"I need help seeing the ETA of the order {{Order Number}}","label":"order","source":"track_order"}
+{"id":"214","input":"i need support modifying my delivery addtess","label":"shipping","source":"change_shipping_address"}
+{"id":"215","input":"wanna leave a review about a product how to do it","label":"feedback","source":"review"}
+{"id":"216","input":"can I open a freemium account?","label":"account","source":"create_account"}
+{"id":"217","input":"I want to check the bloody payment options","label":"billing","source":"check_payment_methods"}
+{"id":"218","input":"where do i see the early termination fees","label":"order","source":"check_cancellation_fee"}
+{"id":"219","input":"I want assistance editing the shipping address","label":"shipping","source":"change_shipping_address"}
+{"id":"220","input":"I ain't happy with your work, I need to make a claim","label":"feedback","source":"complaint"}
+{"id":"221","input":"assistance informing of an error with a signup","label":"account","source":"registration_problems"}
+{"id":"222","input":"I want assistance informing of  issues with payment","label":"billing","source":"payment_issue"}
+{"id":"223","input":"where to check the ETA of purchase {{Order Number}}","label":"order","source":"track_order"}
+{"id":"224","input":"where do I see when my package is going to arrive?","label":"shipping","source":"delivery_period"}
+{"id":"225","input":"I am unhappy with your work, lodge a claim","label":"feedback","source":"complaint"}
+{"id":"226","input":"want assistance t switch to the {{Account Category}} account","label":"account","source":"switch_account"}
+{"id":"227","input":"I'm waiting for a goddamn compensation of {{Refund Amount}} dollars","label":"billing","source":"track_refund"}
+{"id":"228","input":"I don't know how I can see the early termination penalties","label":"order","source":"check_cancellation_fee"}
+{"id":"229","input":"need help to see how long it takes for my parcel to arrive","label":"shipping","source":"delivery_period"}
+{"id":"230","input":"i do not know what to do to send feedback for a product","label":"feedback","source":"review"}
+{"id":"231","input":"can ya help me to cancel an {{Account Category}} account","label":"account","source":"delete_account"}
+{"id":"232","input":"I have got to obtain reimbursements of money","label":"billing","source":"get_refund"}
+{"id":"233","input":"help me seeing purchase {{Order Number}} status","label":"order","source":"track_order"}
+{"id":"234","input":"I do not know how I can see what shipment methods you offer","label":"shipping","source":"delivery_options"}
+{"id":"235","input":"i want assistance to send my feedback for ur company","label":"feedback","source":"review"}
+{"id":"236","input":"can you help me resetting the access key of my account?","label":"account","source":"recover_password"}
+{"id":"237","input":"where can I iinform of errors with online payment?","label":"billing","source":"payment_issue"}
+{"id":"238","input":"helpme seeing the early exit fee","label":"order","source":"check_cancellation_fee"}
+{"id":"239","input":"I have got to enter a delivery address","label":"shipping","source":"set_up_shipping_address"}
+{"id":"240","input":"want help to leave some feedback about your services","label":"feedback","source":"review"}
+{"id":"241","input":"how could I get information about a pro account deletion?","label":"account","source":"delete_account"}
+{"id":"242","input":"i dont know what i have to do to track the restitution","label":"billing","source":"track_refund"}
+{"id":"243","input":"I don't know what I have to do to buy some products","label":"order","source":"place_order"}
+{"id":"244","input":"I try to see how long it takes for my delivery to arrive","label":"shipping","source":"delivery_period"}
+{"id":"245","input":"I want to lodge a reclamation against your company","label":"feedback","source":"complaint"}
+{"id":"246","input":"I need help retrieving my user pwd","label":"account","source":"recover_password"}
+{"id":"247","input":"what do I have to do to inform of payment errors?","label":"billing","source":"payment_issue"}
+{"id":"248","input":"whag do i need to do to cancel order {{Order Number}}","label":"order","source":"cancel_order"}
+{"id":"249","input":"help me to edit my address","label":"shipping","source":"change_shipping_address"}
+{"id":"250","input":"I want assistance writing an opinion for a product","label":"feedback","source":"review"}
+{"id":"251","input":"can ya help me to open an platinum account","label":"account","source":"create_account"}
+{"id":"252","input":"help me to take a quick look at my invoice #12588","label":"billing","source":"check_invoice"}
+{"id":"253","input":"i have got to check the early exit pnalty","label":"order","source":"check_cancellation_fee"}
+{"id":"254","input":"I want assistance to edit my shipping address","label":"shipping","source":"change_shipping_address"}
+{"id":"255","input":"is it possible to make a reclamation against your business?","label":"feedback","source":"complaint"}
+{"id":"256","input":"I need help to switcdh to the freemium account","label":"account","source":"switch_account"}
+{"id":"257","input":"help me to see ur allowed payment modalities","label":"billing","source":"check_payment_methods"}
+{"id":"258","input":"problem with canceling order {{Order Number}}","label":"order","source":"cancel_order"}
+{"id":"259","input":"would it be possible toplace a fucking order from {{Delivery City}}","label":"shipping","source":"delivery_options"}
+{"id":"260","input":"is it possible to file a customer complaint?","label":"feedback","source":"complaint"}
+{"id":"261","input":"I want help informing of signup problems","label":"account","source":"registration_problems"}
+{"id":"262","input":"I don't know how I could check my bill from {{Person Name}}","label":"billing","source":"check_invoice"}
+{"id":"263","input":"how do I order some of your article?","label":"order","source":"place_order"}
+{"id":"264","input":"how to see how long it takes for my shipment to arrive?","label":"shipping","source":"delivery_period"}
+{"id":"265","input":"want assistance to file a reclamation against your business","label":"feedback","source":"complaint"}
+{"id":"266","input":"report erroprs with sign-up","label":"account","source":"registration_problems"}
+{"id":"267","input":"I lost the bills from {{Person Name}}, mail them to me","label":"billing","source":"get_invoice"}
+{"id":"268","input":"help checking the ETA o the purchase {{Order Number}}","label":"order","source":"track_order"}
+{"id":"269","input":"I need to see the delivery options, how do I do it?","label":"shipping","source":"delivery_options"}
+{"id":"270","input":"need to file a complaint against ur company","label":"feedback","source":"complaint"}
+{"id":"271","input":"question about opening standard accounts","label":"account","source":"create_account"}
+{"id":"272","input":"were do i report troubles with payment","label":"billing","source":"payment_issue"}
+{"id":"273","input":"update purchase00123842","label":"order","source":"change_order"}
+{"id":"274","input":"what do I have to do to checkhow soon can I expect my order?","label":"shipping","source":"delivery_period"}
+{"id":"275","input":"want help to send feedback about a product","label":"feedback","source":"review"}
+{"id":"276","input":"I am looking for information about my pro account deletion","label":"account","source":"delete_account"}
+{"id":"277","input":"how to ask for a rebate of my money","label":"billing","source":"get_refund"}
+{"id":"278","input":"can uhelp me cancelling purchazse {{Order Number}}","label":"order","source":"cancel_order"}
+{"id":"279","input":"i want help checking how soon can i expect my delivery","label":"shipping","source":"delivery_period"}
+{"id":"280","input":"i need assistance to file a complaint","label":"feedback","source":"complaint"}
+{"id":"281","input":"I have to report a sign-up error, how to do it?","label":"account","source":"registration_problems"}
+{"id":"282","input":"what do i need ti do to check ur refund policy","label":"billing","source":"check_refund_policy"}
+{"id":"283","input":"can ya help me checking the eta of the order {{Order Number}}","label":"order","source":"track_order"}
+{"id":"284","input":"where to see when my shipment is going to arrive?","label":"shipping","source":"delivery_period"}
+{"id":"285","input":"help me filing a customer complaint against your business","label":"feedback","source":"complaint"}
+{"id":"286","input":"I don't know how to close my {{Account Type}} account","label":"account","source":"delete_account"}
+{"id":"287","input":"what do I need to do to download my bills from {{Person Name}}?","label":"billing","source":"get_invoice"}
+{"id":"288","input":"help adding several products to purchase {{Order Number}}","label":"order","source":"change_order"}
+{"id":"289","input":"how can I check when my bloody product is going to arrive?","label":"shipping","source":"delivery_period"}
+{"id":"290","input":"can ya help me to wrtie a comment for a service","label":"feedback","source":"review"}
+{"id":"291","input":"help toinform of registration issues","label":"account","source":"registration_problems"}
+{"id":"292","input":"I would like to see the payment methods, will you help me?","label":"billing","source":"check_payment_methods"}
+{"id":"293","input":"I cannot find the withdrawal penalty, could you help me?","label":"order","source":"check_cancellation_fee"}
+{"id":"294","input":"where to see what delivery options uoffer","label":"shipping","source":"delivery_options"}
+{"id":"295","input":"do you have a section to submit an opinion for your company?","label":"feedback","source":"review"}
+{"id":"296","input":"I do not know what to do to notify of a signup error","label":"account","source":"registration_problems"}
+{"id":"297","input":"I do not know how I can get my bill from {{Person Name}}","label":"billing","source":"get_invoice"}
+{"id":"298","input":"I need help shopping several of your artiicle","label":"order","source":"place_order"}
+{"id":"299","input":"I want assistanc to see when my purchase is going to arrive","label":"shipping","source":"delivery_period"}
+{"id":"300","input":"I have got to leave a review for a product, can you help me?","label":"feedback","source":"review"}
