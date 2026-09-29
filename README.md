@@ -1,18 +1,53 @@
 # Belay
 
-Belay is confidence-based escalation from on-device AI to cloud AI.
+Belay answers classification tasks with a small model on the user's device, and calls a cloud
+model only for the inputs the small model is unsure about. You get the cloud model's accuracy
+(sometimes better) for a fraction of its cost, and most inputs never leave the device.
 
-Browser built-in AI (the Classifier API, the Prompt API) is free, private and fast, but you can't
-trust it blindly. Belay runs a task locally first. It escalates to your cloud model only when the
-local model's confidence is below a threshold, and that threshold is calibrated on your own labeled
-data.
+**Who it's for:** web apps that classify text many times a day: routing support tickets,
+moderating comments, detecting intents, tagging content. Each cloud call costs money and adds
+latency. Each on-device answer is free, private and fast, but on its own it isn't accurate enough
+to trust.
 
-> **Status:** Milestones 1–4 are done: the core cascade, the Classifier API and Prompt API
-> runners, the classifier-as-judge, the `belay calibrate` CLI, and [three examples](examples)
-> with real calibrations against Claude and Jev, with measured costs. Design decisions are in ADRs
-> [0001](docs/adr/0001-public-api-confidence-and-calibration.md),
+**How it works:**
+
+1. **Run locally first.** The task runs on an in-browser model: Chrome's built-in Classifier or
+   Prompt API, or a polyfill such as the WebAI Studio extension, which runs the open Laya model.
+   The model returns an answer and a confidence.
+2. **Escalate when unsure.** If the confidence is below a threshold, the task sends the input to
+   your cloud model through your backend, subject to your privacy rules (redaction, consent,
+   never). Otherwise the local answer is used.
+3. **Calibrate the threshold on your data.** `belay calibrate` runs your labeled examples through
+   both models in a real browser. It picks the threshold that is at least as accurate as the cloud
+   alone (or the most accurate one), measures what the cloud calls cost, and writes a calibration
+   file and an HTML report. The report shows accuracy, savings, a cross-validated check, and the
+   mistakes to fix.
+4. **Track savings in production.** Every run emits telemetry, and `savingsMeter()` adds up spend
+   and savings from it.
+
+**What it did on real data:** three public datasets with 300 labeled examples each, the Laya
+model on device, and the cloud model each example escalates to. Accuracy is cross-validated; cloud
+costs are per million runs at the recommended threshold, priced from measured token usage.
+Details [below](#a-real-calibration).
+
+| Task | Cloud alone | With Belay | On device |
+| --- | --- | --- | --- |
+| Ticket triage | Claude: 94.3%, $2,005 | **97.3%, $1,086** | 47% |
+| Content moderation | Jev: 83.7%, $14.55 | **86.0%, $3.18** | 78% |
+| Intent detection | Claude: 99.3%, $2,301 | **99.3%, $65** (via Jev → Claude) | 32% |
+
+**What it isn't:** a model, a hosted service, or a general LLM router. Belay is a small library
+(`@belay/core`, `@belay/web`) plus a calibration CLI (`@belay/calibrate`). You bring the local and
+cloud models; Belay decides which one answers, and proves the decision on your data.
+
+> **Status:** Milestones 1–5 are done: the core cascade, the Classifier API and Prompt API
+> runners, the classifier-as-judge, the `belay calibrate` CLI, [three examples](examples) with
+> real calibrations against Claude and Jev, and measured costs and savings. Design decisions are
+> in ADRs [0001](docs/adr/0001-public-api-confidence-and-calibration.md),
 > [0002](docs/adr/0002-calibration-in-a-real-browser.md) and
 > [0003](docs/adr/0003-targets-relative-to-the-cloud-and-measured-cost.md).
+
+## Quick look
 
 ```ts
 import { task, fetchAdapter } from '@belay/core';
@@ -50,7 +85,7 @@ task escalates, subject to your privacy policy.
 The data is 300 labeled messages from the public Bitext support dataset. The local model is Laya
 (the WebAI Studio extension's Classifier API polyfill) running in headless Chromium through
 `belay calibrate`. Every confidence in the report is a real model output, and all outputs are
-committed in `.belay-cache/`, so re-running replays them and writes a byte-identical file.
+committed in `.belay-cache/`, so re-running replays them and reproduces the same calibration.
 
 Each task is calibrated against two cloud models: Claude Opus 5.5 (`claude-opus-5-5`, effort
 `low`) and Jev 1.13 (`jev-1.13.0`, [TypeSafe AI](https://typesafe.ai)'s classification model,
