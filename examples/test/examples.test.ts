@@ -24,3 +24,11 @@ describe.each(examples)('$dir', ({ dir, task }) => {
     expect(new Set(dataset.examples.map((e) => e.input.toLowerCase())).size).toBe(300);
   });
 });
+
+describe('ticket-triage redaction', () => {
+  it('redacts ASCII and non-ASCII email addresses, keeping sentence punctuation', async () => {
+    const { redactEmails } = (await import('../ticket-triage/task.mjs')) as { redactEmails: (s: string) => string };
+    expect(redactEmails('mail josé@example.com, a.b+c@mail.co.uk or Émile@exämple.de.')).toBe('mail [email], [email] or [email].');
+    expect(redactEmails('update {{Email Address}} please; no @ here')).toBe('update {{Email Address}} please; no @ here');
+  });
+});

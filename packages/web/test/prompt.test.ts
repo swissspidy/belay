@@ -94,6 +94,13 @@ describe('promptApi runner', () => {
     expect(destroyed).toHaveLength(2); // each clone destroyed after its run
   });
 
+  it('does not tie the cached base session to a per-run signal', async () => {
+    const { api } = fakeLanguageModel(() => '{"title":"x","urgent":false}');
+    const controller = new AbortController();
+    await promptApi({ languageModel: api }).run('x', { ...ctx, signal: controller.signal });
+    expect(api.create.mock.calls[0]![0]).not.toHaveProperty('signal');
+  });
+
   it('returns unparseable text as-is (the task reports invalid output)', async () => {
     const { api } = fakeLanguageModel(() => 'Sure! Here is a summary');
     expect((await promptApi({ languageModel: api }).run('x', ctx)).value).toBe('Sure! Here is a summary');

@@ -146,7 +146,8 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
         if (!parsed.ok) {
           reason = 'invalid-output';
           localConfidence = 0;
-          emitError('local', new Error(parsed.error));
+          // Fixed message: the parse error quotes the rejected output, which must not reach telemetry.
+          emitError('local', new Error('local output failed schema validation'));
         } else {
           const judged = judge ? await judge({ input, value: parsed.value, task: name, ...(signal ? { signal } : {}) }) : undefined;
           const confidence = combineConfidence({ valid: true, runner: output.confidence, judge: judged });
@@ -277,7 +278,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
       );
       signal?.throwIfAborted();
       const parsed = parseValue(schema, output.value);
-      if (!parsed.ok) throw new BelayError('cloud-invalid-output', `task "${name}": cloud output invalid: ${parsed.error}`);
+      if (!parsed.ok) throw new BelayError('cloud-invalid-output', `task "${name}": cloud output failed schema validation`);
       return finish(
         {
           value: parsed.value,

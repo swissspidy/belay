@@ -37,4 +37,7 @@ below. Belay's own code is Apache-2.0. These data files keep their original lice
   from FitzGerald et al., 2022, "MASSIVE: A 1M-Example Multilingual Natural Language Understanding
   Dataset with 51 Typologically-Diverse Languages". © Amazon.com, Inc.
 - **License:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **Changes:** 37–38 utterances for each of 8 intents.
+- **Changes:** 37–38 utterances for each of 8 intents. Four source rows whose label is unrelated to
+  the text are excluded: "open the internet" and "open the folder app please" (labeled
+  `takeaway_order`), "by get marks" (`weather_query`) and "user friendly" (`news_query`).
+  Ambiguous rows are kept.

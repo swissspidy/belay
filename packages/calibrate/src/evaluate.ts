@@ -37,7 +37,8 @@ export function nodeBackend(
   judge?: Judge<any>,
 ): LocalBackend {
   return {
-    spec: { node: runner.id },
+    // The judge's score is cached with the local output, so the judge is part of the key.
+    spec: { node: runner.id, judge: judge ? judge.name || 'judge' : null },
     async info() {
       return { runner: runner.id };
     },

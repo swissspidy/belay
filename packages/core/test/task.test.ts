@@ -144,6 +144,22 @@ describe('escalation reasons', () => {
     expect(await t.run('a')).toMatchObject({ source: 'cloud', escalationReason: 'invalid-output', local: null });
   });
 
+  it('never puts rejected output text into telemetry', async () => {
+    const events: BelayEvent[] = [];
+    const secret = 'Dear Jane, your card 4242 was declined';
+    const t = task({
+      name: 'x',
+      schema: triageSchema,
+      local: mockLocal({ value: secret, confidence: 0.99 }),
+      cloud: mockCloud(secret),
+      threshold: 0.8,
+      onEvent: (e) => events.push(e),
+    });
+    await expect(t.run('a')).rejects.toMatchObject({ code: 'cloud-invalid-output' });
+    expect(events.filter((e) => e.type === 'error').map((e) => e.stage)).toEqual(['local', 'cloud']);
+    expect(JSON.stringify(events)).not.toContain('4242');
+  });
+
   it('local-timeout aborts the local runner and escalates', async () => {
     let localSignal: AbortSignal | undefined;
     const local = mockLocal({ value: 'bug', confidence: 1 });

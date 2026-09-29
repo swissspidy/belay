@@ -116,6 +116,10 @@ export async function main(argv: string[]): Promise<number> {
 
   const target = values.target !== undefined ? Number(values.target) : undefined;
   if (target !== undefined && !(target > 0 && target <= 1)) throw new Error('--target must be in (0, 1]');
+  const concurrency = values.concurrency !== undefined ? Number(values.concurrency) : undefined;
+  if (concurrency !== undefined && !(Number.isInteger(concurrency) && concurrency > 0)) {
+    throw new Error('--concurrency must be a positive integer');
+  }
   const refresh = values.refresh;
   if (refresh && !['local', 'cloud', 'all'].includes(refresh)) throw new Error('--refresh must be local, cloud or all');
 
@@ -183,7 +187,7 @@ export async function main(argv: string[]): Promise<number> {
       ...(values['created-at'] ? { createdAt: values['created-at'] } : {}),
       datasetPath: relative(dirname(resolve(values.report!)), resolve(values.data)) || values.data,
       ...(refresh ? { refresh: { local: refresh !== 'cloud', cloud: refresh !== 'local' } } : {}),
-      ...(values.concurrency ? { cloudConcurrency: Number(values.concurrency) } : config.cloudConcurrency ? { cloudConcurrency: config.cloudConcurrency } : {}),
+      ...(concurrency ? { cloudConcurrency: concurrency } : config.cloudConcurrency ? { cloudConcurrency: config.cloudConcurrency } : {}),
       onProgress: progress,
       log,
     });

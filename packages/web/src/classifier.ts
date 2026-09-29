@@ -162,7 +162,8 @@ export function classifierApi(options: ClassifierApiOptions = {}): LocalRunner<a
       sessions.set(key, cached);
       return cached;
     }
-    const signal = prepare?.signal ?? ctx.signal;
+    // Only prepare()'s signal: the session is cached and shared, so a per-run abort must not destroy it.
+    const signal = prepare?.signal;
     const created = Classifier.create({
       ...schema,
       ...(signal ? { signal } : {}),

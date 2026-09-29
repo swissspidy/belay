@@ -23,14 +23,29 @@ function fnv1a(text) {
   return hash >>> 0;
 }
 
-async function get(path) {
-  for (let attempt = 0; ; attempt++) {
-    const res = await fetch(`${API}${path}`);
-    if (res.ok) return res.json();
-    if (attempt === 4) throw new Error(`${res.status} ${await res.text()}`);
-    await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+/**
+ * GET with retries on network errors, timeouts and non-2xx responses (honoring Retry-After).
+ * Throws after the last attempt, so a failed download never replaces a dataset file.
+ */
+async function request(url, { timeoutMs = 60_000, attempts = 6 } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    let failure;
+    let wait = 1000 * 2 ** attempt;
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+      if (res.ok) return res;
+      failure = new Error(`HTTP ${res.status} for ${url}`);
+      wait = Number(res.headers.get('retry-after')) * 1000 || wait;
+    } catch (err) {
+      failure = err;
+    }
+    if (attempt === attempts) throw failure;
+    console.error(`${failure.message}; retrying in ${wait / 1000}s`);
+    await new Promise((r) => setTimeout(r, wait));
   }
 }
+
+const get = async (path) => (await request(`${API}${path}`)).json();
 
 /** All rows of a split through the (fast, cached) /rows endpoint, optionally stopping early. */
 async function allRows(dataset, split, { until } = {}) {
@@ -114,11 +129,14 @@ if (want('triage')) {
     shipping: ['DELIVERY', 'SHIPPING'],
     feedback: ['FEEDBACK'],
   };
-  const csv = await fetch(
-    `https://huggingface.co/datasets/${dataset}/resolve/main/Bitext_Sample_Customer_Support_Training_Dataset_27K_responses-v11.csv`,
-    { signal: AbortSignal.timeout(300_000) },
-  ).then((r) => r.text());
+  const csv = await (
+    await request(
+      `https://huggingface.co/datasets/${dataset}/resolve/main/Bitext_Sample_Customer_Support_Training_Dataset_27K_responses-v11.csv`,
+      { timeoutMs: 300_000 },
+    )
+  ).text();
   const all = parseCsv(csv);
+  if (all.length < 1000) throw new Error(`${dataset}: expected a full CSV, got ${all.length} rows`);
   console.error(`${dataset}: ${all.length} rows`);
   const groups = [];
   for (const [label, categories] of Object.entries(mapping)) {
@@ -149,7 +167,11 @@ if (want('moderation')) {
 if (want('intent')) {
   const dataset = 'SetFit/amazon_massive_intent_en-US';
   const intents = ['alarm_set', 'weather_query', 'play_music', 'calendar_set', 'iot_hue_lightoff', 'takeaway_order', 'news_query', 'email_sendemail'];
-  const rows = [...(await allRows(dataset, 'test')), ...(await allRows(dataset, 'validation'))];
+  // Source rows whose label is unrelated to the text (label noise in MASSIVE). Ambiguous rows stay.
+  const mislabeled = new Set(['open the internet', 'open the folder app please', 'by get marks', 'user friendly']);
+  const rows = [...(await allRows(dataset, 'test')), ...(await allRows(dataset, 'validation'))].filter(
+    (r) => !mislabeled.has(r.text.trim().toLowerCase()),
+  );
   const groups = intents.map((intent, i) =>
     pick(rows.filter((r) => r.label_text === intent), i < 4 ? 38 : 37, (r) => r.text, 'intent').map((r) => ({ input: r.text, label: intent })),
   );

@@ -3,6 +3,14 @@ import { classifierApi } from '@belay/web';
 
 export const context = 'Customer support messages sent to an online store.';
 
+/**
+ * Replaces email addresses before anything is sent to the cloud. Unicode-aware, so addresses like
+ * josé@exämple.de are caught too; the last domain label stops at sentence punctuation.
+ */
+export function redactEmails(text) {
+  return text.replace(/[^\s@<>()[\],;:"]+@(?:[^\s@<>()[\],;:".]+\.)+[^\s@<>()[\],;:".]+/gu, '[email]');
+}
+
 export const triageSchema = {
   type: 'categorical',
   prompt: 'Which team should handle this customer message?',
@@ -29,7 +37,7 @@ export function createTriage({ cloud, calibration = '/belay.calibration.json', o
     cloud,
     calibration,
     threshold: 0.9, // fallback if the calibration file cannot be loaded
-    privacy: { redact: (text) => text.replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[email]') },
+    privacy: { redact: redactEmails },
     ...(onEvent ? { onEvent } : {}),
   });
 }

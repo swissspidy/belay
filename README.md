@@ -55,7 +55,7 @@ committed in `.belay-cache/`, so re-running replays them and writes a byte-ident
 | --- | --- | --- | --- | --- |
 | [ticket triage](examples/ticket-triage/belay-report.html) (5 teams) | 93.0% | 0.42 | 95.0% (target 95%) | 94.7% |
 | [content moderation](examples/content-moderation/belay-report.html) (binary) | 70.7% | 0.577, `true`: 0 | 90.0% (target 90%) | 80.3% |
-| [intent detection](examples/intent-detection/belay-report.html) (8 intents) | 86.7% | 0.796 | 95.0% (target 95%) | 84.0% |
+| [intent detection](examples/intent-detection/belay-report.html) (8 intents) | 88.0% | 0.734 | 95.0% (target 95%) | 87.3% |
 
 ¹ **Upper bounds.** The build environment had no cloud-LLM credentials, so escalated examples
 were answered with the dataset's labels, as if the cloud were always right. The local side of each

@@ -11,7 +11,7 @@
 {"id":"11","input":"next play summer lovin","label":"play_music"}
 {"id":"12","input":"let me know the morning of my doctor appointment on the twelfth","label":"calendar_set"}
 {"id":"13","input":"make the lights off","label":"iot_hue_lightoff"}
-{"id":"14","input":"open the internet","label":"takeaway_order"}
+{"id":"14","input":"can you please order some food for me","label":"takeaway_order"}
 {"id":"15","input":"set environmental news notification","label":"news_query"}
 {"id":"16","input":"create an email for my company worker with my recently saved documents","label":"email_sendemail"}
 {"id":"17","input":"set an alarm for six am","label":"alarm_set"}
@@ -19,7 +19,7 @@
 {"id":"19","input":"play my playlist starting from the bottom","label":"play_music"}
 {"id":"20","input":"please set a notification on twenty third october about meeting with my colleague","label":"calendar_set"}
 {"id":"21","input":"power off the current","label":"iot_hue_lightoff"}
-{"id":"22","input":"can you please order some food for me","label":"takeaway_order"}
+{"id":"22","input":"call pf chang's to order me egg foo young","label":"takeaway_order"}
 {"id":"23","input":"what are the trending articles on the new york times","label":"news_query"}
 {"id":"24","input":"text an email to donna hey what are you doing today","label":"email_sendemail"}
 {"id":"25","input":"set a new alarm for that time","label":"alarm_set"}
@@ -27,7 +27,7 @@
 {"id":"27","input":"play artist","label":"play_music"}
 {"id":"28","input":"remember me to meet reveca today at six p. m.","label":"calendar_set"}
 {"id":"29","input":"turn off the bathroom light please","label":"iot_hue_lightoff"}
-{"id":"30","input":"call pf chang's to order me egg foo young","label":"takeaway_order"}
+{"id":"30","input":"show me delivery near me","label":"takeaway_order"}
 {"id":"31","input":"b. b. c. world headlines","label":"news_query"}
 {"id":"32","input":"write an email to my family saying i love you all","label":"email_sendemail"}
 {"id":"33","input":"i want to set an alarm when i'm driving home tomorrow to remember to stop at the store and get food","label":"alarm_set"}
@@ -35,7 +35,7 @@
 {"id":"35","input":"start playing","label":"play_music"}
 {"id":"36","input":"add my car payment on the twelfth in my calendar","label":"calendar_set"}
 {"id":"37","input":"turn off bedroom light at nine thirty p. m.","label":"iot_hue_lightoff"}
-{"id":"38","input":"show me delivery near me","label":"takeaway_order"}
+{"id":"38","input":"hey order two wings with french fries from the chinese food store","label":"takeaway_order"}
 {"id":"39","input":"bring me the latest tech news","label":"news_query"}
 {"id":"40","input":"reply thank you to john","label":"email_sendemail"}
 {"id":"41","input":"get me up at eight am","label":"alarm_set"}
@@ -43,7 +43,7 @@
 {"id":"43","input":"play from my play list","label":"play_music"}
 {"id":"44","input":"flag two day after this day as my holiday","label":"calendar_set"}
 {"id":"45","input":"turn off room lights","label":"iot_hue_lightoff"}
-{"id":"46","input":"hey order two wings with french fries from the chinese food store","label":"takeaway_order"}
+{"id":"46","input":"closest chipotle","label":"takeaway_order"}
 {"id":"47","input":"what's going on in new york","label":"news_query"}
 {"id":"48","input":"here is a new email address to be added to the contacts","label":"email_sendemail"}
 {"id":"49","input":"add an alarm for tomorrow morning at six am","label":"alarm_set"}
@@ -51,7 +51,7 @@
 {"id":"51","input":"please play some jazz music","label":"play_music"}
 {"id":"52","input":"can you remind my next meeting with my boss one hour before it will happen","label":"calendar_set"}
 {"id":"53","input":"turn off the dining room","label":"iot_hue_lightoff"}
-{"id":"54","input":"closest chipotle","label":"takeaway_order"}
+{"id":"54","input":"what places can i order take-out from near by","label":"takeaway_order"}
 {"id":"55","input":"get me the popular news from b. b. c.","label":"news_query"}
 {"id":"56","input":"write an email for john at gmail dot com","label":"email_sendemail"}
 {"id":"57","input":"please put on an alarm for eight am","label":"alarm_set"}
@@ -59,7 +59,7 @@
 {"id":"59","input":"play lady by kenny roger","label":"play_music"}
 {"id":"60","input":"i need next week's lunch put on the calendar","label":"calendar_set"}
 {"id":"61","input":"turn off the shed light","label":"iot_hue_lightoff"}
-{"id":"62","input":"what places can i order take-out from near by","label":"takeaway_order"}
+{"id":"62","input":"i want to order chinese take-out","label":"takeaway_order"}
 {"id":"63","input":"news from c. n. n.","label":"news_query"}
 {"id":"64","input":"open new email to this coworker at this email","label":"email_sendemail"}
 {"id":"65","input":"please set my alarm for five p. m.","label":"alarm_set"}
@@ -67,7 +67,7 @@
 {"id":"67","input":"play my favorite song of last year","label":"play_music"}
 {"id":"68","input":"schedule a lunch meeting with brent on wednesday at noon","label":"calendar_set"}
 {"id":"69","input":"kindly switch off the light in the drawing hall","label":"iot_hue_lightoff"}
-{"id":"70","input":"i want to order chinese take-out","label":"takeaway_order"}
+{"id":"70","input":"i need two pizzas stat","label":"takeaway_order"}
 {"id":"71","input":"give me the latest news","label":"news_query"}
 {"id":"72","input":"send a reply to my friend for his question","label":"email_sendemail"}
 {"id":"73","input":"set a wake up call for ten am","label":"alarm_set"}
@@ -75,7 +75,7 @@
 {"id":"75","input":"search for more songs from the band","label":"play_music"}
 {"id":"76","input":"mark today as the start of my diet","label":"calendar_set"}
 {"id":"77","input":"turn off the bathroom lights","label":"iot_hue_lightoff"}
-{"id":"78","input":"i need two pizzas stat","label":"takeaway_order"}
+{"id":"78","input":"it's time for junk food","label":"takeaway_order"}
 {"id":"79","input":"how is the news in ireland","label":"news_query"}
 {"id":"80","input":"send an email to mom subject weather body what is the weather like there this week","label":"email_sendemail"}
 {"id":"81","input":"set an alarm for five o'clock this evening labeled taxi","label":"alarm_set"}
@@ -83,7 +83,7 @@
 {"id":"83","input":"ricky matin","label":"play_music"}
 {"id":"84","input":"thirty minute reminder on meeting for tuesday","label":"calendar_set"}
 {"id":"85","input":"turn the lights off please","label":"iot_hue_lightoff"}
-{"id":"86","input":"it's time for junk food","label":"takeaway_order"}
+{"id":"86","input":"hey olly order two wings with french fries from the chinese food store","label":"takeaway_order"}
 {"id":"87","input":"what are the top stories on c. n. n.","label":"news_query"}
 {"id":"88","input":"send an email to jerry ask what time will he be home tonight","label":"email_sendemail"}
 {"id":"89","input":"alarm ten am","label":"alarm_set"}
@@ -91,7 +91,7 @@
 {"id":"91","input":"please play rap","label":"play_music"}
 {"id":"92","input":"i have a meeting at noon today","label":"calendar_set"}
 {"id":"93","input":"i'm going to sleep now","label":"iot_hue_lightoff"}
-{"id":"94","input":"hey olly order two wings with french fries from the chinese food store","label":"takeaway_order"}
+{"id":"94","input":"i am really craving for chinese food right now please let me order take out","label":"takeaway_order"}
 {"id":"95","input":"show me some current events","label":"news_query"}
 {"id":"96","input":"respond to my email from bob letting them know i'll see them tomorrow","label":"email_sendemail"}
 {"id":"97","input":"open clock","label":"alarm_set"}
@@ -99,7 +99,7 @@
 {"id":"99","input":"play poker face by lady gaga","label":"play_music"}
 {"id":"100","input":"set a reminder to notify me one hour before lunch meeting","label":"calendar_set"}
 {"id":"101","input":"cease operating lights","label":"iot_hue_lightoff"}
-{"id":"102","input":"i am really craving for chinese food right now please let me order take out","label":"takeaway_order"}
+{"id":"102","input":"can i order take out from licari's","label":"takeaway_order"}
 {"id":"103","input":"could you please give me up to date news headlines from my newest provider","label":"news_query"}
 {"id":"104","input":"send email to mom saying happy birthday","label":"email_sendemail"}
 {"id":"105","input":"set alarm of only monday morning six am","label":"alarm_set"}
@@ -107,7 +107,7 @@
 {"id":"107","input":"play classical chamber music playlist","label":"play_music"}
 {"id":"108","input":"hayathis daughter baby shower","label":"calendar_set"}
 {"id":"109","input":"olly turn the light off in the living room","label":"iot_hue_lightoff"}
-{"id":"110","input":"open the folder app please","label":"takeaway_order"}
+{"id":"110","input":"order two large pizzas and pieces of hot wings from dominoes","label":"takeaway_order"}
 {"id":"111","input":"what is new news for today","label":"news_query"}
 {"id":"112","input":"respond to the email from john doe","label":"email_sendemail"}
 {"id":"113","input":"set an alarm for ten o'clock tomorrow morning","label":"alarm_set"}
@@ -115,7 +115,7 @@
 {"id":"115","input":"open media play jingle bells","label":"play_music"}
 {"id":"116","input":"add a meeting to my calendar for nine am with tom","label":"calendar_set"}
 {"id":"117","input":"turn off overhead light","label":"iot_hue_lightoff"}
-{"id":"118","input":"can i order take out from licari's","label":"takeaway_order"}
+{"id":"118","input":"order take-out","label":"takeaway_order"}
 {"id":"119","input":"i want to hear the latest world news from today","label":"news_query"}
 {"id":"120","input":"reply to mark's email","label":"email_sendemail"}
 {"id":"121","input":"set an alarm at six in the morning","label":"alarm_set"}
@@ -123,7 +123,7 @@
 {"id":"123","input":"turn on a song","label":"play_music"}
 {"id":"124","input":"remind me when i am at the library to get a new library card","label":"calendar_set"}
 {"id":"125","input":"discontinue use of lights","label":"iot_hue_lightoff"}
-{"id":"126","input":"order two large pizzas and pieces of hot wings from dominoes","label":"takeaway_order"}
+{"id":"126","input":"confirm the order","label":"takeaway_order"}
 {"id":"127","input":"fast me the news of academy awards","label":"news_query"}
 {"id":"128","input":"send an email to all my company workers","label":"email_sendemail"}
 {"id":"129","input":"set an alert for two p. m.","label":"alarm_set"}
@@ -131,7 +131,7 @@
 {"id":"131","input":"play previous song","label":"play_music"}
 {"id":"132","input":"show meetings","label":"calendar_set"}
 {"id":"133","input":"please turn the lights off","label":"iot_hue_lightoff"}
-{"id":"134","input":"order take-out","label":"takeaway_order"}
+{"id":"134","input":"make an order for noodles one pack make it as takeaway order","label":"takeaway_order"}
 {"id":"135","input":"what are the scores for the two ucl games going on right now","label":"news_query"}
 {"id":"136","input":"new address","label":"email_sendemail"}
 {"id":"137","input":"set an alarm at six am","label":"alarm_set"}
@@ -139,7 +139,7 @@
 {"id":"139","input":"play the most popular elton john song","label":"play_music"}
 {"id":"140","input":"set event date in calendar with others","label":"calendar_set"}
 {"id":"141","input":"turn the light off in the living room","label":"iot_hue_lightoff"}
-{"id":"142","input":"confirm the order","label":"takeaway_order"}
+{"id":"142","input":"order a double bacon cheeseburger with bacon an white american cheese","label":"takeaway_order"}
 {"id":"143","input":"did we get any update from the new provider","label":"news_query"}
 {"id":"144","input":"email naty for her birthday","label":"email_sendemail"}
 {"id":"145","input":"please set an alarm for ten p. m.","label":"alarm_set"}
@@ -147,7 +147,7 @@
 {"id":"147","input":"olly play anything in my recent playlist","label":"play_music"}
 {"id":"148","input":"i need to something every monday set a reminder for it","label":"calendar_set"}
 {"id":"149","input":"please turn off the light of my son's room","label":"iot_hue_lightoff"}
-{"id":"150","input":"make an order for noodles one pack make it as takeaway order","label":"takeaway_order"}
+{"id":"150","input":"i feel like having soup for lunch order from wangs kitchen restaurant a chicken manchow soup","label":"takeaway_order"}
 {"id":"151","input":"tell interesting news","label":"news_query"}
 {"id":"152","input":"send this message to the family group starts with a","label":"email_sendemail"}
 {"id":"153","input":"set an alarm for one p. m.","label":"alarm_set"}
@@ -155,7 +155,7 @@
 {"id":"155","input":"play it again please","label":"play_music"}
 {"id":"156","input":"make an event reminder for monas wedding on tuesday","label":"calendar_set"}
 {"id":"157","input":"put the lights off now","label":"iot_hue_lightoff"}
-{"id":"158","input":"order a double bacon cheeseburger with bacon an white american cheese","label":"takeaway_order"}
+{"id":"158","input":"order a meal from a nice restaurant","label":"takeaway_order"}
 {"id":"159","input":"daily news","label":"news_query"}
 {"id":"160","input":"send email to enalen i'm going to send the files the next day","label":"email_sendemail"}
 {"id":"161","input":"i need an alarm set for five hundred and thirty am tomorrow","label":"alarm_set"}
@@ -163,7 +163,7 @@
 {"id":"163","input":"play techno music","label":"play_music"}
 {"id":"164","input":"remind me that i have an appointment twelve o'clock on saturday","label":"calendar_set"}
 {"id":"165","input":"shut the lights off","label":"iot_hue_lightoff"}
-{"id":"166","input":"i feel like having soup for lunch order from wangs kitchen restaurant a chicken manchow soup","label":"takeaway_order"}
+{"id":"166","input":"order one pizza from pizza hut","label":"takeaway_order"}
 {"id":"167","input":"who is leading the formula one race right now","label":"news_query"}
 {"id":"168","input":"find naty from my contacts and send her an email","label":"email_sendemail"}
 {"id":"169","input":"set an alarm for five minutes from now","label":"alarm_set"}
@@ -171,7 +171,7 @@
 {"id":"171","input":"play a live version of elton john","label":"play_music"}
 {"id":"172","input":"buddy adding event in your calendar","label":"calendar_set"}
 {"id":"173","input":"please turn bedroom lights off","label":"iot_hue_lightoff"}
-{"id":"174","input":"order a meal from a nice restaurant","label":"takeaway_order"}
+{"id":"174","input":"order a pizza with sausage from domino's","label":"takeaway_order"}
 {"id":"175","input":"tell me important news today","label":"news_query"}
 {"id":"176","input":"help is to be sent only to jane","label":"email_sendemail"}
 {"id":"177","input":"ensure i have to get up at six in morning","label":"alarm_set"}
@@ -179,122 +179,122 @@
 {"id":"179","input":"play music from the jazz genre","label":"play_music"}
 {"id":"180","input":"remind me tonight to pick up my dry cleaning at eight p. m.","label":"calendar_set"}
 {"id":"181","input":"turn lights off","label":"iot_hue_lightoff"}
-{"id":"182","input":"order one pizza from pizza hut","label":"takeaway_order"}
+{"id":"182","input":"i want to order some chinese food tonight what's delivering to me","label":"takeaway_order"}
 {"id":"183","input":"what is the latest story from fox news","label":"news_query"}
 {"id":"184","input":"send john smith and email","label":"email_sendemail"}
 {"id":"185","input":"make an alarm for the meeting with bob at seven today","label":"alarm_set"}
-{"id":"186","input":"by get marks","label":"weather_query"}
+{"id":"186","input":"what's the weather like right now in new york","label":"weather_query"}
 {"id":"187","input":"find and queue all songs of kate perry and play all without shuffling","label":"play_music"}
 {"id":"188","input":"schedule an event in my calendar for the pool party at jack's place this saturday","label":"calendar_set"}
 {"id":"189","input":"turn the lights off","label":"iot_hue_lightoff"}
-{"id":"190","input":"order a pizza with sausage from domino's","label":"takeaway_order"}
+{"id":"190","input":"call the nearest thai restaurant with delivery","label":"takeaway_order"}
 {"id":"191","input":"tell me international news","label":"news_query"}
 {"id":"192","input":"alexa start email","label":"email_sendemail"}
 {"id":"193","input":"set alarm for eight am","label":"alarm_set"}
-{"id":"194","input":"what's the weather like right now in new york","label":"weather_query"}
+{"id":"194","input":"should i wear a jacket to work","label":"weather_query"}
 {"id":"195","input":"play from smashing pumpkins","label":"play_music"}
 {"id":"196","input":"schedule a meeting event in my calendar","label":"calendar_set"}
 {"id":"197","input":"please turn off the lights in patio","label":"iot_hue_lightoff"}
-{"id":"198","input":"i want to order some chinese food tonight what's delivering to me","label":"takeaway_order"}
+{"id":"198","input":"noodles one pack make it as takeaway","label":"takeaway_order"}
 {"id":"199","input":"get news from b. b. c. news","label":"news_query"}
 {"id":"200","input":"send email to joseph at gmail dot com","label":"email_sendemail"}
 {"id":"201","input":"new alarm for six am","label":"alarm_set"}
-{"id":"202","input":"should i wear a jacket to work","label":"weather_query"}
+{"id":"202","input":"do you recommend an umbrellas","label":"weather_query"}
 {"id":"203","input":"play the song immediately","label":"play_music"}
 {"id":"204","input":"i need to set reminder on fifteenth march","label":"calendar_set"}
 {"id":"205","input":"switch off the lights","label":"iot_hue_lightoff"}
-{"id":"206","input":"call the nearest thai restaurant with delivery","label":"takeaway_order"}
+{"id":"206","input":"order general t'so eggroll to go","label":"takeaway_order"}
 {"id":"207","input":"what are the latest news headlines","label":"news_query"}
 {"id":"208","input":"i need to email susan and metion","label":"email_sendemail"}
 {"id":"209","input":"set an alarm for four p. m. tuesday","label":"alarm_set"}
-{"id":"210","input":"do you recommend an umbrellas","label":"weather_query"}
+{"id":"210","input":"what is the minimum temperature of london","label":"weather_query"}
 {"id":"211","input":"shuffle songs by coldplay","label":"play_music"}
 {"id":"212","input":"remind me about the upcoming national holiday","label":"calendar_set"}
 {"id":"213","input":"switch off the master's bedroom","label":"iot_hue_lightoff"}
-{"id":"214","input":"noodles one pack make it as takeaway","label":"takeaway_order"}
+{"id":"214","input":"i want to order food","label":"takeaway_order"}
 {"id":"215","input":"tell me when there is new news from my local news","label":"news_query"}
 {"id":"216","input":"send an email to margaret","label":"email_sendemail"}
 {"id":"217","input":"wake me up","label":"alarm_set"}
-{"id":"218","input":"what is the minimum temperature of london","label":"weather_query"}
+{"id":"218","input":"will the weather be less than ten degree in paris","label":"weather_query"}
 {"id":"219","input":"play lady by kenny rogers now","label":"play_music"}
 {"id":"220","input":"please set a meeting to discuss terrorism with fred on the next available meeting day","label":"calendar_set"}
 {"id":"221","input":"turn off lighting","label":"iot_hue_lightoff"}
-{"id":"222","input":"order general t'so eggroll to go","label":"takeaway_order"}
+{"id":"222","input":"order some takeaway food","label":"takeaway_order"}
 {"id":"223","input":"tell me how are the results of assembly elections in delhi going to come out","label":"news_query"}
 {"id":"224","input":"compose an email to bob","label":"email_sendemail"}
 {"id":"225","input":"set an alarm for nine am","label":"alarm_set"}
-{"id":"226","input":"will the weather be less than ten degree in paris","label":"weather_query"}
+{"id":"226","input":"it is a sunny day today right","label":"weather_query"}
 {"id":"227","input":"turn on favorite songs","label":"play_music"}
 {"id":"228","input":"please remind me to go to the post office","label":"calendar_set"}
 {"id":"229","input":"hey olly turn off the light please","label":"iot_hue_lightoff"}
-{"id":"230","input":"i want to order food","label":"takeaway_order"}
+{"id":"230","input":"order a takeaway","label":"takeaway_order"}
 {"id":"231","input":"give me up to date on sports news","label":"news_query"}
 {"id":"232","input":"send email to marissa","label":"email_sendemail"}
 {"id":"233","input":"set a reminder i need to wake up at five am every morning","label":"alarm_set"}
-{"id":"234","input":"it is a sunny day today right","label":"weather_query"}
+{"id":"234","input":"am i going to need to bring an umbrella to work today","label":"weather_query"}
 {"id":"235","input":"i need some rap","label":"play_music"}
 {"id":"236","input":"please schedule a meeting with derrick in haysi at noon","label":"calendar_set"}
 {"id":"237","input":"turn off all lights","label":"iot_hue_lightoff"}
-{"id":"238","input":"order some takeaway food","label":"takeaway_order"}
+{"id":"238","input":"i want to order a pizza from michael's pizza","label":"takeaway_order"}
 {"id":"239","input":"hot topic","label":"news_query"}
 {"id":"240","input":"send email to robert what time is dinner","label":"email_sendemail"}
 {"id":"241","input":"wake me up at five am","label":"alarm_set"}
-{"id":"242","input":"am i going to need to bring an umbrella to work today","label":"weather_query"}
+{"id":"242","input":"it is very hot today is not it","label":"weather_query"}
 {"id":"243","input":"play a r. rahman music","label":"play_music"}
 {"id":"244","input":"please alert me","label":"calendar_set"}
 {"id":"245","input":"did i leave the light on in the garage","label":"iot_hue_lightoff"}
-{"id":"246","input":"order a takeaway","label":"takeaway_order"}
+{"id":"246","input":"get me takeaway food","label":"takeaway_order"}
 {"id":"247","input":"what did vogue post today","label":"news_query"}
 {"id":"248","input":"hey siri start an email to coworker","label":"email_sendemail"}
 {"id":"249","input":"turn my morning alarm on","label":"alarm_set"}
-{"id":"250","input":"it is very hot today is not it","label":"weather_query"}
+{"id":"250","input":"is umbrella necessary for my outing","label":"weather_query"}
 {"id":"251","input":"add a lot of james taylor joni mitchell and cat stevens to the playlist","label":"play_music"}
 {"id":"252","input":"let me know when the meeting is gonna happen","label":"calendar_set"}
 {"id":"253","input":"switch off the light","label":"iot_hue_lightoff"}
-{"id":"254","input":"i want to order a pizza from michael's pizza","label":"takeaway_order"}
-{"id":"255","input":"user friendly","label":"news_query"}
+{"id":"254","input":"could you order sushi for tonight dinner","label":"takeaway_order"}
+{"id":"255","input":"latest news from the area","label":"news_query"}
 {"id":"256","input":"send a reply to the last email","label":"email_sendemail"}
 {"id":"257","input":"set an alarm for two hours from now please","label":"alarm_set"}
-{"id":"258","input":"is umbrella necessary for my outing","label":"weather_query"}
+{"id":"258","input":"what is this week's weather forecast","label":"weather_query"}
 {"id":"259","input":"play me an upbeat song through your speakers","label":"play_music"}
 {"id":"260","input":"olly there's a good band playing tonight at nine at jazz bar i want to go","label":"calendar_set"}
 {"id":"261","input":"turn my bedroom lights off","label":"iot_hue_lightoff"}
-{"id":"262","input":"get me takeaway food","label":"takeaway_order"}
-{"id":"263","input":"latest news from the area","label":"news_query"}
+{"id":"262","input":"order a twelve piece honey mustard wing combo with seasonimg altnon the fries and a sprite as the drink","label":"takeaway_order"}
+{"id":"263","input":"olly if any new news comes out about the flood can you let me know right away","label":"news_query"}
 {"id":"264","input":"reply to johns email","label":"email_sendemail"}
 {"id":"265","input":"please set alarm for","label":"alarm_set"}
-{"id":"266","input":"what is this week's weather forecast","label":"weather_query"}
+{"id":"266","input":"what is the forecast in me area today","label":"weather_query"}
 {"id":"267","input":"play the song major tom by david bowie","label":"play_music"}
 {"id":"268","input":"add my practice at king's park on feb four at two p. m.","label":"calendar_set"}
 {"id":"269","input":"please turn lights off","label":"iot_hue_lightoff"}
-{"id":"270","input":"could you order sushi for tonight dinner","label":"takeaway_order"}
-{"id":"271","input":"olly if any new news comes out about the flood can you let me know right away","label":"news_query"}
+{"id":"270","input":"i need to order some food from papa john's","label":"takeaway_order"}
+{"id":"271","input":"read me the latest headlines from nytimescom","label":"news_query"}
 {"id":"272","input":"i want to reply to jean's email","label":"email_sendemail"}
 {"id":"273","input":"i want to wake up at six am tomorrow please","label":"alarm_set"}
-{"id":"274","input":"what is the forecast in me area today","label":"weather_query"}
+{"id":"274","input":"can you please tell me the current weather condition","label":"weather_query"}
 {"id":"275","input":"indie","label":"play_music"}
 {"id":"276","input":"olly schedule my doctors appointment on friday at two p. m.","label":"calendar_set"}
 {"id":"277","input":"turn off the lights in the kitchen","label":"iot_hue_lightoff"}
-{"id":"278","input":"order a twelve piece honey mustard wing combo with seasonimg altnon the fries and a sprite as the drink","label":"takeaway_order"}
-{"id":"279","input":"read me the latest headlines from nytimescom","label":"news_query"}
+{"id":"278","input":"i want two burgers and one coke order it fast","label":"takeaway_order"}
+{"id":"279","input":"give me the latest political headlines across the world","label":"news_query"}
 {"id":"280","input":"my friend john has sent me a invitation card to his newly bought home say thanks to him in his mail id","label":"email_sendemail"}
 {"id":"281","input":"i want an alarm for three today","label":"alarm_set"}
-{"id":"282","input":"can you please tell me the current weather condition","label":"weather_query"}
+{"id":"282","input":"is my golf game going to get rained out","label":"weather_query"}
 {"id":"283","input":"please play only music of pop mix","label":"play_music"}
 {"id":"284","input":"add a reminder of a conference for tomorrow in new york","label":"calendar_set"}
 {"id":"285","input":"siri please turn the lights off in the bathroom","label":"iot_hue_lightoff"}
-{"id":"286","input":"i need to order some food from papa john's","label":"takeaway_order"}
-{"id":"287","input":"give me the latest political headlines across the world","label":"news_query"}
+{"id":"286","input":"hey olly order a pizza pie with extra cheese","label":"takeaway_order"}
+{"id":"287","input":"get current news on government shutdown","label":"news_query"}
 {"id":"288","input":"respond to my bosses email with the word that i will be in at four in the evening","label":"email_sendemail"}
 {"id":"289","input":"set alarm tomorrow at six am","label":"alarm_set"}
-{"id":"290","input":"is my golf game going to get rained out","label":"weather_query"}
+{"id":"290","input":"tell me the weather for new brighton pa olly","label":"weather_query"}
 {"id":"291","input":"let's hear some country and western not from the us","label":"play_music"}
 {"id":"292","input":"set an appointment for allen on tomorrow","label":"calendar_set"}
 {"id":"293","input":"could you turn the light off","label":"iot_hue_lightoff"}
-{"id":"294","input":"i want two burgers and one coke order it fast","label":"takeaway_order"}
-{"id":"295","input":"get current news on government shutdown","label":"news_query"}
+{"id":"294","input":"order pizza for delivery","label":"takeaway_order"}
+{"id":"295","input":"any breaking news from the huffington post","label":"news_query"}
 {"id":"296","input":"send ashmit his latest tech topics available","label":"email_sendemail"}
 {"id":"297","input":"get me up in half an hour","label":"alarm_set"}
-{"id":"298","input":"tell me the weather for new brighton pa olly","label":"weather_query"}
+{"id":"298","input":"what's the weather now","label":"weather_query"}
 {"id":"299","input":"play my shuffled playlist please","label":"play_music"}
 {"id":"300","input":"schedule a sales meeting for wednesday at eleven am","label":"calendar_set"}

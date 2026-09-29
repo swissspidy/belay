@@ -111,6 +111,17 @@ describe('calibrate (300 examples)', () => {
   });
 });
 
+describe('nodeBackend', () => {
+  it('includes the judge in its cache identity', () => {
+    const runner = fakeLocal();
+    const ctx = { task: 't', schema };
+    async function strictJudge() {
+      return 1;
+    }
+    expect(nodeBackend(runner, ctx).spec).not.toEqual(nodeBackend(runner, ctx, strictJudge).spec);
+  });
+});
+
 describe('loadDataset', () => {
   it('validates labels and ids', async () => {
     const path = join(dir, 'bad.jsonl');
@@ -176,6 +187,11 @@ export default {
       expect(await main(['nope'])).toBe(1);
       await expect(main(['calibrate'])).rejects.toThrow(/--data is required/);
       await expect(main(['calibrate', '--data', 'x.jsonl', '--config', join(dir, 'missing.mjs')])).rejects.toThrow(/not found/);
+      await writeFile(join(dir, 'examples.jsonl'), datasetJsonl(4));
+      await writeFile(join(dir, 'c.mjs'), `export default { tasks: { t: { schema: { type: 'binary', prompt: 'q' }, local: { id: 'l', availability: async () => 'available', run: async () => ({ value: true, confidence: 1 }) }, cloud: { id: 'c', run: async () => ({ value: true }) } } } };`);
+      for (const bad of ['abc', '0', '-1', '1.5']) {
+        await expect(main(['calibrate', '--data', join(dir, 'examples.jsonl'), '--config', join(dir, 'c.mjs'), `--concurrency=${bad}`])).rejects.toThrow(/--concurrency must be a positive integer/);
+      }
     } finally {
       stderr.mockRestore();
     }

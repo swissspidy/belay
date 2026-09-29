@@ -598,3 +598,11 @@
 {"key":"cceb870f6c303c92268d3198a6f545f5","output":{"value":"weather_query"}}
 {"key":"6fcd2fbf67e612d8d93d3a554582a0f6","output":{"value":"play_music"}}
 {"key":"11abaca8916a27471eb274c94f232db5","output":{"value":"calendar_set"}}
+{"key":"3e1074b178d4bfd6ed5a7dfe9d01f158","output":{"ok":true,"value":"takeaway_order","confidence":0.9999640270976756}}
+{"key":"60317b0d5447118a95618fca2862b67a","output":{"ok":true,"value":"takeaway_order","confidence":0.9988168146148384}}
+{"key":"4a315f038ac13f8096e4ea8429a10baf","output":{"ok":true,"value":"news_query","confidence":0.7389331701076984}}
+{"key":"f3644d0cb550b832ce6ba2c0ee0b1a5a","output":{"ok":true,"value":"weather_query","confidence":0.9978051745087804}}
+{"key":"381ae0d194410a4ac585b8c0518a603b","output":{"value":"takeaway_order"}}
+{"key":"54f4a81f5f7bfa5a3a09d71b41bf0bbc","output":{"value":"takeaway_order"}}
+{"key":"bb1bc135d84275d5072ebea25fded563","output":{"value":"weather_query"}}
+{"key":"1e6465a291d9fc09fe48dafae37e386c","output":{"value":"news_query"}}

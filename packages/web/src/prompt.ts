@@ -52,7 +52,8 @@ export function promptApi(options: PromptApiOptions = {}): LocalRunner<any> {
       sessions.set(key, cached);
       return cached;
     }
-    const signal = prepare?.signal ?? ctx.signal;
+    // Only prepare()'s signal: the session is cached and shared, so a per-run abort must not destroy it.
+    const signal = prepare?.signal;
     const createOptions: LanguageModelCreateOptions = {
       ...expected,
       initialPrompts: [{ role: 'system', content: key }],

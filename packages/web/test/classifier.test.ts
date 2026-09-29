@@ -164,12 +164,14 @@ describe('classifierApi runner', () => {
     expect(instances[2]!.destroy).toHaveBeenCalled();
   });
 
-  it('passes the abort signal to classify()', async () => {
+  it('passes the abort signal to classify() but not to the cached session', async () => {
     const { api, instances } = fakeClassifier(() => categorical('bug', { bug: 0.9 }));
     const runner = classifierApi({ classifier: api });
     const { signal } = new AbortController();
     await runner.run('a', { ...ctx, signal });
     expect(instances[0]!.classify).toHaveBeenCalledWith('a', { signal });
+    // Aborting one run must not destroy the session every later run shares.
+    expect(api.create.mock.calls[0]![0]).not.toHaveProperty('signal');
   });
 });
 
