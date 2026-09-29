@@ -254,6 +254,10 @@ npm install
 npm run check   # typecheck, build, test
 ```
 
+GitHub Actions workflows are audited with [zizmor](https://docs.zizmor.sh) on every push and pull
+request (`uvx zizmor .github/` runs it locally). Actions are pinned to commit SHAs, and Dependabot
+keeps them and the npm dependencies up to date.
+
 ## License
 
 Apache-2.0
