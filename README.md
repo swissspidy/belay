@@ -152,6 +152,15 @@ What the reports showed:
   Jev for moderation, and Jev → Claude for intents.
 
   With 300 examples, one point is three examples, so small differences between rows are noise.
+- **Generation needs a judge that can tell right from wrong, and Laya isn't one yet.**
+  [`examples/event-extraction`](examples/event-extraction/belay-report.html) extracts a calendar
+  event (5 fields) from 300 voice requests with Gemini Nano through Chrome's Prompt API, judged
+  by Laya through the Classifier API, with Claude as the cloud. Gemini Nano got 47.7% of the
+  extractions fully right, Claude 62.7% (the annotations are noisy). But Laya's P(correct) sat
+  between 0.2 and 0.7 whether the extraction was right or wrong, so no threshold could trust the
+  local answer: the cascade kept 1% of runs on device and saved 1%. Calibration is what catches
+  this before shipping. A sharper confidence signal (a stronger judge, or checks such as "every
+  extracted value appears in the request") is the next thing to try.
 - **The local model is an open, Jev-style model too.** Laya
   ([convaiinnovations/laya](https://huggingface.co/convaiinnovations/laya), Apache-2.0) takes the
   same typed choice / yes-no / score questions as Jev and returns calibrated probabilities. Its

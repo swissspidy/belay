@@ -22,6 +22,11 @@ Each directory has:
 
 The content-moderation dataset contains offensive language. That's the point of the task.
 
+`event-extraction` is the generation example: Gemini Nano (Chrome's Prompt API) writes the JSON,
+and a Laya judge (the Classifier API) scores it. On this data the judge doesn't separate right
+from wrong extractions, so the calibration keeps almost everything in the cloud. The
+[report](event-extraction/belay-report.html) shows why.
+
 ## Running a calibration
 
 ```sh
