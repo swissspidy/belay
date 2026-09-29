@@ -139,10 +139,36 @@ export interface CloudRequest<S extends TaskSchema = TaskSchema> {
   local?: { value: unknown; confidence: number | null };
 }
 
+/**
+ * Token usage of one cloud call, as the provider reported it. A call that several models served
+ * (e.g. a refusal fallback) reports one part per model.
+ */
+export interface CloudUsage {
+  /** The model id that served this part, as the provider reports it (keys a `PriceTable`). */
+  model?: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens?: number;
+  cacheWriteInputTokens?: number;
+}
+
+/** Prices per million tokens. Cache prices default to the input price. */
+export interface TokenPrices {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+}
+
+/** Token prices keyed by the model id the provider reports. */
+export type PriceTable = Record<string, TokenPrices>;
+
 export interface CloudOutput<V = unknown> {
   value: V;
   /** Optional confidence if the provider exposes one (e.g. from logprobs). */
   confidence?: number;
+  /** Token usage, when the provider reports it. Used to measure what calls cost. */
+  usage?: CloudUsage | CloudUsage[];
   raw?: unknown;
 }
 
@@ -298,6 +324,8 @@ export interface RunEvent {
   cloudLatencyMs: number | null;
   localRunner: string;
   cloudRunner: string | null;
+  /** Token usage of the cloud call, when its runner reported it (see `savingsMeter()`). */
+  cloudUsage?: CloudUsage[];
 }
 
 export interface ErrorEvent {
@@ -322,9 +350,17 @@ export interface CalibrationCurvePoint {
   localShare: number;
   /** Accuracy on the examples answered locally. */
   localAccuracy: number | null;
-  /** Estimated cloud cost per 1,000 runs (in `cost.currency`), when cost data was supplied. */
+  /** Cloud cost per 1,000 runs (in `cost.currency`), when cost data was supplied. */
   costPer1k?: number;
 }
+
+/**
+ * - `fixed`: `value` was given as a number.
+ * - `cloud`: the cascade must be at least as accurate as sending everything to the cloud;
+ *   `value` is the cloud-only accuracy measured on the dataset.
+ * - `max`: the most accurate threshold (ties go to the most local share); `value` is that accuracy.
+ */
+export type TargetMode = 'fixed' | 'cloud' | 'max';
 
 export interface CalibrationFile {
   version: 1;
@@ -335,7 +371,7 @@ export interface CalibrationFile {
   local: { runner: string; model?: string; userAgent?: string };
   cloud: { runner: string; model?: string } | null;
   dataset: { size: number; fingerprint: string };
-  target: { metric: 'accuracy'; value: number };
+  target: { metric: 'accuracy'; value: number; mode?: TargetMode };
   /** Recommended global threshold. */
   threshold: number;
   /** Optional per-label overrides, keyed by the local top label. */
@@ -345,9 +381,31 @@ export interface CalibrationFile {
     localShare: number;
     localAccuracy: number | null;
     cloudAccuracy: number | null;
+    /** Cloud cost per 1,000 runs at the recommended threshold(s). */
     costPer1k?: number;
+    /** Cloud cost per 1,000 runs when every run goes to the cloud. */
+    cloudOnlyCostPer1k?: number;
+    /** `cloudOnlyCostPer1k - costPer1k`. */
+    savingsPer1k?: number;
+    /**
+     * K-fold cross-validated estimate: thresholds fitted on K-1 folds, scored on the held-out
+     * fold. The numbers above are fitted and scored on the same data; these are not.
+     */
+    heldOut?: { folds: number; accuracy: number; localShare: number; cloudAccuracy: number; costPer1k?: number };
   };
-  cost?: { currency: string; cloudPerRun: number };
+  cost?: {
+    currency: string;
+    /** Mean cost of one cloud call: measured from token usage, or the configured estimate. */
+    cloudPerRun: number;
+    /** `measured`: priced from the token usage of every cloud call. `estimate`: a configured flat price. */
+    basis?: 'measured' | 'estimate';
+    /** The prices used for `measured` costs, per million tokens. */
+    prices?: PriceTable;
+    /** Mean tokens per cloud call (`measured` only). */
+    tokensPerRun?: { input: number; output: number; cacheRead: number; cacheWrite: number };
+    /** Volume for the savings projection in the report. */
+    runsPerMonth?: number;
+  };
   curve: CalibrationCurvePoint[];
   /** Histogram of local confidences over the dataset, for drift detection. */
   confidenceHistogram: { edges: number[]; counts: number[] };

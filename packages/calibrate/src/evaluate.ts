@@ -2,11 +2,14 @@ import {
   buildInstruction,
   canonicalJson,
   combineConfidence,
+  costOf,
+  usageParts,
   labelOf,
   parseValue,
   schemaFingerprint,
   toJsonSchema,
   type Availability,
+  type CloudUsage,
   type LocalOutput,
   type LocalRunner,
   type Judge,
@@ -57,6 +60,13 @@ export function nodeBackend(
 type LocalRecord =
   | { ok: true; value: unknown; confidence?: number; judge?: number }
   | { ok: false; reason: string };
+
+/** A cached cloud output. Entries from before usage was recorded have only `value`. */
+interface CloudRecord {
+  value: unknown;
+  usage?: CloudUsage[];
+  confidence?: number;
+}
 
 export interface EvaluateOptions {
   name: string;
@@ -178,6 +188,9 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
   const jsonSchema = toJsonSchema(schema);
   const instruction = buildInstruction(schema, config.context);
   const retries = options.cloudRetries ?? 2;
+  // Measured cost needs the usage of every call, so a cached output without it is fetched again.
+  const needsUsage = config.cost?.prices !== undefined;
+  const usages: (CloudUsage[] | undefined)[] = new Array(total);
   let done = 0;
   await pool(dataset.examples, options.cloudConcurrency ?? 4, async (example, i) => {
     const input = config.redact ? await config.redact(example.input) : example.input;
@@ -185,7 +198,8 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
     const localSummary =
       record.ok && samples[i]!.local ? { value: parseValue(schema, record.value).ok ? record.value : null, confidence: samples[i]!.local!.confidence } : undefined;
     const key = OutputCache.key({ side: 'cloud', task: name, cloud: config.cloud.id, schema: fingerprint, context: config.context ?? null, input, local: localSummary ?? null });
-    let value = options.refresh?.cloud ? undefined : cache.get<{ value: unknown }>(key);
+    let value = options.refresh?.cloud ? undefined : cache.get<CloudRecord>(key);
+    if (value && needsUsage && !value.usage) value = undefined;
     if (value) {
       cached.cloud++;
     } else {
@@ -203,7 +217,12 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
             },
             {},
           );
-          value = { value: output.value };
+          const usage = usageParts(output.usage);
+          value = {
+            value: output.value,
+            ...(usage.length ? { usage } : {}),
+            ...(typeof output.confidence === 'number' ? { confidence: output.confidence } : {}),
+          };
           await cache.set(key, value);
           break;
         } catch (err) {
@@ -213,6 +232,7 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
       }
     }
     if (value) {
+      usages[i] = value.usage;
       const parsed = parseValue(schema, value.value);
       samples[i]!.cloud = parsed.ok
         ? { label: labelOf(schema, parsed.value) ?? '(structured)', correct: isCorrect(config, parsed.value, example.expected) }
@@ -220,6 +240,20 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
     }
     onProgress?.({ phase: 'cloud', done: ++done, total });
   });
+
+  // Priced after all calls, so a missing price fails the run once with every output cached.
+  const prices = config.cost?.prices;
+  if (prices) {
+    for (const [i, sample] of samples.entries()) {
+      if (!sample.cloud) continue;
+      const usage = usages[i];
+      if (!usage?.length) {
+        throw new Error(`Task "${name}": cost.prices is set, but the cloud runner "${config.cloud.id}" reported no token usage. Report it (CloudOutput.usage) or use cost.cloudPerRun.`);
+      }
+      sample.cloud.usage = usage;
+      sample.cloud.cost = costOf(usage, prices);
+    }
+  }
 
   return { samples, local: info, cached };
 }

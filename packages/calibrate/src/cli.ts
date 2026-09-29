@@ -18,7 +18,8 @@ Options:
   --task <name>          Task name from the config file (required unless it has one task)
   --data <file>          Labeled examples, JSONL: {"input": "...", "label": "..."} (required)
   --config <file>        Config file (default: belay.config.{mjs,js,ts} in the current directory)
-  --target <0..1>        Target cascade accuracy (default: task config, else 0.95)
+  --target <t>           "cloud": at least cloud-only accuracy (default), "max": most accurate
+                         threshold, or a fixed accuracy in (0, 1]
   --per-label            Also fit per-label thresholds
   --out <file>           Calibration file (default: belay.calibration.json)
   --report <file>        HTML report (default: belay-report.html)
@@ -114,8 +115,8 @@ export async function main(argv: string[]): Promise<number> {
   const taskConfig = config.tasks[name];
   if (!taskConfig) throw new Error(`task "${name}" is not in ${relative(process.cwd(), configPath)} (has: ${names.join(', ')})`);
 
-  const target = values.target !== undefined ? Number(values.target) : undefined;
-  if (target !== undefined && !(target > 0 && target <= 1)) throw new Error('--target must be in (0, 1]');
+  const target = values.target === undefined || values.target === 'cloud' || values.target === 'max' ? values.target : Number(values.target);
+  if (typeof target === 'number' && !(target > 0 && target <= 1)) throw new Error('--target must be "cloud", "max" or a number in (0, 1]');
   const concurrency = values.concurrency !== undefined ? Number(values.concurrency) : undefined;
   if (concurrency !== undefined && !(Number.isInteger(concurrency) && concurrency > 0)) {
     throw new Error('--concurrency must be a positive integer');
@@ -199,6 +200,10 @@ export async function main(argv: string[]): Promise<number> {
 
     if (!quiet) {
       const e = file.expected;
+      const money = (v: number) => `${v === 0 || Math.abs(v) >= 1 ? v.toFixed(2) : Number(v.toPrecision(2)).toString()} ${file.cost!.currency}`;
+      const targetLine =
+        file.target.mode === 'cloud' ? `at least cloud only (${pct(file.target.value)})` : file.target.mode === 'max' ? `most accurate (${pct(file.target.value)})` : pct(file.target.value);
+      const h = analysis.headToHead;
       const lines = [
         '',
         `Task            ${name}`,
@@ -206,8 +211,18 @@ export async function main(argv: string[]): Promise<number> {
         `Local only      ${pct(analysis.curve[0]!.accuracy)} accuracy`,
         `Cloud only      ${pct(e.cloudAccuracy)} accuracy`,
         `Threshold       ${file.threshold}${file.thresholds ? `  (per label: ${Object.entries(file.thresholds).map(([k, v]) => `${k}=${v}`).join(', ')})` : ''}`,
-        `Cascade         ${pct(e.accuracy)} accuracy (95% CI ${pct(analysis.accuracyInterval[0])}–${pct(analysis.accuracyInterval[1])}), ${pct(e.localShare)} local${e.costPer1k !== undefined ? `, ${e.costPer1k} ${file.cost!.currency} per 1k runs` : ''}`,
-        `Target          ${pct(file.target.value)} ${analysis.targetMet ? 'met' : 'NOT met (threshold maximizes accuracy instead)'}`,
+        `Cascade         ${pct(e.accuracy)} accuracy (95% CI ${pct(analysis.accuracyInterval[0])}–${pct(analysis.accuracyInterval[1])}), ${pct(e.localShare)} local`,
+        ...(e.heldOut
+          ? [`Held out        ${pct(e.heldOut.accuracy)} accuracy vs ${pct(e.heldOut.cloudAccuracy)} cloud only, ${pct(e.heldOut.localShare)} local (${e.heldOut.folds}-fold cross-validation)`]
+          : []),
+        `Kept local      ${h.kept}: ${h.localOnlyRight} only local right, ${h.cloudOnlyRight} only cloud right`,
+        ...(e.costPer1k !== undefined && e.cloudOnlyCostPer1k !== undefined
+          ? [
+              `Cloud cost      ${money(e.costPer1k)} per 1k runs vs ${money(e.cloudOnlyCostPer1k)} cloud only (${file.cost!.basis === 'measured' ? `measured, ${money(file.cost!.cloudPerRun)} per call` : 'estimate'})`,
+              `Saved           ${money(e.savingsPer1k!)} per 1k runs (${pct(e.cloudOnlyCostPer1k ? e.savingsPer1k! / e.cloudOnlyCostPer1k : null, 0)})${file.cost!.runsPerMonth ? `, ${money((e.savingsPer1k! * file.cost!.runsPerMonth) / 1000)} per month at ${file.cost!.runsPerMonth.toLocaleString('en-US')} runs` : ''}`,
+            ]
+          : []),
+        `Target          ${targetLine} ${analysis.targetMet ? 'met' : 'NOT met (threshold maximizes accuracy instead)'}`,
         '',
         `Wrote ${values.out} and ${values.report}`,
       ];

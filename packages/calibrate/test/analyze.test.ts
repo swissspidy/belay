@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyze, candidateThresholds, niceThreshold, wilsonInterval, type Sample } from '../src/index.js';
+import { analyze, candidateThresholds, crossValidate, niceThreshold, wilsonInterval, type Sample } from '../src/index.js';
 
 const sample = (id: number, confidence: number | null, localCorrect: boolean, cloudCorrect = true, truth = 'a', label = 'a'): Sample => ({
   id: String(id),
@@ -114,6 +114,41 @@ describe('analyze', () => {
     expect(a.perOption.find((o) => o.label === 'a')!.threshold).toBe(0);
   });
 
+  it("target 'cloud' keeps the cascade at least as accurate as cloud only", () => {
+    // Cloud only: 9/10 (#10 wrong). (0.6, 0.8] reaches 9/10 with the most local share.
+    const a = analyze(samples, { target: 'cloud' });
+    expect(a.target).toEqual({ value: 0.9, mode: 'cloud' });
+    expect(a.threshold).toBe(0.7);
+    expect(a.expected.accuracy).toBeGreaterThanOrEqual(a.expected.cloudAccuracy!);
+  });
+
+  it("target 'max' picks the most accurate threshold, then the most local share", () => {
+    const a = analyze(samples, { target: 'max' });
+    expect(a.target).toEqual({ value: 1, mode: 'max' });
+    expect(a.threshold).toBe(0.9);
+    expect(a.targetMet).toBe(true);
+    // #10 stays local and is right where the cloud is wrong: the gain over cloud only.
+    expect(a.headToHead).toEqual({ kept: 4, bothRight: 3, localOnlyRight: 1, cloudOnlyRight: 0, bothWrong: 0 });
+  });
+
+  it('prices each escalated sample at its measured cost, and reports savings', () => {
+    const measured = (s: Sample, cost: number): Sample => ({ ...s, cloud: { ...s.cloud!, cost, usage: [{ inputTokens: cost * 1e6, outputTokens: 0 }] } });
+    const s = [measured(sample(1, 0.9, true), 0.004), measured(sample(2, 0.3, false), 0.002), { ...sample(3, 0.2, false), cloud: null }];
+    const a = analyze(s, { target: 'cloud', cost: { currency: 'USD' } });
+    // Cloud only: 2/3; threshold 0.4 keeps #1 local and pays for #2 and for #3 at the mean (0.003).
+    expect(a.cost).toMatchObject({ basis: 'measured', cloudPerRun: 0.003, measuredCalls: 2, tokensPerRun: { input: 3000, output: 0 } });
+    expect(a.expected.cloudOnlyCostPer1k).toBeCloseTo(3);
+    expect(a.expected.costPer1k).toBeCloseTo((0.002 + 0.003) / 3 * 1000);
+    expect(a.expected.savingsPer1k).toBeCloseTo(3 - 5 / 3);
+    expect(a.curve[0]!.costPer1k).toBe(0);
+  });
+
+  it('has no cost without measured calls or a per-run price', () => {
+    const a = analyze(samples, { target: 0.9, cost: { currency: 'USD' } });
+    expect(a.cost).toBeUndefined();
+    expect(a.expected.costPer1k).toBeUndefined();
+  });
+
   it('lists confident mistakes, most confident first', () => {
     const a = analyze(samples, { target: 0.9 });
     expect(a.confidentMistakes.map((s) => s.id)).toEqual(['4']);
@@ -121,6 +156,19 @@ describe('analyze', () => {
 
   it('is deterministic', () => {
     expect(JSON.stringify(analyze(samples, { target: 0.9, perLabel: true }))).toBe(JSON.stringify(analyze([...samples], { target: 0.9, perLabel: true })));
+  });
+});
+
+describe('crossValidate', () => {
+  it('scores thresholds fitted on the other folds', () => {
+    // Local is right above 0.5 and wrong below; the cloud is right 80% of the time.
+    const s = Array.from({ length: 100 }, (_, i) => sample(i, (i * 37 % 100) / 100, (i * 37 % 100) >= 50, i % 5 !== 0));
+    const cv = crossValidate(s, { target: 'max' })!;
+    expect(cv.folds).toBe(5);
+    expect(cv.cloudAccuracy).toBe(0.8);
+    expect(cv.accuracy).toBeGreaterThan(0.85);
+    expect(cv.localShare).toBeGreaterThan(0.3);
+    expect(crossValidate(s.slice(0, 40), { target: 'max' })).toBeUndefined();
   });
 });
 

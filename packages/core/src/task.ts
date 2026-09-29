@@ -1,5 +1,6 @@
 import { loadCalibration, thresholdFor } from './calibration.js';
 import { combineConfidence } from './confidence.js';
+import { usageParts } from './cost.js';
 import { BelayError, LocalUnavailableError } from './errors.js';
 import { assertValidSchema, buildInstruction, labelOf, parseValue, schemaFingerprint, toJsonSchema } from './schema.js';
 import type {
@@ -7,6 +8,7 @@ import type {
   BelayEvent,
   BelayResult,
   CalibrationFile,
+  CloudOutput,
   EscalationBlock,
   EscalationPolicy,
   EscalationReason,
@@ -188,6 +190,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
     const finish = (
       result: Omit<BelayResult<ValueOf<S>>, 'latencyMs' | 'threshold' | 'local' | 'escalationReason'>,
       cloudLatencyMs: number | null,
+      cloudUsage?: CloudOutput['usage'],
     ): BelayResult<ValueOf<S>> => {
       const full: BelayResult<ValueOf<S>> = {
         ...result,
@@ -215,6 +218,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
         cloudLatencyMs,
         localRunner: local.id,
         cloudRunner: cloud?.id ?? null,
+        ...(cloudUsage ? { cloudUsage: usageParts(cloudUsage) } : {}),
       });
       return full;
     };
@@ -287,6 +291,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
           escalationBlocked: null,
         },
         now() - cloudStarted,
+        output.usage,
       );
     } catch (err) {
       if (signal?.aborted) throw signal.reason;

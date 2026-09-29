@@ -1,13 +1,18 @@
-import type { CloudOutput, CloudRequest, CloudRunner, TaskSchema } from './types.js';
+import type { CloudOutput, CloudRequest, CloudRunner, CloudUsage, TaskSchema } from './types.js';
 
 export type CloudFn<S extends TaskSchema = TaskSchema> = (
   request: CloudRequest<S>,
-  options: { signal?: AbortSignal },
+  options: {
+    signal?: AbortSignal;
+    /** Report the call's token usage, so calibration and `savingsMeter()` can measure its cost. */
+    reportUsage: (usage: CloudUsage | CloudUsage[]) => void;
+  },
 ) => Promise<unknown>;
 
 /**
  * Wraps a plain async function as a cloud runner. The function returns the raw output:
  * the bare value, the `{ value }` wrapper, or a JSON string of either. The task validates it.
+ * Token usage goes through `reportUsage`, since the output itself may be a `{ value }` object.
  *
  * ```ts
  * cloudAdapter(async ({ instruction, input, jsonSchema }, { signal }) => {
@@ -23,7 +28,9 @@ export function cloudAdapter<S extends TaskSchema = TaskSchema>(
   return {
     id: options.id ?? 'cloud',
     async run(request, opts): Promise<CloudOutput> {
-      return { value: await fn(request, opts) };
+      let usage: CloudUsage | CloudUsage[] | undefined;
+      const value = await fn(request, { ...opts, reportUsage: (u) => void (usage = u) });
+      return usage ? { value, usage } : { value };
     },
   };
 }
@@ -36,6 +43,8 @@ export interface FetchAdapterOptions<S extends TaskSchema = TaskSchema> {
   body?: (request: CloudRequest<S>) => unknown;
   /** Extracts the output from the parsed JSON response. Defaults to the whole response. */
   select?: (json: unknown) => unknown;
+  /** Extracts token usage from the parsed JSON response, if your backend passes it through. */
+  usage?: (json: unknown) => CloudUsage | CloudUsage[] | undefined;
   id?: string;
   fetch?: typeof fetch;
 }
@@ -44,7 +53,7 @@ export interface FetchAdapterOptions<S extends TaskSchema = TaskSchema> {
 export function fetchAdapter<S extends TaskSchema = TaskSchema>(options: FetchAdapterOptions<S>): CloudRunner<S> {
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   return cloudAdapter<S>(
-    async (request, { signal }) => {
+    async (request, { signal, reportUsage }) => {
       const body = options.body ? options.body(request) : request;
       const res = await doFetch(options.url, {
         method: 'POST',
@@ -54,6 +63,8 @@ export function fetchAdapter<S extends TaskSchema = TaskSchema>(options: FetchAd
       });
       if (!res.ok) throw new Error(`Cloud endpoint responded with HTTP ${res.status}`);
       const json: unknown = await res.json();
+      const usage = options.usage?.(json);
+      if (usage) reportUsage(usage);
       return options.select ? options.select(json) : json;
     },
     { id: options.id ?? 'fetch' },

@@ -30,16 +30,24 @@ npm install && npm run build      # from the repository root
 export WEBAI_EXTENSION=/path/to/web-ai.studio/extension/release
 # Or use Chrome's native API (chrome://flags/#classifier-api) and leave WEBAI_EXTENSION unset.
 
-# Cloud model: Claude, if you have credentials…
+# Cloud model: Claude and/or Jev, if you have credentials…
 export ANTHROPIC_API_KEY=…         # BELAY_CLOUD=claude is then the default
+export JEV_API_KEY=…               # BELAY_CLOUD=jev (TypeSafe AI; TYPESAFE_API_KEY works too)
 # …otherwise the reference labels (a perfect cloud, an upper bound; see below):
 export BELAY_CLOUD=reference
 
 npm run calibrate:triage --workspace examples       # or calibrate:moderation, calibrate:intent
+npm run calibrate:all --workspace examples          # every task against Claude and Jev
 ```
 
 Each script runs `belay calibrate` inside the example's directory. That directory then holds
-`belay.calibration.json`, `belay-report.html` and `.belay-cache/`.
+`belay.calibration.json`, `belay-report.html` and `.belay-cache/`. `calibrate:all` writes the Jev
+results next to them as `belay.calibration.jev.json` and `belay-report.jev.html`.
+
+The configs use `target: 'max'` (the most accurate threshold; check the report's held-out
+accuracy) and price every cloud call from its token usage with the tables in
+[`shared/cloud.mjs`](shared/cloud.mjs), copied from [claude.com/pricing](https://claude.com/pricing#api)
+and [docs.typesafe.ai/models](https://docs.typesafe.ai/models). Update them when prices change.
 
 The first run downloads the models (about 680 MB)
 and caches every output in `.belay-cache/`. Later runs replay the cache and write identical files.

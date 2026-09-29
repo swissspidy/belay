@@ -1,7 +1,7 @@
 export { defineConfig, defineTask, isBrowserJudge, isBrowserRunner } from './config.js';
-export type { BelayConfig, BrowserConfig, BrowserJudgeSpec, BrowserRunnerSpec, CalibrationTaskConfig } from './config.js';
-export { analyze, candidateThresholds, niceThreshold, wilsonInterval } from './analyze.js';
-export type { Analysis, AnalyzeOptions, OptionStats, Sample } from './analyze.js';
+export type { BelayConfig, BrowserConfig, BrowserJudgeSpec, BrowserRunnerSpec, CalibrationTaskConfig, CostConfig } from './config.js';
+export { analyze, candidateThresholds, crossValidate, niceThreshold, wilsonInterval } from './analyze.js';
+export type { Analysis, AnalyzeOptions, CostSummary, CrossValidation, HeadToHead, OptionStats, Sample } from './analyze.js';
 export { calibrate, resolveCreatedAt } from './calibrate.js';
 export type { CalibrateOptions, CalibrateResult } from './calibrate.js';
 export { evaluate, nodeBackend } from './evaluate.js';
