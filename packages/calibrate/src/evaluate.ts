@@ -237,6 +237,7 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
       samples[i]!.cloud = parsed.ok
         ? { label: labelOf(schema, parsed.value) ?? '(structured)', correct: isCorrect(config, parsed.value, example.expected) }
         : { label: '(invalid)', correct: false };
+      if (typeof value.confidence === 'number') samples[i]!.cloud!.confidence = value.confidence;
     }
     onProgress?.({ phase: 'cloud', done: ++done, total });
   });

@@ -12,6 +12,8 @@ export interface Sample {
   cloud: {
     label: string;
     correct: boolean;
+    /** The cloud model's own confidence, when its runner reports one (e.g. Jev). */
+    confidence?: number;
     /** Measured cost of the call (from its token usage and the configured prices). */
     cost?: number;
     usage?: CloudUsage[];

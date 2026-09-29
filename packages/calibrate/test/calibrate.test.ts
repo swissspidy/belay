@@ -121,7 +121,7 @@ describe('calibrate with measured cost', () => {
       },
       async run(request: Parameters<typeof inner.run>[0]) {
         const output = await inner.run(request, {});
-        return reportUsage ? { ...output, usage: { model: 'm', inputTokens: 1000, outputTokens: 10 } } : output;
+        return reportUsage ? { ...output, confidence: 0.7, usage: { model: 'm', inputTokens: 1000, outputTokens: 10 } } : output;
       },
     };
     return runner;
@@ -142,7 +142,8 @@ describe('calibrate with measured cost', () => {
   };
 
   it('prices every call from its usage and records savings and a held-out estimate', async () => {
-    const { file, analysis } = await measure(null, usageCloud());
+    const { file, analysis, evaluation } = await measure(null, usageCloud());
+    expect(evaluation.samples.every((s) => s.cloud?.confidence === 0.7)).toBe(true);
     // 1000 × $2/M + 10 × $10/M = $0.0021 per call.
     expect(file.cost).toEqual({
       currency: 'USD',

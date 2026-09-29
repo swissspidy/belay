@@ -94,6 +94,17 @@ What the reports showed:
   `account`. Adding "claims against the company" to the `feedback` option's description raised
   local accuracy to 93.0%. (The change was chosen by looking at these same 300 examples, so treat
   that gain as optimistic.)
+- **A third tier adds little; picking the right second tier matters more.** Jev reports its own
+  confidence, so [`scripts/three-tier.mjs`](examples/scripts/three-tier.mjs) simulates Laya → Jev
+  → Claude from the cached outputs, with both thresholds cross-validated. Per 1M runs, held out:
+  - Ticket triage: Laya → Claude is the most accurate (97.3%, $967). Laya → Jev gets 95.0% for
+    $8.28. Three tiers get 95.3% for $99: Jev's confidence doesn't pick out the runs where Claude
+    would do better.
+  - Moderation: Laya → Jev is best (85.3%, $7.34), since Jev agrees with these labels more.
+  - Intent detection: Jev → Claude matches Claude alone (99.3%) for $53 instead of $2,301. Jev
+    answers 98.7% of runs and hands the rest to Claude.
+
+  With 300 examples, one point is three examples, so small differences between rows are noise.
 - **The local model is an open, Jev-style model too.** Laya
   ([convaiinnovations/laya](https://huggingface.co/convaiinnovations/laya), Apache-2.0) takes the
   same typed choice / yes-no / score questions as Jev and returns calibrated probabilities. Its
