@@ -7,10 +7,11 @@ trust it blindly. Belay runs a task locally first. It escalates to your cloud mo
 local model's confidence is below a threshold, and that threshold is calibrated on your own labeled
 data.
 
-> **Status:** Milestones 1–3 are done: the core cascade, the Classifier API and Prompt API
-> runners, the classifier-as-judge, and the `belay calibrate` CLI. Examples are next (see
-> [Roadmap](#roadmap)).
-> Design decisions are in [ADR 0001](docs/adr/0001-public-api-confidence-and-calibration.md).
+> **Status:** Milestones 1–4 are done: the core cascade, the Classifier API and Prompt API
+> runners, the classifier-as-judge, the `belay calibrate` CLI, and [three examples](examples)
+> with real calibrations. Design decisions are in ADRs
+> [0001](docs/adr/0001-public-api-confidence-and-calibration.md) and
+> [0002](docs/adr/0002-calibration-in-a-real-browser.md).
 
 ```ts
 import { task, fetchAdapter } from '@belay/core';
@@ -39,6 +40,43 @@ const result = await triage.run(ticketText, { signal });
 
 **The rule:** the local answer is accepted if and only if `confidence >= threshold`. Otherwise the
 task escalates, subject to your privacy policy.
+
+## A real calibration
+
+[![Calibration report for ticket triage](docs/images/ticket-triage-report.png)](examples/ticket-triage/belay-report.html)
+
+[`examples/ticket-triage`](examples/ticket-triage) routes customer messages to one of five teams.
+The data is 300 labeled messages from the public Bitext support dataset. The local model is Laya
+(the WebAI Studio extension's Classifier API polyfill) running in headless Chromium through
+`belay calibrate`. Every confidence in the report is a real model output, and all outputs are
+committed in `.belay-cache/`, so re-running replays them and writes a byte-identical file.
+
+| Task | Local only | Threshold | Cascade accuracy¹ | Answered locally¹ |
+| --- | --- | --- | --- | --- |
+| [ticket triage](examples/ticket-triage/belay-report.html) (5 teams) | 93.0% | 0.42 | 95.0% (target 95%) | 94.7% |
+| [content moderation](examples/content-moderation/belay-report.html) (binary) | 70.7% | 0.577, `true`: 0 | 90.0% (target 90%) | 80.3% |
+| [intent detection](examples/intent-detection/belay-report.html) (8 intents) | 86.7% | 0.796 | 95.0% (target 95%) | 84.0% |
+
+¹ **Upper bounds.** The build environment had no cloud-LLM credentials, so escalated examples
+were answered with the dataset's labels, as if the cloud were always right. The local side of each
+report is real. With a real cloud model, the threshold rises and the local share falls. Set
+`ANTHROPIC_API_KEY` and re-run to calibrate against Claude; only the cloud side is queried again.
+
+What the reports showed:
+
+- **The report told us how to fix the task.** The first ticket-triage calibration had 88.0% local
+  accuracy and needed 0.622 to reach 95% (83.7% local). Its "confident local mistakes" table was
+  mostly customer *claims* routed to `account`. Adding "claims against the company" to the
+  `feedback` option's description raised local accuracy to 93.0%, and the target was met with
+  94.7% of runs on device. The cloud cost per 1,000 runs dropped from $0.49 to $0.16. (The change
+  was chosen by looking at these same 300 examples, so treat the gain as optimistic until it's
+  checked on held-out data.)
+- **Per-label thresholds matter.** For moderation, Laya's "toxic" answers were right at any
+  confidence, but its "not toxic" answers were not. `--per-label` keeps every toxic verdict local
+  (threshold 0) and escalates only unsure "not toxic" ones.
+- **The API's `confidence` field is not the label probability.** For the same decision, Laya
+  reported `confidence: 0.964` next to `probability: 0.993` for the chosen label. Belay pins the
+  signal to the probability (ADR 0001), and calibration fixes the threshold for it.
 
 ## Packages
 
@@ -205,7 +243,7 @@ contain the input text. Track local share over time and compare it with the cali
 1. ✅ Core + Classifier runner + cloud adapter; escalates exactly when confidence < threshold.
 2. ✅ Calibration CLI (Playwright + real Chrome, WebAI Studio polyfill), HTML report, `belay.calibration.json`.
 3. ✅ Prompt API runner with structured output and classifier-as-judge confidence.
-4. Examples (ticket triage, content moderation, intent detection) and a real calibration report.
+4. ✅ Examples (ticket triage, content moderation, intent detection) and real calibration reports.
 
 Non-goals for now: routing between cloud models, training or fine-tuning, server-side use.
 

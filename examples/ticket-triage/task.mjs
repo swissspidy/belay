@@ -11,7 +11,7 @@ export const triageSchema = {
     { label: 'billing', description: 'Invoices, payments, payment methods and refunds' },
     { label: 'order', description: 'Placing, changing, checking or cancelling an order' },
     { label: 'shipping', description: 'Delivery options, delivery times, shipping addresses and tracking a parcel' },
-    { label: 'feedback', description: 'Complaints, reviews and feedback about the store or its service' },
+    { label: 'feedback', description: 'Complaints, claims against the company, reviews and feedback about the store or its service' },
   ],
 };
 

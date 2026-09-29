@@ -202,6 +202,7 @@ header h1 { font-size: 28px; margin: 2px 0 4px; letter-spacing: -0.01em; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart text { fill: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .chart .label-strong { fill: var(--text-secondary); }
+.chart .ref-label { paint-order: stroke; stroke: var(--surface-1); stroke-width: 5px; stroke-linejoin: round; }
 .table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
@@ -297,15 +298,17 @@ const SCRIPT = String.raw`
       el('text', { x: x(t), y: m.t + ih + 20, 'text-anchor': 'middle' }, svg).textContent = xStep === 0.25 ? t.toFixed(2) : t.toFixed(1);
     }
     el('text', { x: m.l + iw / 2, y: H - 2, 'text-anchor': 'middle' }, svg).textContent = 'threshold';
-    // reference lines
+    // reference lines (their labels are drawn last, above the data, with a halo)
+    const refLabels = [];
     for (const ref of opts.refs || []) {
       if (ref.axis === 'y') {
         el('line', { x1: m.l, x2: m.l + iw, y1: y(ref.value), y2: y(ref.value), stroke: css('--text-muted'), 'stroke-width': 1 }, svg);
-        el('text', { x: m.l + 4, y: y(ref.value) - 5, class: 'label-strong' }, svg).textContent = ref.label;
+        refLabels.push(['text', { x: m.l + 4, y: y(ref.value) - 5, class: 'label-strong ref-label' }, ref.label]);
       } else {
         el('line', { x1: x(ref.value), x2: x(ref.value), y1: m.t, y2: m.t + ih, stroke: css('--text-secondary'), 'stroke-width': 1 }, svg);
         const anchorEnd = ref.value > 0.75;
-        el('text', { x: x(ref.value) + (anchorEnd ? -6 : 6), y: m.t + 12, 'text-anchor': anchorEnd ? 'end' : 'start', class: 'label-strong' }, svg).textContent = ref.label;
+        // Bottom of the plot: the curves usually live near the top.
+        refLabels.push(['text', { x: x(ref.value) + (anchorEnd ? -6 : 6), y: m.t + ih - 8, 'text-anchor': anchorEnd ? 'end' : 'start', class: 'label-strong ref-label' }, ref.label]);
       }
     }
     const pts = data.curve;
@@ -333,6 +336,7 @@ const SCRIPT = String.raw`
       if (ly) el('line', { x1: m.l + iw + 2, x2: m.l + iw + 8, y1: yy, y2: ty, stroke: css('--axis'), 'stroke-width': 1 }, svg);
       el('text', { x: m.l + iw + 10, y: ty + 4, class: 'label-strong' }, svg).textContent = s.name;
     }
+    for (const [tag, attrs, text] of refLabels) el(tag, attrs, svg).textContent = text;
     // hover layer: crosshair + markers + tooltip
     const cross = el('line', { y1: m.t, y2: m.t + ih, stroke: css('--axis'), 'stroke-width': 1, visibility: 'hidden' }, svg);
     const dots = opts.series.map((s) => el('circle', { r: 4.5, fill: s.color, stroke: css('--surface-1'), 'stroke-width': 2, visibility: 'hidden' }, svg));
@@ -398,7 +402,7 @@ const SCRIPT = String.raw`
     el('line', { x1: m.l, x2: m.l + iw, y1: y(0), y2: y(0), stroke: css('--axis'), 'stroke-width': 1 }, svg);
     const tx = m.l + data.threshold * iw;
     el('line', { x1: tx, x2: tx, y1: m.t, y2: m.t + ih, stroke: css('--text-secondary'), 'stroke-width': 1 }, svg);
-    el('text', { x: tx + (data.threshold > 0.75 ? -6 : 6), y: m.t + 12, 'text-anchor': data.threshold > 0.75 ? 'end' : 'start', class: 'label-strong' }, svg).textContent = 'threshold ' + data.threshold;
+    el('text', { x: tx + (data.threshold > 0.75 ? -6 : 6), y: m.t + 12, 'text-anchor': data.threshold > 0.75 ? 'end' : 'start', class: 'label-strong ref-label' }, svg).textContent = 'threshold ' + data.threshold;
     el('text', { x: m.l + iw / 2, y: H - 2, 'text-anchor': 'middle' }, svg).textContent = 'local confidence';
   }
 

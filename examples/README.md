@@ -8,6 +8,8 @@ Three tasks, each with a labeled dataset of 300 examples and a calibration confi
 | [`content-moderation`](content-moderation) | binary | [Civil Comments](https://huggingface.co/datasets/google/civil_comments) (CC0-1.0), toxic when ≥ 50% of raters said so, non-toxic when ≤ 10% did |
 | [`intent-detection`](intent-detection) | categorical, 8 intents | [MASSIVE en-US](https://huggingface.co/datasets/AmazonScience/massive) (CC BY 4.0), 8 intents |
 
+Data sources, licenses and changes: [DATA-LICENSES.md](DATA-LICENSES.md).
+
 Each directory has:
 
 - `task.mjs`: the schema and the `task()` an app would create. It is the same schema object
