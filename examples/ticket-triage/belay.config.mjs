@@ -3,7 +3,8 @@ import { exampleCloud } from '../shared/cloud.mjs';
 import { webaiBrowser } from '../shared/extension.mjs';
 import { context, redactEmails, triageSchema } from './task.mjs';
 
-const cloud = exampleCloud({ data: new URL('./examples.jsonl', import.meta.url), redact: redactEmails });
+// Claude: Laya → Claude is the most accurate cascade here (scripts/three-tier.mjs).
+const cloud = exampleCloud({ data: new URL('./examples.jsonl', import.meta.url), redact: redactEmails }, { prefer: 'claude' });
 
 export default defineConfig({
   tasks: {

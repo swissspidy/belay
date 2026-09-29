@@ -14,13 +14,15 @@
  * Both model runners report token usage, so the calibration measures what every call cost with the
  * price tables below.
  *
- * `exampleCloud()` picks the runner from BELAY_CLOUD: "claude" (the default when ANTHROPIC_API_KEY
- * is set), "jev", or "reference".
+ * - `jevThenClaude()`: Jev first, Claude only for the runs Jev is unsure about (`cloudCascade()`).
+ *
+ * `exampleCloud()` picks the runner: each example names the cloud that suited it best, and
+ * BELAY_CLOUD ("claude", "jev", "jev-claude" or "reference") overrides it.
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { TypeSafeClient } from '@typesafe-ai/sdk';
 import { readFileSync } from 'node:fs';
-import { cloudAdapter, normalizeOptions } from '@belay/core';
+import { cloudAdapter, normalizeOptions, usageParts } from '@belay/core';
 
 /**
  * Standard API prices in USD per million tokens, from https://claude.com/pricing#api (checked
@@ -126,6 +128,34 @@ export function jevCloud({ model = 'jev-1.13.0' } = {}) {
 }
 
 /**
+ * Two cloud runners in a row: `first` answers when its own confidence is at least `threshold`,
+ * otherwise `second` answers. The usage of both calls is reported, so each is priced at its own
+ * model's rates. Choose `threshold` on labeled data (`scripts/three-tier.mjs` fits one).
+ * @param {import('@belay/core').CloudRunner} first  must report a confidence
+ * @param {import('@belay/core').CloudRunner} second
+ * @returns {import('@belay/core').CloudRunner}
+ */
+export function cloudCascade(first, second, { threshold }) {
+  return {
+    id: `${first.id}@${threshold}>${second.id}`,
+    async run(request, options) {
+      const a = await first.run(request, options);
+      if (typeof a.confidence === 'number' && a.confidence >= threshold) return a;
+      const b = await second.run(request, options);
+      return { ...b, usage: [...usageParts(a.usage), ...usageParts(b.usage)] };
+    },
+  };
+}
+
+/**
+ * Jev first; Claude for the runs where Jev's confidence is below `threshold`. 0.8 is the most
+ * accurate threshold for the intent-detection example: Jev answers 296 of its 300 examples.
+ */
+export function jevThenClaude({ threshold = 0.8 } = {}) {
+  return cloudCascade(jevCloud(), claudeCloud(), { threshold });
+}
+
+/**
  * @param {{ data: string | URL, redact?: (input: string) => string }} options
  *   `data` is the JSONL dataset; `redact` must match the task's, since the cloud sees redacted input.
  */
@@ -145,21 +175,38 @@ export function referenceCloud({ data, redact = (s) => s }) {
   );
 }
 
+const CLOUDS = {
+  claude: { keys: ['ANTHROPIC_API_KEY'], runner: () => claudeCloud(), model: 'claude-opus-5-5', prices: claudePrices },
+  jev: { keys: ['JEV_API_KEY', 'TYPESAFE_API_KEY'], runner: () => jevCloud(), model: 'jev-1.13.0', prices: jevPrices },
+  'jev-claude': {
+    keys: ['ANTHROPIC_API_KEY'],
+    alsoKeys: ['JEV_API_KEY', 'TYPESAFE_API_KEY'],
+    runner: () => jevThenClaude(),
+    model: 'jev-1.13.0, then claude-opus-5-5 below Jev confidence 0.8',
+    prices: { ...jevPrices, ...claudePrices },
+  },
+};
+
+const hasKey = (names) => names.some((n) => process.env[n]);
+
 /**
- * The cloud runner, model name and cost config for the calibration, chosen by BELAY_CLOUD.
- * The reference labels have no cost: they are not a model anyone pays for.
+ * The cloud runner, model name and cost config for the calibration. `prefer` is the cloud the
+ * example uses; BELAY_CLOUD overrides it. Without credentials for it, the reference labels stand
+ * in (the report says so). The reference labels have no cost: nobody pays for them.
  * @param {{ data: string | URL, redact?: (input: string) => string }} dataset
+ * @param {{ prefer?: 'claude' | 'jev' | 'jev-claude', runsPerMonth?: number }} [options]
  */
-export function exampleCloud(dataset, { runsPerMonth = 1_000_000 } = {}) {
-  const choice = process.env.BELAY_CLOUD ?? (process.env.ANTHROPIC_API_KEY ? 'claude' : 'reference');
-  if (choice === 'claude') {
-    return { runner: claudeCloud(), model: 'claude-opus-5-5', cost: { currency: 'USD', prices: claudePrices, runsPerMonth } };
-  }
-  if (choice === 'jev') {
-    return { runner: jevCloud(), model: 'jev-1.13.0', cost: { currency: 'USD', prices: jevPrices, runsPerMonth } };
+export function exampleCloud(dataset, { prefer = 'claude', runsPerMonth = 1_000_000 } = {}) {
+  let choice = process.env.BELAY_CLOUD;
+  if (!choice) {
+    const cloud = CLOUDS[prefer];
+    choice = hasKey(cloud.keys) && (!cloud.alsoKeys || hasKey(cloud.alsoKeys)) ? prefer : 'reference';
+    if (choice === 'reference') process.stderr.write(`No credentials for "${prefer}": using the reference labels (set BELAY_CLOUD to choose).\n`);
   }
   if (choice === 'reference') {
-    return { runner: referenceCloud(dataset), model: 'dataset labels: perfect-cloud upper bound, not a model' };
+    return { runner: referenceCloud(dataset), model: 'dataset labels: perfect-cloud upper bound, not a model', name: 'reference' };
   }
-  throw new Error(`BELAY_CLOUD must be "claude", "jev" or "reference", got "${choice}"`);
+  const cloud = CLOUDS[choice];
+  if (!cloud) throw new Error(`BELAY_CLOUD must be one of ${[...Object.keys(CLOUDS), 'reference'].join(', ')}; got "${choice}"`);
+  return { runner: cloud.runner(), model: cloud.model, name: choice, cost: { currency: 'USD', prices: cloud.prices, runsPerMonth } };
 }

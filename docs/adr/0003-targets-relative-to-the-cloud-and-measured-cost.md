@@ -85,6 +85,12 @@ and a binary schema to one Noul question, and pins `jev-1.13.0` rather than the 
 alias so a calibration keeps matching the model that answers. The examples use `target: 'max'`,
 justified by the held-out estimate.
 
+Each example then uses the cloud that suited it best in that comparison (Claude for ticket
+triage, Jev for moderation) or, for intent detection, `cloudCascade(jev, claude)`: Jev answers
+when its own confidence is at least 0.8, Claude otherwise. That routing lives in the examples as a
+cloud runner, not in `@belay/core`: the usage of both calls is reported, so the calibration prices
+it correctly, and the library's cascade stays one local tier and one cloud tier.
+
 ## Consequences
 
 - Calibration files gain optional fields (`target.mode`, `cost.basis`, `cost.prices`,

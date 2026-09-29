@@ -3,7 +3,8 @@ import { exampleCloud } from '../shared/cloud.mjs';
 import { webaiBrowser } from '../shared/extension.mjs';
 import { context, moderationSchema } from './task.mjs';
 
-const cloud = exampleCloud({ data: new URL('./examples.jsonl', import.meta.url) });
+// Jev: it agrees with these labels more than Claude, and costs about 1% as much.
+const cloud = exampleCloud({ data: new URL('./examples.jsonl', import.meta.url) }, { prefer: 'jev' });
 
 export default defineConfig({
   tasks: {

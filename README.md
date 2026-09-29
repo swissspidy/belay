@@ -62,15 +62,19 @@ output free). The target is `'max'`: the most accurate threshold.
 
 | Task | Cloud | Local only | Cloud only | Cascade | Held out¹ | Local | Cloud cost per 1M runs | Saved |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| [ticket triage](examples/ticket-triage/belay-report.html) (5 teams) | Claude | 93.0% | 94.3% | **97.7%** | 97.3% | 47% | $1,086 (vs $2,005) | 46% |
+| [ticket triage](examples/ticket-triage/belay-report.html) (5 teams) | **Claude**² | 93.0% | 94.3% | **97.7%** | 97.3% | 47% | $1,086 (vs $2,005) | 46% |
 | | [Jev](examples/ticket-triage/belay-report.jev.html) | | 92.3% | **95.7%** | 95.0% | 47% | $9.68 (vs $18.30) | 47% |
-| [content moderation](examples/content-moderation/belay-report.html) (binary) | Claude | 70.7% | 76.0% | **76.7%** | 76.7% | 83% | $281 (vs $1,582) | 82% |
-| | [Jev](examples/content-moderation/belay-report.jev.html) | | 83.7% | **86.7%** | 86.0% | 78% | $3.18 (vs $14.55) | 78% |
-| [intent detection](examples/intent-detection/belay-report.html) (8 intents) | Claude | 88.0% | 99.3% | 99.3% | 99.0% | 32% | $1,561 (vs $2,301) | 32% |
+| [content moderation](examples/content-moderation/belay-report.html) (binary) | **Jev**² | 70.7% | 83.7% | **86.7%** | 86.0% | 78% | $3.18 (vs $14.55) | 78% |
+| | [Claude](examples/content-moderation/belay-report.claude.html) | | 76.0% | **76.7%** | 76.7% | 83% | $281 (vs $1,582) | 82% |
+| [intent detection](examples/intent-detection/belay-report.html) (8 intents) | **Jev → Claude**²³ | 88.0% | 99.7% | 99.7% | 99.3% | 32% | $65.06 (vs $71.42) | 9% |
+| | [Claude](examples/intent-detection/belay-report.claude.html) | | 99.3% | 99.3% | 99.0% | 32% | $1,561 (vs $2,301) | 32% |
 | | [Jev](examples/intent-detection/belay-report.jev.html) | | 99.0% | 99.0% | 98.7% | 32% | $13.51 (vs $19.87) | 32% |
 
 ¹ Five-fold cross-validation: thresholds fitted on four fifths of the examples, scored on the
 fifth. The cascade column is fitted and scored on the same 300 examples, which flatters it.
+² The cloud each example uses (its `belay.calibration.json`), chosen from the comparisons below.
+³ `jevThenClaude()`: Jev answers when its confidence is at least 0.8, Claude otherwise (6 of 300
+runs). As accurate as Claude alone for 3% of its cost, before Laya saves anything.
 
 What the reports showed:
 
@@ -102,7 +106,11 @@ What the reports showed:
     would do better.
   - Moderation: Laya → Jev is best (85.3%, $7.34), since Jev agrees with these labels more.
   - Intent detection: Jev → Claude matches Claude alone (99.3%) for $53 instead of $2,301. Jev
-    answers 98.7% of runs and hands the rest to Claude.
+    answers 98.7% of runs and hands the rest to Claude. Run for real (the table above), it sent 6
+    of 300 runs to Claude, since Jev's confidence varies a little between calls near 0.8.
+
+  So each example now uses the cloud that suited it best: Claude for ticket triage (accuracy),
+  Jev for moderation, and Jev → Claude for intents.
 
   With 300 examples, one point is three examples, so small differences between rows are noise.
 - **The local model is an open, Jev-style model too.** Laya
@@ -327,7 +335,8 @@ mean measured cost of a cloud call. Runs answered locally because escalation was
 4. ✅ Examples (ticket triage, content moderation, intent detection) and real calibration reports.
 5. ✅ Targets relative to the cloud, measured cost and savings, held-out accuracy, Jev as a cloud model.
 
-Non-goals for now: routing between cloud models, training or fine-tuning, server-side use.
+Non-goals for now: routing between cloud models in the library (a cloud runner can do it, like
+the examples' `cloudCascade()`), training or fine-tuning, server-side use.
 
 ## Development
 

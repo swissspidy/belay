@@ -32,3 +32,26 @@ describe('ticket-triage redaction', () => {
     expect(redactEmails('update {{Email Address}} please; no @ here')).toBe('update {{Email Address}} please; no @ here');
   });
 });
+
+describe('cloudCascade', () => {
+  it('uses the second runner only below the first one\'s confidence, and reports both usages', async () => {
+    const { cloudCascade } = (await import('../shared/cloud.mjs')) as { cloudCascade: (a: unknown, b: unknown, o: { threshold: number }) => any };
+    const calls: string[] = [];
+    const first = {
+      id: 'a',
+      run: async ({ input }: { input: string }) => {
+        calls.push(`a:${input}`);
+        return { value: 'x', confidence: input === 'sure' ? 0.9 : 0.5, usage: { model: 'a', inputTokens: 1, outputTokens: 0 } };
+      },
+    };
+    const second = { id: 'b', run: async ({ input }: { input: string }) => (calls.push(`b:${input}`), { value: 'y', usage: { model: 'b', inputTokens: 2, outputTokens: 1 } }) };
+    const runner = cloudCascade(first, second, { threshold: 0.8 });
+    expect(runner.id).toBe('a@0.8>b');
+    expect(await runner.run({ input: 'sure' }, {})).toMatchObject({ value: 'x', confidence: 0.9 });
+    expect(await runner.run({ input: 'unsure' }, {})).toEqual({
+      value: 'y',
+      usage: [{ model: 'a', inputTokens: 1, outputTokens: 0 }, { model: 'b', inputTokens: 2, outputTokens: 1 }],
+    });
+    expect(calls).toEqual(['a:sure', 'a:unsure', 'b:unsure']);
+  });
+});

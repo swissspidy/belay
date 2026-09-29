@@ -3,7 +3,8 @@ import { exampleCloud } from '../shared/cloud.mjs';
 import { webaiBrowser } from '../shared/extension.mjs';
 import { context, intentSchema } from './task.mjs';
 
-const cloud = exampleCloud({ data: new URL('./examples.jsonl', import.meta.url) });
+// Jev, then Claude where Jev is unsure: as accurate as Claude alone for about 2% of the cost.
+const cloud = exampleCloud({ data: new URL('./examples.jsonl', import.meta.url) }, { prefer: 'jev-claude' });
 
 export default defineConfig({
   tasks: {

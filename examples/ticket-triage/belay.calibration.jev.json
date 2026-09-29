@@ -2,7 +2,7 @@
   "version": 1,
   "task": "ticket-triage",
   "schemaFingerprint": "fnv1a:76ea9e62",
-  "createdAt": "2026-09-29T16:52:11.288Z",
+  "createdAt": "2026-09-29T17:07:33.334Z",
   "local": {
     "runner": "classifier-api",
     "model": "Laya multilingual, 256 tokens (WebAI Studio extension)",

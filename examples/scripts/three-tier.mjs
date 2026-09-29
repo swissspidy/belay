@@ -126,14 +126,16 @@ const usd = (v) => `$${v >= 100 ? Math.round(v).toLocaleString('en-US') : v.toFi
 for (const name of TASKS) {
   const rows = await rowsFor(name);
   console.log(`\n## ${name} (held out, ${FOLDS}-fold)\n`);
-  console.log('| Strategy | Goal | Accuracy | Laya | Jev | Claude | Cloud cost per 1M runs |');
-  console.log('| --- | --- | --- | --- | --- | --- | --- |');
+  console.log('| Strategy | Goal | Accuracy | Laya | Jev | Claude | Cloud cost per 1M runs | Thresholds (fitted on all) |');
+  console.log('| --- | --- | --- | --- | --- | --- | --- | --- |');
   for (const [label, strategy] of Object.entries(STRATEGIES)) {
     const tunable = strategy.t1 === 'local' || strategy.t2 === 'jev';
     for (const goal of tunable ? ['claude', 'max'] : ['-']) {
       const e = heldOut(rows, strategy, goal === '-' ? 'max' : goal);
       const goalLabel = goal === 'claude' ? '≥ Claude, cheapest' : goal === 'max' ? 'most accurate' : '';
-      console.log(`| ${label} | ${goalLabel} | ${pct(e.accuracy)} | ${pct(e.local)} | ${pct(e.jev)} | ${pct(1 - e.local - e.jev)} | ${usd(e.costPer1M)} |`);
+      const all = fit(rows, strategy, goal === '-' ? 'max' : goal);
+      const fitted = [strategy.t1 === 'local' ? `t1 ${all.t1}` : '', strategy.t2 === 'jev' ? `t2 ${all.t2}` : ''].filter(Boolean).join(', ');
+      console.log(`| ${label} | ${goalLabel} | ${pct(e.accuracy)} | ${pct(e.local)} | ${pct(e.jev)} | ${pct(1 - e.local - e.jev)} | ${usd(e.costPer1M)} | ${fitted} |`);
     }
   }
 }
