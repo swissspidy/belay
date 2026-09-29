@@ -7,8 +7,9 @@ trust it blindly. Belay runs a task locally first. It escalates to your cloud mo
 local model's confidence is below a threshold, and that threshold is calibrated on your own labeled
 data.
 
-> **Status:** Milestone 1 is done: the core cascade, the Classifier API runner and the cloud
-> adapters. Calibration CLI, Prompt API runner and examples are next (see [Roadmap](#roadmap)).
+> **Status:** Milestones 1–3 are done: the core cascade, the Classifier API and Prompt API
+> runners, the classifier-as-judge, and the `belay calibrate` CLI. Examples are next (see
+> [Roadmap](#roadmap)).
 > Design decisions are in [ADR 0001](docs/adr/0001-public-api-confidence-and-calibration.md).
 
 ```ts
@@ -44,8 +45,8 @@ task escalates, subject to your privacy policy.
 | Package              | What                                                                                   |
 | -------------------- | -------------------------------------------------------------------------------------- |
 | `@belay/core`        | Tasks, cascade, confidence combination, calibration file, cloud adapters. Zero runtime dependencies. |
-| `@belay/web`         | Local runners for built-in AI: `classifierApi()` (Prompt API runner in M3).            |
-| `@belay/calibrate`   | *(M2)* `belay calibrate` CLI and HTML report.                                          |
+| `@belay/web`         | Local runners for built-in AI: `classifierApi()`, `promptApi()`, and `classifierJudge()`. |
+| `@belay/calibrate`   | `belay calibrate` CLI: runs your labeled data in a real Chrome, writes the calibration file and an HTML report. |
 
 ## Schemas
 
@@ -68,6 +69,25 @@ options.
   P(correct). When there are several signals, the lowest one wins.
 
 The reasoning is in the [ADR](docs/adr/0001-public-api-confidence-and-calibration.md#decision-2-the-confidence-signal).
+
+## Generation tasks (Prompt API)
+
+```ts
+import { promptApi, classifierJudge } from '@belay/web';
+
+const summarize = task({
+  name: 'ticket-summary',
+  schema: { type: 'structured', jsonSchema, validate: isSummary }, // validate: Ajv, Zod, a type guard…
+  local: promptApi(),         // LanguageModel with responseConstraint = jsonSchema
+  judge: classifierJudge(),   // Classifier API: "is this answer correct and complete?" → P(true)
+  cloud: fetchAdapter({ url: '/api/summarize' }),
+  threshold: 0.8,
+});
+```
+
+Each run prompts a fresh clone of a base session, so runs don't share history. An output that
+fails `validate` escalates with `invalid-output` and the judge never sees it. Otherwise the judge's
+calibrated P(true) is the confidence.
 
 ## Model downloads
 
@@ -118,7 +138,46 @@ await triage.run(text, { escalation: 'never' }); // per call: can only make the 
 
 ## Calibration
 
-A task can load a `belay.calibration.json` instead of a hand-picked threshold:
+Calibrate a task on labeled examples, in a real Chrome:
+
+```sh
+npm install --save-dev @belay/calibrate playwright-core
+npx belay calibrate --task ticket-triage --data examples.jsonl --extension ./webai-extension
+```
+
+```js
+// belay.config.mjs
+import { defineConfig } from '@belay/calibrate';
+import { cloudAdapter } from '@belay/core';
+import { triageSchema } from './src/tasks.js'; // the same schema object your app uses
+
+export default defineConfig({
+  tasks: {
+    'ticket-triage': {
+      schema: triageSchema,
+      local: { runner: 'classifier-api' },           // runs in Chrome, through @belay/web
+      cloud: cloudAdapter(async (req) => callYourModel(req)), // runs in Node
+      target: 0.95,                                  // cascade accuracy to reach
+      cost: { currency: 'USD', cloudPerRun: 0.0024 }, // optional: cost columns
+    },
+  },
+  browser: { extension: './webai-extension' },       // or args to enable the native API
+});
+```
+
+- **Where it runs:** the local runner runs inside Chrome through the same `@belay/web` code your
+  app ships, via Playwright with a persistent profile. The first run downloads the model with a
+  real click, and later runs reuse it. The cloud runner runs in Node.
+- **Output:** `belay.calibration.json` and a self-contained `belay-report.html`. The report has the
+  accuracy / local-share / cost curves, the confidence distribution, a confusion matrix, per-option
+  stats, and the confident local mistakes.
+- **Reproducibility:** every model output is cached in `.belay-cache/`, so a re-run replays it and
+  writes the same file. Use `--refresh local|cloud|all` to re-query, and `--created-at` or
+  `SOURCE_DATE_EPOCH` to pin the timestamp.
+- **Threshold choice:** the recommended threshold is the lowest one whose cascade accuracy meets
+  the target, which maximizes the local share. `--per-label` also fits per-label thresholds.
+
+The task then loads the file instead of a hand-picked threshold:
 
 ```ts
 task({ ..., calibration: '/belay.calibration.json', threshold: 0.8 /* fallback */ });
@@ -128,7 +187,7 @@ The file stores the recommended threshold (and optional per-label thresholds), t
 accuracy / local-share / cost curve, and a confidence histogram for drift detection. It also stores
 a fingerprint of the task schema, so a calibration made for different options or prompts is
 rejected. See the [format](docs/adr/0001-public-api-confidence-and-calibration.md#decision-4-calibration-file-format-belaycalibrationjson-v1).
-The `belay calibrate` CLI that produces the file is milestone 2.
+
 
 ## Telemetry
 
@@ -144,8 +203,8 @@ contain the input text. Track local share over time and compare it with the cali
 ## Roadmap
 
 1. ✅ Core + Classifier runner + cloud adapter; escalates exactly when confidence < threshold.
-2. Calibration CLI (Playwright + real Chrome, WebAI Studio polyfill), HTML report, `belay.calibration.json`.
-3. Prompt API runner with structured output and classifier-as-judge confidence.
+2. ✅ Calibration CLI (Playwright + real Chrome, WebAI Studio polyfill), HTML report, `belay.calibration.json`.
+3. ✅ Prompt API runner with structured output and classifier-as-judge confidence.
 4. Examples (ticket triage, content moderation, intent detection) and a real calibration report.
 
 Non-goals for now: routing between cloud models, training or fine-tuning, server-side use.

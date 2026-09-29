@@ -300,18 +300,22 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
     name,
     schema,
     run,
-    availability(): Promise<Availability> {
-      return local.availability({ task: name, schema, ...(options.context ? { context: options.context } : {}) });
+    async availability(): Promise<Availability> {
+      const state = await local.availability({ task: name, schema, ...(options.context ? { context: options.context } : {}) });
+      // A judge that is not ready makes the local path unusable too: report the less ready of the two.
+      if (state !== 'available' || !judge?.availability) return state;
+      return judge.availability();
     },
-    prepare(prepareOptions?: PrepareOptions): Promise<void> {
-      if (!local.prepare) return Promise.resolve();
-      return local.prepare({ task: name, schema, ...(options.context ? { context: options.context } : {}) }, prepareOptions);
+    async prepare(prepareOptions?: PrepareOptions): Promise<void> {
+      await local.prepare?.({ task: name, schema, ...(options.context ? { context: options.context } : {}) }, prepareOptions);
+      await judge?.prepare?.(prepareOptions);
     },
     async threshold(): Promise<number> {
       return thresholdOf(await resolveThreshold());
     },
     destroy(): void {
       local.destroy?.();
+      judge?.destroy?.();
     },
   };
 }

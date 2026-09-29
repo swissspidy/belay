@@ -153,9 +153,14 @@ export interface CloudRunner<S extends TaskSchema = TaskSchema> {
 }
 
 /** Judges a generated output: resolves to P(output is correct and complete) in [0, 1]. */
-export type Judge<V = unknown> = (
+export type Judge<V = unknown> = ((
   args: { input: string; value: V; task: string; signal?: AbortSignal },
-) => Promise<number>;
+) => Promise<number>) & {
+  /** Judges backed by an on-device model can report its state and download it (from a user gesture). */
+  availability?(): Promise<Availability>;
+  prepare?(options?: PrepareOptions): Promise<void>;
+  destroy?(): void;
+};
 
 // ---------------------------------------------------------------------------
 // Privacy

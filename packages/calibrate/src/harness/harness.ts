@@ -24,9 +24,8 @@ function runnerFor(spec: HarnessSpec): LocalRunner<any> {
   if (!runner) {
     const factories: Record<string, (options: any) => LocalRunner<any>> = {
       'classifier-api': (o) => web.classifierApi(o),
+      'prompt-api': (o) => web.promptApi(o),
     };
-    const promptApi = (web as Record<string, unknown>)['promptApi'];
-    if (typeof promptApi === 'function') factories['prompt-api'] = promptApi as (o: any) => LocalRunner<any>;
     const factory = factories[spec.local.runner];
     if (!factory) throw new Error(`Unknown browser runner "${spec.local.runner}"`);
     runner = factory(spec.local.options ?? {});
@@ -40,11 +39,8 @@ function judgeFor(spec: HarnessSpec): Judge<any> {
   const key = JSON.stringify(spec.judge);
   let judge = judges.get(key);
   if (!judge) {
-    const factory = (web as Record<string, unknown>)['classifierJudge'];
-    if (spec.judge.judge !== 'classifier-judge' || typeof factory !== 'function') {
-      throw new Error(`Unknown browser judge "${spec.judge.judge}"`);
-    }
-    judge = (factory as (o: unknown) => Judge<any>)(spec.judge.options ?? {});
+    if (spec.judge.judge !== 'classifier-judge') throw new Error(`Unknown browser judge "${spec.judge.judge}"`);
+    judge = web.classifierJudge(spec.judge.options ?? {});
     judges.set(key, judge);
   }
   return judge;
@@ -88,15 +84,11 @@ const harness = {
 document.getElementById('prepare')!.addEventListener('click', () => {
   if (!armed) return;
   const spec = armed;
+  const onProgress = (loaded: number) =>
+    (globalThis as unknown as { __belayProgress?: (n: number) => void }).__belayProgress?.(loaded);
   prepared = wrap(async () => {
-    const runner = runnerFor(spec);
-    await runner.prepare?.(ctxOf(spec), {
-      onProgress: (loaded) => (globalThis as unknown as { __belayProgress?: (n: number) => void }).__belayProgress?.(loaded),
-    });
-    if (spec.judge) {
-      // A judge built on the Classifier API may need its own model: warm it with the same gesture.
-      const judge = judgeFor(spec) as Judge<any> & { prepare?: () => Promise<void> };
-      await judge.prepare?.();
-    }
+    await runnerFor(spec).prepare?.(ctxOf(spec), { onProgress });
+    // A judge built on the Classifier API may need its own model: download it with the same gesture.
+    if (spec.judge) await judgeFor(spec).prepare?.({ onProgress });
   });
 });
