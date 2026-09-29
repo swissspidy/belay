@@ -51,16 +51,18 @@ The data is 300 labeled messages from the public Bitext support dataset. The loc
 `belay calibrate`. Every confidence in the report is a real model output, and all outputs are
 committed in `.belay-cache/`, so re-running replays them and writes a byte-identical file.
 
-| Task | Local only | Threshold | Cascade accuracy¹ | Answered locally¹ |
-| --- | --- | --- | --- | --- |
-| [ticket triage](examples/ticket-triage/belay-report.html) (5 teams) | 93.0% | 0.42 | 95.0% (target 95%) | 94.7% |
-| [content moderation](examples/content-moderation/belay-report.html) (binary) | 70.7% | 0.577, `true`: 0 | 90.0% (target 90%) | 80.3% |
-| [intent detection](examples/intent-detection/belay-report.html) (8 intents) | 88.0% | 0.734 | 95.0% (target 95%) | 87.3% |
+The cloud model is Claude Opus 5.5 (`claude-opus-5-5`, effort `low`), and its answers are cached too.
 
-¹ **Upper bounds.** The build environment had no cloud-LLM credentials, so escalated examples
-were answered with the dataset's labels, as if the cloud were always right. The local side of each
-report is real. With a real cloud model, the threshold rises and the local share falls. Set
-`ANTHROPIC_API_KEY` and re-run to calibrate against Claude; only the cloud side is queried again.
+| Task | Local only | Cloud only | Threshold | Cascade accuracy | Answered locally | Cloud cost per 1k runs |
+| --- | --- | --- | --- | --- | --- | --- |
+| [ticket triage](examples/ticket-triage/belay-report.html) (5 teams) | 93.0% | 94.0% | 0.525 | 95.0% (target 95%) | 89.3% | $0.32 |
+| [content moderation](examples/content-moderation/belay-report.html) (binary) | 70.7% | 77.0% | 0.717 | 77.7% (target 90%, **not met**) | 39.7% | $1.81 |
+| [intent detection](examples/intent-detection/belay-report.html) (8 intents) | 88.0% | 99.3% | 0.734 | 95.0% (target 95%) | 87.3% | $0.38 |
+
+The first calibrations had no cloud credentials and answered escalated examples with the dataset's
+labels, a perfect cloud. That upper bound put the ticket-triage threshold at 0.42 (94.7% local)
+and met the moderation target at 80.3% local. Against Claude, the threshold rose and the local
+share fell, as expected. `BELAY_CLOUD=reference` still gives the upper bound.
 
 What the reports showed:
 
@@ -68,12 +70,18 @@ What the reports showed:
   accuracy and needed 0.622 to reach 95% (83.7% local). Its "confident local mistakes" table was
   mostly customer *claims* routed to `account`. Adding "claims against the company" to the
   `feedback` option's description raised local accuracy to 93.0%, and the target was met with
-  94.7% of runs on device. The cloud cost per 1,000 runs dropped from $0.49 to $0.16. (The change
+  94.7% of runs on device against the reference labels. The cloud cost per 1,000 runs dropped from
+  $0.49 to $0.16. (The change
   was chosen by looking at these same 300 examples, so treat the gain as optimistic until it's
   checked on held-out data.)
-- **Per-label thresholds matter.** For moderation, Laya's "toxic" answers were right at any
-  confidence, but its "not toxic" answers were not. `--per-label` keeps every toxic verdict local
-  (threshold 0) and escalates only unsure "not toxic" ones.
+- **The cloud can disagree with your labels.** Claude called 87 of the 300 moderation examples
+  toxic; the labels say 150. Civil Comments counts a comment as toxic when half its raters did,
+  which includes sharp but civil criticism ("Trump is far too self-absorbed and ignorant…"). Claude
+  reads the task's question, "rude … enough to make someone leave the discussion", as a stricter
+  bar. At 77% cloud accuracy no threshold reaches 90%, so the report picks the most accurate one.
+  Either the question or the labels have to change; the cascade can't fix a mismatch between them.
+  (With the reference labels, per-label thresholds kept every local "toxic" verdict, since Laya's
+  "toxic" answers were right at any confidence.)
 - **The API's `confidence` field is not the label probability.** For the same decision, Laya
   reported `confidence: 0.964` next to `probability: 0.993` for the chosen label. Belay pins the
   signal to the probability (ADR 0001), and calibration fixes the threshold for it.
