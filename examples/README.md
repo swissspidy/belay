@@ -83,6 +83,14 @@ verified with Chrome 154 on a CPU-only Linux VM (details in
   `xvfb-run` on a server). Set `BELAY_CHROME_PROFILE` to keep the model in one place across examples.
 - Behind a proxy, Chrome must trust its CA (below), and the component updater's plain-HTTP
   requests are pointed at the same service over HTTPS, since many proxies only tunnel HTTPS.
+- **Gemma 4** (`chrome://flags/#gemma4-for-built-in-ai`) replaces Gemini Nano behind the same
+  Prompt API. From automation, enable its features directly:
+  `browser: { enableFeatures: ['OptimizationGuideManifestBroker', 'AIApiFoundationalModel:model_version/v4'] }`.
+  Chrome then downloads `gemma4-2b-it` (2.4 GB). It needs a GPU: on the CPU-only VM above, the
+  download worked but `LanguageModel.create()` failed with "The device is unable to create a
+  session to run the model", also with SwiftShader's software Vulkan. The CPU backend switch only
+  applies to Gemini Nano. Gemma 4 is the obvious next local model to calibrate event extraction
+  with, on a machine with a GPU.
 
 ### Notes
 
