@@ -7,7 +7,7 @@ export interface Sample {
   /** Ground-truth label (for classifier tasks, the label string; "true"/"false" for binary). */
   truth: string;
   /** Local prediction, or `null` if the local runner failed / was unavailable (always escalated). */
-  local: { label: string; confidence: number; correct: boolean } | null;
+  local: { label: string; confidence: number; correct: boolean; /** The parsed local answer. */ value?: unknown } | null;
   /** Cloud prediction, or `null` if the cloud runner failed (counted as wrong). */
   cloud: {
     label: string;
@@ -186,8 +186,9 @@ function summarizeCost(samples: readonly Sample[], cost: AnalyzeOptions['cost'])
 
 /**
  * Candidate thresholds: 0, then one per gap between consecutive distinct local confidences,
- * then one above the maximum (if below 1). Every threshold in the same gap routes the samples
- * identically, so this set is exhaustive and deterministic.
+ * then one above the maximum, so escalating everything is always a candidate. When a confidence
+ * is exactly 1 (common for deterministic checks) that one is above 1. Every threshold in the same
+ * gap routes the samples identically, so this set is exhaustive and deterministic.
  */
 export function candidateThresholds(confidences: readonly number[]): number[] {
   const distinct = [...new Set(confidences)].sort((a, b) => a - b);
@@ -197,7 +198,7 @@ export function candidateThresholds(confidences: readonly number[]): number[] {
     if (t > out[out.length - 1]!) out.push(t);
   }
   const max = distinct[distinct.length - 1];
-  if (max !== undefined && max < 1) out.push(niceThreshold(max, 1));
+  if (max !== undefined) out.push(max < 1 ? niceThreshold(max, 1) : niceThreshold(max, max + 1));
   return out;
 }
 

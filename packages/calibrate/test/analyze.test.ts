@@ -23,7 +23,8 @@ describe('niceThreshold', () => {
 describe('candidateThresholds', () => {
   it('has one threshold per routing-equivalence class', () => {
     expect(candidateThresholds([0.95, 0.4, 0.7, 0.7])).toEqual([0, 0.5, 0.8, 1]);
-    expect(candidateThresholds([1, 0.5])).toEqual([0, 0.6]);
+    // A confidence of exactly 1 still leaves "escalate everything" as a candidate, above 1.
+    expect(candidateThresholds([1, 0.5])).toEqual([0, 0.6, 1.1]);
     expect(candidateThresholds([])).toEqual([0]);
   });
 
@@ -120,6 +121,13 @@ describe('analyze', () => {
     expect(a.target).toEqual({ value: 0.9, mode: 'cloud' });
     expect(a.threshold).toBe(0.7);
     expect(a.expected.accuracy).toBeGreaterThanOrEqual(a.expected.cloudAccuracy!);
+  });
+
+  it('can escalate everything when local confidences reach 1 (e.g. a deterministic check)', () => {
+    const s = [sample(1, 1, false), sample(2, 1, false), sample(3, 0.5, true)];
+    const a = analyze(s, { target: 'max' });
+    expect(a.threshold).toBe(1.1);
+    expect(a.expected).toMatchObject({ accuracy: 1, localShare: 0 });
   });
 
   it("target 'max' picks the most accurate threshold, then the most local share", () => {

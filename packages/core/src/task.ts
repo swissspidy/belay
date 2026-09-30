@@ -45,8 +45,9 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
   if (options.threshold === undefined && options.calibration === undefined) {
     throw new BelayError('invalid-task', `task "${name}" needs a threshold or a calibration`);
   }
-  if (options.threshold !== undefined && !(options.threshold >= 0 && options.threshold <= 1)) {
-    throw new BelayError('invalid-task', `task "${name}": threshold must be in [0, 1]`);
+  // Above 1, nothing is accepted locally: every run escalates.
+  if (options.threshold !== undefined && !(options.threshold >= 0)) {
+    throw new BelayError('invalid-task', `task "${name}": threshold must be ≥ 0`);
   }
   if (privacy.escalation === 'consent' && typeof privacy.consent !== 'function') {
     throw new BelayError('invalid-task', `task "${name}": escalation "consent" needs a consent callback`);

@@ -159,8 +159,17 @@ What the reports showed:
   extractions fully right, Claude 62.7% (the annotations are noisy). But Laya's P(correct) sat
   between 0.2 and 0.7 whether the extraction was right or wrong, so no threshold could trust the
   local answer: the cascade kept 1% of runs on device and saved 1%. Calibration is what catches
-  this before shipping. A sharper confidence signal (a stronger judge, or checks such as "every
-  extracted value appears in the request") is the next thing to try.
+  this before shipping. [`scripts/extraction-signals.mjs`](examples/scripts/extraction-signals.mjs)
+  tried two other signals on the same outputs:
+  - A **verbatim check** (every extracted value appears in the request) is useless here: 96% of
+    Nano's extractions pass it. Nano copies faithfully; its mistakes are *which* words form the
+    event (107 of 157 wrong extractions get `event_name` wrong) and span boundaries.
+  - **Jev as the judge** separates better (its most trusted third is 60% right, against 41% for
+    Laya's) and keeps 12% of runs on device at Claude's accuracy (62.3% held out vs 62.7%). That
+    saves 13% of the Claude bill, less about $17 per million runs for the Jev calls.
+
+  Structured generation is where a cascade is hardest: the local model and the judge both have
+  to be good, and noisy labels cap what any judge can show.
 - **The local model is an open, Jev-style model too.** Laya
   ([convaiinnovations/laya](https://huggingface.co/convaiinnovations/laya), Apache-2.0) takes the
   same typed choice / yes-no / score questions as Jev and returns calibrated probabilities. Its

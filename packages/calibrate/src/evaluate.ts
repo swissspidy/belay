@@ -178,6 +178,7 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
           label: labelOf(schema, parsed.value) ?? '(structured)',
           confidence,
           correct: isCorrect(config, parsed.value, example.expected),
+          value: parsed.value,
         };
       }
     }
