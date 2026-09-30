@@ -63,7 +63,13 @@ let prepared: Promise<Result<void>> | null = null;
 const harness = {
   ready: true,
   hasClassifier: () => typeof (globalThis as { Classifier?: unknown }).Classifier !== 'undefined',
-  availability: (spec: HarnessSpec) => wrap(() => runnerFor(spec).availability(ctxOf(spec))),
+  // Like task.availability(): a judge that is not ready makes the local path unusable too.
+  availability: (spec: HarnessSpec) =>
+    wrap(async () => {
+      const state = await runnerFor(spec).availability(ctxOf(spec));
+      if (state !== 'available' || !spec.judge) return state;
+      return (await judgeFor(spec).availability?.()) ?? state;
+    }),
   run: (spec: HarnessSpec, input: string) =>
     wrap(async () => {
       const out = await runnerFor(spec).run(input, ctxOf(spec));

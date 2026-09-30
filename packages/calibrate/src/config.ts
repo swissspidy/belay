@@ -1,4 +1,4 @@
-import type { CloudRunner, Judge, LocalRunner, TaskSchema, ValueOf } from '@belay/core';
+import type { CloudRunner, Judge, LocalRunner, PriceTable, TaskSchema, TokenPrices, ValueOf } from '@belay/core';
 
 /**
  * A local runner executed inside the browser (a real Chrome, via Playwright). Options must be
@@ -27,16 +27,37 @@ export interface CalibrationTaskConfig<S extends TaskSchema = TaskSchema> {
   cloud: CloudRunner<S>;
   /** Applied to inputs before the cloud call, like `privacy.redact` at runtime. */
   redact?: (input: string) => string | Promise<string>;
-  /** Target cascade accuracy. Defaults to 0.95; `--target` overrides it. */
-  target?: number;
-  /** Enables cost columns in the report and `costPer1k` in the file. */
-  cost?: { currency: string; cloudPerRun: number };
+  /**
+   * What the cascade must achieve. `--target` overrides it.
+   * - `'cloud'` (default): at least the cloud-only accuracy, with as much local share as that allows.
+   *   The cascade then only saves money; it never trades accuracy for it.
+   * - `'max'`: the most accurate threshold. Picked on the same data it is scored on, so expect
+   *   part of any gain over the cloud to be noise; check it on held-out data.
+   * - a number in (0, 1]: a fixed accuracy, which may be below the cloud's.
+   */
+  target?: number | 'cloud' | 'max';
+  /** Enables cost columns and savings in the report, and `costPer1k` / `savingsPer1k` in the file. */
+  cost?: CostConfig;
   /** Custom correctness check; defaults to label equality (deep equality for structured tasks). */
   correct?: (value: ValueOf<S>, expected: ValueOf<S>) => boolean;
   /** Fit per-label thresholds. `--per-label` overrides it. */
   perLabel?: boolean;
   /** Model names recorded in the calibration file and report (informational). */
   models?: { local?: string; cloud?: string };
+}
+
+/**
+ * How to price cloud calls. With `prices`, every call is priced from the token usage its runner
+ * reports (see `CloudOutput.usage`), and a cached output without usage is fetched again.
+ * `cloudPerRun` is a flat estimate, used for runners that report no usage.
+ */
+export interface CostConfig {
+  currency: string;
+  /** Per million tokens; a table keyed by the model id the provider reports, or one price for all. */
+  prices?: PriceTable | TokenPrices;
+  cloudPerRun?: number;
+  /** Volume for the savings projection in the report (editable there). */
+  runsPerMonth?: number;
 }
 
 export interface BrowserConfig {
@@ -51,8 +72,15 @@ export interface BrowserConfig {
    * Chrome does not read on its own. `false` disables it. Loopback is always bypassed.
    */
   proxy?: string | false;
-  /** Extra Chrome flags, e.g. to enable built-in AI features. */
+  /** Extra Chrome flags. They come last, so they override Belay's. */
   args?: string[];
+  /** Chrome features to enable (`--enable-features`), e.g. an API behind a flag. */
+  enableFeatures?: string[];
+  /**
+   * Run Gemini Nano on the CPU (`OnDeviceModelForceCpuBackend`) on machines without a supported
+   * GPU. Chrome needs at least 16 GB of RAM and 4 cores for it.
+   */
+  forceCpu?: boolean;
   /** Persistent profile, so downloaded models survive between runs. Defaults to `<cacheDir>/chrome-profile`. */
   userDataDir?: string;
   /**

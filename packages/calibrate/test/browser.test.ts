@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -113,4 +113,44 @@ describe.skipIf(!chrome)('browser backend (real Chromium)', () => {
     expect(out.confidence).toBeGreaterThanOrEqual(0.3);
     expect(out.probabilities).toHaveLength(4);
   });
+});
+
+describe.skipIf(!chrome)('browser backend with an unpacked extension (real Chromium)', () => {
+  let dir: string;
+  let backend: LocalBackend | undefined;
+
+  afterAll(async () => {
+    await backend?.close();
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('loads it through the DevTools protocol, as Google Chrome needs, and the page sees its polyfill', async () => {
+    dir = await mkdtemp(join(tmpdir(), 'belay-extension-'));
+    const ext = join(dir, 'extension');
+    await mkdir(ext);
+    await writeFile(
+      join(ext, 'manifest.json'),
+      JSON.stringify({
+        manifest_version: 3,
+        name: 'Belay test polyfill',
+        version: '1.0',
+        background: { service_worker: 'sw.js' },
+        content_scripts: [{ matches: ['<all_urls>'], js: ['classifier.js'], run_at: 'document_start', world: 'MAIN' }],
+      }),
+    );
+    await writeFile(join(ext, 'sw.js'), '');
+    await writeFile(join(ext, 'classifier.js'), STUB_CLASSIFIER);
+    const logs: string[] = [];
+    backend = await browserBackend({
+      task: 'ticket-triage',
+      schema,
+      local: { runner: 'classifier-api' },
+      browser: { executablePath: chrome!, proxy: false, extension: ext },
+      cacheDir: dir,
+      log: (m) => logs.push(m),
+    });
+    expect(logs.some((m) => m.startsWith('Loaded extension '))).toBe(true);
+    expect(logs).not.toContain('window.Classifier is not defined in the calibration browser');
+    expect(await backend.availability()).toBe('downloadable');
+  }, 60_000);
 });

@@ -1,4 +1,4 @@
-import type { CalibrationCurvePoint, CalibrationFile } from '@belay/core';
+import type { CalibrationCurvePoint, CalibrationFile, CloudUsage, TargetMode } from '@belay/core';
 
 /** One labeled example after both runners have seen it. */
 export interface Sample {
@@ -7,20 +7,56 @@ export interface Sample {
   /** Ground-truth label (for classifier tasks, the label string; "true"/"false" for binary). */
   truth: string;
   /** Local prediction, or `null` if the local runner failed / was unavailable (always escalated). */
-  local: { label: string; confidence: number; correct: boolean } | null;
+  local: { label: string; confidence: number; correct: boolean; /** The parsed local answer. */ value?: unknown } | null;
   /** Cloud prediction, or `null` if the cloud runner failed (counted as wrong). */
-  cloud: { label: string; correct: boolean } | null;
+  cloud: {
+    label: string;
+    correct: boolean;
+    /** The cloud model's own confidence, when its runner reports one (e.g. Jev). */
+    confidence?: number;
+    /** Measured cost of the call (from its token usage and the configured prices). */
+    cost?: number;
+    usage?: CloudUsage[];
+  } | null;
 }
 
 export interface AnalyzeOptions {
-  /** Target cascade accuracy in [0, 1]. */
-  target: number;
+  /**
+   * A cascade accuracy in (0, 1]; `'cloud'` for at least the cloud-only accuracy; `'max'` for the
+   * most accurate threshold. The smallest threshold that reaches it is recommended.
+   */
+  target: number | 'cloud' | 'max';
   /** Labels in schema order (for per-label thresholds and the confusion matrix). */
   labels?: string[];
   /** Fit per-label thresholds (see ADR 0001, Decision 4). */
   perLabel?: boolean;
-  cost?: { currency: string; cloudPerRun: number };
+  /**
+   * Enables costs. Samples with a measured `cloud.cost` are priced at it; the rest (and failed
+   * cloud calls) at the mean measured cost, or at `cloudPerRun` when nothing was measured.
+   */
+  cost?: { currency: string; cloudPerRun?: number };
   histogramBins?: number;
+}
+
+/** How the local and cloud answers compare on the runs the cascade keeps local. */
+export interface HeadToHead {
+  kept: number;
+  bothRight: number;
+  /** Local right, cloud wrong: each one is accuracy the cascade gains over cloud only. */
+  localOnlyRight: number;
+  /** Cloud right, local wrong: each one is accuracy the cascade loses. */
+  cloudOnlyRight: number;
+  bothWrong: number;
+}
+
+export interface CostSummary {
+  currency: string;
+  basis: 'measured' | 'estimate';
+  /** Mean cost of one cloud call. */
+  cloudPerRun: number;
+  /** Cloud calls with measured cost. */
+  measuredCalls: number;
+  tokensPerRun?: { input: number; output: number; cacheRead: number; cacheWrite: number };
 }
 
 export interface OptionStats {
@@ -38,7 +74,11 @@ export interface OptionStats {
 export interface Analysis {
   threshold: number;
   thresholds: Record<string, number> | undefined;
+  /** The target as an accuracy, and how it was set. */
+  target: { value: number; mode: TargetMode };
   targetMet: boolean;
+  headToHead: HeadToHead;
+  cost: CostSummary | undefined;
   expected: CalibrationFile['expected'];
   /** 95% Wilson score interval of the expected cascade accuracy. */
   accuracyInterval: [number, number];
@@ -73,21 +113,27 @@ interface Evaluated {
   accuracy: number;
   localShare: number;
   localAccuracy: number | null;
+  /** Summed cloud cost of the escalated samples (0 without costs). */
+  cloudCost: number;
 }
 
-function evaluate(samples: readonly Sample[], thresholdOf: (s: Sample) => number): Evaluated {
+const kept = (s: Sample, thresholdOf: (s: Sample) => number): boolean => !!s.local && s.local.confidence >= thresholdOf(s);
+
+function evaluate(samples: readonly Sample[], thresholdOf: (s: Sample) => number, costOf: (s: Sample) => number = () => 0): Evaluated {
   let correct = 0;
   let local = 0;
   let localCorrect = 0;
+  let cloudCost = 0;
   for (const s of samples) {
-    if (s.local && s.local.confidence >= thresholdOf(s)) {
+    if (kept(s, thresholdOf)) {
       local++;
-      if (s.local.correct) {
+      if (s.local!.correct) {
         correct++;
         localCorrect++;
       }
-    } else if (s.cloud?.correct) {
-      correct++;
+    } else {
+      cloudCost += costOf(s);
+      if (s.cloud?.correct) correct++;
     }
   }
   const n = samples.length;
@@ -95,13 +141,54 @@ function evaluate(samples: readonly Sample[], thresholdOf: (s: Sample) => number
     accuracy: n ? correct / n : 0,
     localShare: n ? local / n : 0,
     localAccuracy: local ? localCorrect / local : null,
+    cloudCost,
   };
+}
+
+function headToHead(samples: readonly Sample[], thresholdOf: (s: Sample) => number): HeadToHead {
+  const h: HeadToHead = { kept: 0, bothRight: 0, localOnlyRight: 0, cloudOnlyRight: 0, bothWrong: 0 };
+  for (const s of samples) {
+    if (!kept(s, thresholdOf)) continue;
+    h.kept++;
+    const cloudRight = !!s.cloud?.correct;
+    if (s.local!.correct) cloudRight ? h.bothRight++ : h.localOnlyRight++;
+    else cloudRight ? h.cloudOnlyRight++ : h.bothWrong++;
+  }
+  return h;
+}
+
+function summarizeCost(samples: readonly Sample[], cost: AnalyzeOptions['cost']): CostSummary | undefined {
+  if (!cost) return undefined;
+  const measured = samples.flatMap((s) => (s.cloud?.cost !== undefined ? [s.cloud] : []));
+  if (measured.length) {
+    const tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+    for (const c of measured) {
+      for (const u of c.usage ?? []) {
+        tokens.input += u.inputTokens;
+        tokens.output += u.outputTokens;
+        tokens.cacheRead += u.cacheReadInputTokens ?? 0;
+        tokens.cacheWrite += u.cacheWriteInputTokens ?? 0;
+      }
+    }
+    const m = measured.length;
+    const round = (v: number) => Math.round((v / m) * 10) / 10;
+    return {
+      currency: cost.currency,
+      basis: 'measured',
+      cloudPerRun: measured.reduce((a, c) => a + c.cost!, 0) / m,
+      measuredCalls: m,
+      tokensPerRun: { input: round(tokens.input), output: round(tokens.output), cacheRead: round(tokens.cacheRead), cacheWrite: round(tokens.cacheWrite) },
+    };
+  }
+  if (cost.cloudPerRun === undefined) return undefined;
+  return { currency: cost.currency, basis: 'estimate', cloudPerRun: cost.cloudPerRun, measuredCalls: 0 };
 }
 
 /**
  * Candidate thresholds: 0, then one per gap between consecutive distinct local confidences,
- * then one above the maximum (if below 1). Every threshold in the same gap routes the samples
- * identically, so this set is exhaustive and deterministic.
+ * then one above the maximum, so escalating everything is always a candidate. When a confidence
+ * is exactly 1 (common for deterministic checks) that one is above 1. Every threshold in the same
+ * gap routes the samples identically, so this set is exhaustive and deterministic.
  */
 export function candidateThresholds(confidences: readonly number[]): number[] {
   const distinct = [...new Set(confidences)].sort((a, b) => a - b);
@@ -111,7 +198,7 @@ export function candidateThresholds(confidences: readonly number[]): number[] {
     if (t > out[out.length - 1]!) out.push(t);
   }
   const max = distinct[distinct.length - 1];
-  if (max !== undefined && max < 1) out.push(niceThreshold(max, 1));
+  if (max !== undefined) out.push(max < 1 ? niceThreshold(max, 1) : niceThreshold(max, max + 1));
   return out;
 }
 
@@ -125,18 +212,23 @@ export function wilsonInterval(successes: number, n: number, z = 1.9599639845400
 }
 
 export function analyze(samples: readonly Sample[], options: AnalyzeOptions): Analysis {
-  const { target, cost } = options;
   const n = samples.length;
   const confidences = samples.flatMap((s) => (s.local ? [s.local.confidence] : []));
   const candidates = candidateThresholds(confidences);
-  const costPer1k = (localShare: number) =>
-    cost ? Math.round((1 - localShare) * cost.cloudPerRun * 1000 * 1e6) / 1e6 : undefined;
+  const cost = summarizeCost(samples, options.cost);
+  const sampleCost = (s: Sample) => s.cloud?.cost ?? cost?.cloudPerRun ?? 0;
+  const per1k = (sum: number) => (cost && n ? Math.round((sum / n) * 1000 * 1e6) / 1e6 : undefined);
 
   const curve: CalibrationCurvePoint[] = candidates.map((threshold) => {
-    const e = evaluate(samples, () => threshold);
-    const c = costPer1k(e.localShare);
+    const { cloudCost, ...e } = evaluate(samples, () => threshold, sampleCost);
+    const c = per1k(cloudCost);
     return { threshold, ...e, ...(c !== undefined ? { costPer1k: c } : {}) };
   });
+
+  const cloudAccuracy = n ? samples.filter((s) => s.cloud?.correct).length / n : null;
+  const mode: TargetMode = typeof options.target === 'number' ? 'fixed' : options.target;
+  const target =
+    mode === 'fixed' ? (options.target as number) : mode === 'cloud' ? (cloudAccuracy ?? 0) : Math.max(...curve.map((p) => p.accuracy));
 
   // Smallest threshold meeting the target maximizes local share (local share is non-increasing in t).
   let best = curve.find((p) => p.accuracy >= target - EPS);
@@ -166,16 +258,18 @@ export function analyze(samples: readonly Sample[], options: AnalyzeOptions): An
 
   const thresholdOf = (s: Sample) =>
     s.local && thresholds && Object.hasOwn(thresholds, s.local.label) ? thresholds[s.local.label]! : threshold;
-  const final = evaluate(samples, thresholdOf);
+  const final = evaluate(samples, thresholdOf, sampleCost);
   const cloudAnswered = samples.filter((s) => s.cloud);
-  const cloudAccuracy = n ? samples.filter((s) => s.cloud?.correct).length / n : null;
-  const finalCost = costPer1k(final.localShare);
+  const finalCost = per1k(final.cloudCost);
+  const cloudOnlyCost = per1k(samples.reduce((a, s) => a + sampleCost(s), 0));
   const expected: CalibrationFile['expected'] = {
     accuracy: final.accuracy,
     localShare: final.localShare,
     localAccuracy: final.localAccuracy,
     cloudAccuracy,
-    ...(finalCost !== undefined ? { costPer1k: finalCost } : {}),
+    ...(finalCost !== undefined && cloudOnlyCost !== undefined
+      ? { costPer1k: finalCost, cloudOnlyCostPer1k: cloudOnlyCost, savingsPer1k: Math.round((cloudOnlyCost - finalCost) * 1e6) / 1e6 }
+      : {}),
   };
 
   // Histogram of local confidences.
@@ -221,7 +315,10 @@ export function analyze(samples: readonly Sample[], options: AnalyzeOptions): An
   return {
     threshold,
     thresholds,
+    target: { value: target, mode },
     targetMet,
+    headToHead: headToHead(samples, thresholdOf),
+    cost,
     expected,
     accuracyInterval: wilsonInterval(Math.round(final.accuracy * n), n),
     curve,
@@ -230,5 +327,53 @@ export function analyze(samples: readonly Sample[], options: AnalyzeOptions): An
     perOption,
     counts: { total: n, localFailed: n - confidences.length, cloudFailed: n - cloudAnswered.length },
     confidentMistakes,
+  };
+}
+
+export interface CrossValidation {
+  folds: number;
+  /** Cascade accuracy on held-out folds, each routed by thresholds fitted on the other folds. */
+  accuracy: number;
+  localShare: number;
+  /** Cloud-only accuracy on the same examples, for comparison. */
+  cloudAccuracy: number;
+  /** Cloud cost per 1,000 runs on the held-out folds (with costs). */
+  costPer1k?: number;
+}
+
+/**
+ * K-fold cross-validation of the threshold choice: fits the thresholds on K-1 folds and routes
+ * the held-out fold with them. The recommended threshold is fitted and scored on the same data,
+ * which flatters it; this estimate does not. Folds interleave by position, so it is deterministic.
+ * Returns undefined for datasets too small to split (fewer than 10 examples per fold).
+ */
+export function crossValidate(samples: readonly Sample[], options: AnalyzeOptions, folds = 5): CrossValidation | undefined {
+  const n = samples.length;
+  if (folds < 2 || n < folds * 10) return undefined;
+  const cost = summarizeCost(samples, options.cost);
+  const sampleCost = (s: Sample) => s.cloud?.cost ?? cost?.cloudPerRun ?? 0;
+  let correct = 0;
+  let local = 0;
+  let cloudCorrect = 0;
+  let cloudCost = 0;
+  for (let k = 0; k < folds; k++) {
+    const train = samples.filter((_, i) => i % folds !== k);
+    const test = samples.filter((_, i) => i % folds === k);
+    const fit = analyze(train, options);
+    const thresholdOf = (s: Sample) =>
+      s.local && fit.thresholds && Object.hasOwn(fit.thresholds, s.local.label) ? fit.thresholds[s.local.label]! : fit.threshold;
+    const e = evaluate(test, thresholdOf, sampleCost);
+    correct += e.accuracy * test.length;
+    local += e.localShare * test.length;
+    cloudCost += e.cloudCost;
+    cloudCorrect += test.filter((s) => s.cloud?.correct).length;
+  }
+  const round = (v: number) => Math.round(v * 1e9) / 1e9;
+  return {
+    folds,
+    accuracy: round(correct / n),
+    localShare: round(local / n),
+    cloudAccuracy: round(cloudCorrect / n),
+    ...(cost ? { costPer1k: Math.round((cloudCost / n) * 1000 * 1e6) / 1e6 } : {}),
   };
 }

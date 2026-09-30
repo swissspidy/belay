@@ -1,5 +1,5 @@
-import { CALIBRATION_VERSION, optionLabels, schemaFingerprint, type CalibrationFile } from '@belay/core';
-import { analyze, type Analysis } from './analyze.js';
+import { CALIBRATION_VERSION, optionLabels, schemaFingerprint, type CalibrationFile, type PriceTable, type TokenPrices } from '@belay/core';
+import { analyze, crossValidate, type Analysis, type AnalyzeOptions } from './analyze.js';
 import type { OutputCache } from './cache.js';
 import type { CalibrationTaskConfig } from './config.js';
 import type { Dataset } from './dataset.js';
@@ -12,7 +12,7 @@ export interface CalibrateOptions {
   dataset: Dataset;
   backend: LocalBackend;
   cache: OutputCache;
-  target?: number;
+  target?: number | 'cloud' | 'max';
   perLabel?: boolean;
   /** Fixed timestamp for reproducible files. Defaults to `SOURCE_DATE_EPOCH` or now. */
   createdAt?: string;
@@ -30,6 +30,15 @@ export interface CalibrateResult {
   report: string;
 }
 
+/** The price entries the dataset's calls actually used, so the file records what was charged. */
+function usedPrices(prices: PriceTable | TokenPrices, samples: Evaluation['samples']): PriceTable {
+  if (typeof (prices as TokenPrices).input === 'number') return { '*': prices as TokenPrices };
+  const table = prices as PriceTable;
+  const used: PriceTable = {};
+  for (const s of samples) for (const u of s.cloud?.usage ?? []) if (u.model && Object.hasOwn(table, u.model)) used[u.model] = table[u.model]!;
+  return used;
+}
+
 export function resolveCreatedAt(explicit?: string): string {
   if (explicit) return new Date(explicit).toISOString();
   const epoch = process.env['SOURCE_DATE_EPOCH'];
@@ -39,8 +48,13 @@ export function resolveCreatedAt(explicit?: string): string {
 
 export async function calibrate(options: CalibrateOptions): Promise<CalibrateResult> {
   const { name, config, dataset } = options;
-  const target = options.target ?? config.target ?? 0.95;
-  if (!(target > 0 && target <= 1)) throw new Error(`target must be in (0, 1], got ${target}`);
+  const target = options.target ?? config.target ?? 'cloud';
+  if (typeof target === 'number' ? !(target > 0 && target <= 1) : target !== 'cloud' && target !== 'max') {
+    throw new Error(`target must be a number in (0, 1], "cloud" or "max", got ${String(target)}`);
+  }
+  if (config.cost && config.cost.prices === undefined && config.cost.cloudPerRun === undefined) {
+    throw new Error(`task "${name}": cost needs prices (per million tokens) or cloudPerRun`);
+  }
 
   const evaluation = await evaluate({
     name,
@@ -55,12 +69,27 @@ export async function calibrate(options: CalibrateOptions): Promise<CalibrateRes
   });
 
   const labels = config.schema.type === 'structured' ? undefined : optionLabels(config.schema);
-  const analysis = analyze(evaluation.samples, {
+  const analyzeOptions: AnalyzeOptions = {
     target,
     ...(labels ? { labels } : {}),
     perLabel: options.perLabel ?? config.perLabel ?? false,
-    ...(config.cost ? { cost: config.cost } : {}),
-  });
+    ...(config.cost ? { cost: { currency: config.cost.currency, ...(config.cost.cloudPerRun !== undefined ? { cloudPerRun: config.cost.cloudPerRun } : {}) } } : {}),
+  };
+  const analysis = analyze(evaluation.samples, analyzeOptions);
+  const heldOut = crossValidate(evaluation.samples, analyzeOptions);
+
+  let cost: CalibrationFile['cost'];
+  if (analysis.cost) {
+    const c = analysis.cost;
+    cost = {
+      currency: c.currency,
+      cloudPerRun: Math.round(c.cloudPerRun * 1e9) / 1e9,
+      basis: c.basis,
+      ...(c.basis === 'measured' && config.cost?.prices ? { prices: usedPrices(config.cost.prices, evaluation.samples) } : {}),
+      ...(c.tokensPerRun ? { tokensPerRun: c.tokensPerRun } : {}),
+      ...(config.cost?.runsPerMonth ? { runsPerMonth: config.cost.runsPerMonth } : {}),
+    };
+  }
 
   const local: CalibrationFile['local'] = { runner: evaluation.local.runner };
   const localModel = config.models?.local ?? evaluation.local.model;
@@ -75,11 +104,11 @@ export async function calibrate(options: CalibrateOptions): Promise<CalibrateRes
     local,
     cloud: { runner: config.cloud.id, ...(config.models?.cloud ? { model: config.models.cloud } : {}) },
     dataset: { size: dataset.examples.length, fingerprint: dataset.fingerprint },
-    target: { metric: 'accuracy', value: target },
+    target: { metric: 'accuracy', value: analysis.target.value, mode: analysis.target.mode },
     threshold: analysis.threshold,
     ...(analysis.thresholds ? { thresholds: analysis.thresholds } : {}),
-    expected: analysis.expected,
-    ...(config.cost ? { cost: config.cost } : {}),
+    expected: { ...analysis.expected, ...(heldOut ? { heldOut } : {}) },
+    ...(cost ? { cost } : {}),
     curve: analysis.curve,
     confidenceHistogram: analysis.confidenceHistogram,
     ...(analysis.confusion ? { confusion: analysis.confusion } : {}),

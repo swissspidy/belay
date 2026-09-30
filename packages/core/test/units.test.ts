@@ -97,7 +97,7 @@ describe('calibration file', () => {
   it.each([
     [{ version: 2 }, /version/],
     [{ task: 'other' }, /task/],
-    [{ threshold: 1.2 }, /threshold/],
+    [{ threshold: -0.2 }, /threshold/],
     [{ thresholds: { bug: -1 } }, /thresholds/],
     [{ expected: {} }, /expected/],
     [{ confidenceHistogram: { edges: [0, 1], counts: [1, 2] } }, /edges/],

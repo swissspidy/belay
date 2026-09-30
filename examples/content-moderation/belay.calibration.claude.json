@@ -1,0 +1,2217 @@
+{
+  "version": 1,
+  "task": "content-moderation",
+  "schemaFingerprint": "fnv1a:bdb43afc",
+  "createdAt": "2026-09-29T17:07:55.522Z",
+  "local": {
+    "runner": "classifier-api",
+    "model": "Laya multilingual, 256 tokens (WebAI Studio extension)",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36"
+  },
+  "cloud": {
+    "runner": "anthropic:claude-opus-5-5",
+    "model": "claude-opus-5-5"
+  },
+  "dataset": {
+    "size": 300,
+    "fingerprint": "fnv1a:2e379126"
+  },
+  "target": {
+    "metric": "accuracy",
+    "value": 0.7666666666666667,
+    "mode": "max"
+  },
+  "threshold": 0.717,
+  "thresholds": {
+    "true": 0,
+    "false": 0.568
+  },
+  "expected": {
+    "accuracy": 0.7666666666666667,
+    "localShare": 0.83,
+    "localAccuracy": 0.8514056224899599,
+    "cloudAccuracy": 0.76,
+    "costPer1k": 0.280787,
+    "cloudOnlyCostPer1k": 1.582427,
+    "savingsPer1k": 1.30164,
+    "heldOut": {
+      "folds": 5,
+      "accuracy": 0.766666667,
+      "localShare": 0.83,
+      "cloudAccuracy": 0.76,
+      "costPer1k": 0.286267
+    }
+  },
+  "cost": {
+    "currency": "USD",
+    "cloudPerRun": 0.001582427,
+    "basis": "measured",
+    "prices": {
+      "claude-opus-5-5": {
+        "input": 4,
+        "output": 20,
+        "cacheRead": 0.2,
+        "cacheWrite": 5
+      }
+    },
+    "tokensPerRun": {
+      "input": 339.2,
+      "output": 11.3,
+      "cacheRead": 0,
+      "cacheWrite": 0
+    },
+    "runsPerMonth": 1000000
+  },
+  "curve": [
+    {
+      "threshold": 0,
+      "accuracy": 0.7066666666666667,
+      "localShare": 1,
+      "localAccuracy": 0.7066666666666667,
+      "costPer1k": 0
+    },
+    {
+      "threshold": 0.501,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9966666666666667,
+      "localAccuracy": 0.705685618729097,
+      "costPer1k": 0.005813
+    },
+    {
+      "threshold": 0.5011,
+      "accuracy": 0.7,
+      "localShare": 0.9933333333333333,
+      "localAccuracy": 0.7046979865771812,
+      "costPer1k": 0.010547
+    },
+    {
+      "threshold": 0.502,
+      "accuracy": 0.7,
+      "localShare": 0.99,
+      "localAccuracy": 0.7037037037037037,
+      "costPer1k": 0.015933
+    },
+    {
+      "threshold": 0.506,
+      "accuracy": 0.7,
+      "localShare": 0.9866666666666667,
+      "localAccuracy": 0.706081081081081,
+      "costPer1k": 0.020987
+    },
+    {
+      "threshold": 0.5062,
+      "accuracy": 0.7,
+      "localShare": 0.9833333333333333,
+      "localAccuracy": 0.7084745762711865,
+      "costPer1k": 0.026173
+    },
+    {
+      "threshold": 0.507,
+      "accuracy": 0.7,
+      "localShare": 0.98,
+      "localAccuracy": 0.7074829931972789,
+      "costPer1k": 0.030693
+    },
+    {
+      "threshold": 0.508,
+      "accuracy": 0.7,
+      "localShare": 0.9766666666666667,
+      "localAccuracy": 0.7064846416382252,
+      "costPer1k": 0.036053
+    },
+    {
+      "threshold": 0.51,
+      "accuracy": 0.7,
+      "localShare": 0.9733333333333334,
+      "localAccuracy": 0.708904109589041,
+      "costPer1k": 0.04088
+    },
+    {
+      "threshold": 0.512,
+      "accuracy": 0.7,
+      "localShare": 0.97,
+      "localAccuracy": 0.7079037800687286,
+      "costPer1k": 0.045547
+    },
+    {
+      "threshold": 0.5122,
+      "accuracy": 0.7,
+      "localShare": 0.9666666666666667,
+      "localAccuracy": 0.7068965517241379,
+      "costPer1k": 0.051
+    },
+    {
+      "threshold": 0.5126,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9633333333333334,
+      "localAccuracy": 0.7093425605536332,
+      "costPer1k": 0.055427
+    },
+    {
+      "threshold": 0.51291,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.96,
+      "localAccuracy": 0.7118055555555556,
+      "costPer1k": 0.06104
+    },
+    {
+      "threshold": 0.513,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.9566666666666667,
+      "localAccuracy": 0.7142857142857143,
+      "costPer1k": 0.066027
+    },
+    {
+      "threshold": 0.5145,
+      "accuracy": 0.71,
+      "localShare": 0.9533333333333334,
+      "localAccuracy": 0.7167832167832168,
+      "costPer1k": 0.071333
+    },
+    {
+      "threshold": 0.51485,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.95,
+      "localAccuracy": 0.7157894736842105,
+      "costPer1k": 0.076413
+    },
+    {
+      "threshold": 0.5149,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9466666666666667,
+      "localAccuracy": 0.7147887323943662,
+      "costPer1k": 0.081533
+    },
+    {
+      "threshold": 0.515,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9433333333333334,
+      "localAccuracy": 0.7173144876325088,
+      "costPer1k": 0.0866
+    },
+    {
+      "threshold": 0.5153,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.94,
+      "localAccuracy": 0.7198581560283688,
+      "costPer1k": 0.09184
+    },
+    {
+      "threshold": 0.516,
+      "accuracy": 0.7,
+      "localShare": 0.9366666666666666,
+      "localAccuracy": 0.7188612099644128,
+      "costPer1k": 0.097347
+    },
+    {
+      "threshold": 0.517,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9333333333333333,
+      "localAccuracy": 0.7214285714285714,
+      "costPer1k": 0.101827
+    },
+    {
+      "threshold": 0.5177,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.93,
+      "localAccuracy": 0.7204301075268817,
+      "costPer1k": 0.107027
+    },
+    {
+      "threshold": 0.5178,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9266666666666666,
+      "localAccuracy": 0.7230215827338129,
+      "costPer1k": 0.112547
+    },
+    {
+      "threshold": 0.518,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9233333333333333,
+      "localAccuracy": 0.7220216606498195,
+      "costPer1k": 0.121467
+    },
+    {
+      "threshold": 0.519,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.92,
+      "localAccuracy": 0.7246376811594203,
+      "costPer1k": 0.126747
+    },
+    {
+      "threshold": 0.52,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.9166666666666666,
+      "localAccuracy": 0.7272727272727273,
+      "costPer1k": 0.13264
+    },
+    {
+      "threshold": 0.521,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.9133333333333333,
+      "localAccuracy": 0.7299270072992701,
+      "costPer1k": 0.1376
+    },
+    {
+      "threshold": 0.522,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.91,
+      "localAccuracy": 0.7289377289377289,
+      "costPer1k": 0.142947
+    },
+    {
+      "threshold": 0.5221,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9066666666666666,
+      "localAccuracy": 0.7279411764705882,
+      "costPer1k": 0.148573
+    },
+    {
+      "threshold": 0.523,
+      "accuracy": 0.7033333333333334,
+      "localShare": 0.9033333333333333,
+      "localAccuracy": 0.7269372693726938,
+      "costPer1k": 0.153213
+    },
+    {
+      "threshold": 0.524,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.9,
+      "localAccuracy": 0.7296296296296296,
+      "costPer1k": 0.158627
+    },
+    {
+      "threshold": 0.525,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.8966666666666666,
+      "localAccuracy": 0.7323420074349443,
+      "costPer1k": 0.163867
+    },
+    {
+      "threshold": 0.526,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.8933333333333333,
+      "localAccuracy": 0.7313432835820896,
+      "costPer1k": 0.168747
+    },
+    {
+      "threshold": 0.5262,
+      "accuracy": 0.71,
+      "localShare": 0.89,
+      "localAccuracy": 0.7340823970037453,
+      "costPer1k": 0.17392
+    },
+    {
+      "threshold": 0.527,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.8866666666666667,
+      "localAccuracy": 0.7330827067669173,
+      "costPer1k": 0.18712
+    },
+    {
+      "threshold": 0.5277,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.8833333333333333,
+      "localAccuracy": 0.7320754716981132,
+      "costPer1k": 0.192667
+    },
+    {
+      "threshold": 0.528,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.88,
+      "localAccuracy": 0.7348484848484849,
+      "costPer1k": 0.197947
+    },
+    {
+      "threshold": 0.529,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.8766666666666667,
+      "localAccuracy": 0.7338403041825095,
+      "costPer1k": 0.2024
+    },
+    {
+      "threshold": 0.5294,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.8733333333333333,
+      "localAccuracy": 0.732824427480916,
+      "costPer1k": 0.208027
+    },
+    {
+      "threshold": 0.5295,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.87,
+      "localAccuracy": 0.7318007662835249,
+      "costPer1k": 0.213467
+    },
+    {
+      "threshold": 0.5298,
+      "accuracy": 0.7066666666666667,
+      "localShare": 0.8666666666666667,
+      "localAccuracy": 0.7346153846153847,
+      "costPer1k": 0.218733
+    },
+    {
+      "threshold": 0.53,
+      "accuracy": 0.71,
+      "localShare": 0.8633333333333333,
+      "localAccuracy": 0.7374517374517374,
+      "costPer1k": 0.224147
+    },
+    {
+      "threshold": 0.5301,
+      "accuracy": 0.71,
+      "localShare": 0.86,
+      "localAccuracy": 0.7403100775193798,
+      "costPer1k": 0.229387
+    },
+    {
+      "threshold": 0.5302,
+      "accuracy": 0.71,
+      "localShare": 0.8566666666666667,
+      "localAccuracy": 0.7392996108949417,
+      "costPer1k": 0.23396
+    },
+    {
+      "threshold": 0.53052,
+      "accuracy": 0.7133333333333334,
+      "localShare": 0.8533333333333334,
+      "localAccuracy": 0.7421875,
+      "costPer1k": 0.238653
+    },
+    {
+      "threshold": 0.531,
+      "accuracy": 0.7133333333333334,
+      "localShare": 0.85,
+      "localAccuracy": 0.7411764705882353,
+      "costPer1k": 0.243347
+    },
+    {
+      "threshold": 0.532,
+      "accuracy": 0.7166666666666667,
+      "localShare": 0.8466666666666667,
+      "localAccuracy": 0.7440944881889764,
+      "costPer1k": 0.247987
+    },
+    {
+      "threshold": 0.5325,
+      "accuracy": 0.7166666666666667,
+      "localShare": 0.8433333333333334,
+      "localAccuracy": 0.7470355731225297,
+      "costPer1k": 0.259627
+    },
+    {
+      "threshold": 0.533,
+      "accuracy": 0.7166666666666667,
+      "localShare": 0.84,
+      "localAccuracy": 0.746031746031746,
+      "costPer1k": 0.265253
+    },
+    {
+      "threshold": 0.5333,
+      "accuracy": 0.7166666666666667,
+      "localShare": 0.8366666666666667,
+      "localAccuracy": 0.749003984063745,
+      "costPer1k": 0.270347
+    },
+    {
+      "threshold": 0.534,
+      "accuracy": 0.7166666666666667,
+      "localShare": 0.8333333333333334,
+      "localAccuracy": 0.752,
+      "costPer1k": 0.27612
+    },
+    {
+      "threshold": 0.5343,
+      "accuracy": 0.72,
+      "localShare": 0.83,
+      "localAccuracy": 0.7550200803212851,
+      "costPer1k": 0.280533
+    },
+    {
+      "threshold": 0.5346,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.8266666666666667,
+      "localAccuracy": 0.7580645161290323,
+      "costPer1k": 0.28632
+    },
+    {
+      "threshold": 0.535,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.8233333333333334,
+      "localAccuracy": 0.7611336032388664,
+      "costPer1k": 0.292
+    },
+    {
+      "threshold": 0.5353,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.82,
+      "localAccuracy": 0.7601626016260162,
+      "costPer1k": 0.29724
+    },
+    {
+      "threshold": 0.536,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.8166666666666667,
+      "localAccuracy": 0.7591836734693878,
+      "costPer1k": 0.30188
+    },
+    {
+      "threshold": 0.5396,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.8133333333333334,
+      "localAccuracy": 0.7581967213114754,
+      "costPer1k": 0.307467
+    },
+    {
+      "threshold": 0.54,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.81,
+      "localAccuracy": 0.7613168724279835,
+      "costPer1k": 0.313387
+    },
+    {
+      "threshold": 0.5412,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.8066666666666666,
+      "localAccuracy": 0.7603305785123967,
+      "costPer1k": 0.318867
+    },
+    {
+      "threshold": 0.542,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.8033333333333333,
+      "localAccuracy": 0.7593360995850622,
+      "costPer1k": 0.323547
+    },
+    {
+      "threshold": 0.543,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.8,
+      "localAccuracy": 0.7583333333333333,
+      "costPer1k": 0.328613
+    },
+    {
+      "threshold": 0.54394,
+      "accuracy": 0.73,
+      "localShare": 0.7966666666666666,
+      "localAccuracy": 0.7615062761506276,
+      "costPer1k": 0.334067
+    },
+    {
+      "threshold": 0.544,
+      "accuracy": 0.73,
+      "localShare": 0.7933333333333333,
+      "localAccuracy": 0.7605042016806722,
+      "costPer1k": 0.339173
+    },
+    {
+      "threshold": 0.546,
+      "accuracy": 0.73,
+      "localShare": 0.79,
+      "localAccuracy": 0.759493670886076,
+      "costPer1k": 0.344627
+    },
+    {
+      "threshold": 0.5463,
+      "accuracy": 0.73,
+      "localShare": 0.7866666666666666,
+      "localAccuracy": 0.7627118644067796,
+      "costPer1k": 0.349667
+    },
+    {
+      "threshold": 0.547,
+      "accuracy": 0.73,
+      "localShare": 0.7833333333333333,
+      "localAccuracy": 0.7617021276595745,
+      "costPer1k": 0.35448
+    },
+    {
+      "threshold": 0.5473,
+      "accuracy": 0.73,
+      "localShare": 0.78,
+      "localAccuracy": 0.7649572649572649,
+      "costPer1k": 0.359573
+    },
+    {
+      "threshold": 0.5477,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.7766666666666666,
+      "localAccuracy": 0.7639484978540773,
+      "costPer1k": 0.364467
+    },
+    {
+      "threshold": 0.548,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.7733333333333333,
+      "localAccuracy": 0.7629310344827587,
+      "costPer1k": 0.369627
+    },
+    {
+      "threshold": 0.55,
+      "accuracy": 0.73,
+      "localShare": 0.77,
+      "localAccuracy": 0.7662337662337663,
+      "costPer1k": 0.374227
+    },
+    {
+      "threshold": 0.5504,
+      "accuracy": 0.73,
+      "localShare": 0.7666666666666667,
+      "localAccuracy": 0.7695652173913043,
+      "costPer1k": 0.379227
+    },
+    {
+      "threshold": 0.551,
+      "accuracy": 0.73,
+      "localShare": 0.7633333333333333,
+      "localAccuracy": 0.7685589519650655,
+      "costPer1k": 0.38376
+    },
+    {
+      "threshold": 0.5513,
+      "accuracy": 0.73,
+      "localShare": 0.76,
+      "localAccuracy": 0.7675438596491229,
+      "costPer1k": 0.38844
+    },
+    {
+      "threshold": 0.5515,
+      "accuracy": 0.73,
+      "localShare": 0.7566666666666667,
+      "localAccuracy": 0.7665198237885462,
+      "costPer1k": 0.393373
+    },
+    {
+      "threshold": 0.5516,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.7533333333333333,
+      "localAccuracy": 0.7654867256637168,
+      "costPer1k": 0.39808
+    },
+    {
+      "threshold": 0.552,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.75,
+      "localAccuracy": 0.7644444444444445,
+      "costPer1k": 0.402733
+    },
+    {
+      "threshold": 0.55269,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.7466666666666667,
+      "localAccuracy": 0.7678571428571429,
+      "costPer1k": 0.40744
+    },
+    {
+      "threshold": 0.553,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.7433333333333333,
+      "localAccuracy": 0.7668161434977578,
+      "costPer1k": 0.413067
+    },
+    {
+      "threshold": 0.5536,
+      "accuracy": 0.73,
+      "localShare": 0.74,
+      "localAccuracy": 0.7702702702702703,
+      "costPer1k": 0.418347
+    },
+    {
+      "threshold": 0.554,
+      "accuracy": 0.73,
+      "localShare": 0.7366666666666667,
+      "localAccuracy": 0.7692307692307693,
+      "costPer1k": 0.42368
+    },
+    {
+      "threshold": 0.555,
+      "accuracy": 0.73,
+      "localShare": 0.7333333333333333,
+      "localAccuracy": 0.7727272727272727,
+      "costPer1k": 0.428413
+    },
+    {
+      "threshold": 0.55665,
+      "accuracy": 0.73,
+      "localShare": 0.73,
+      "localAccuracy": 0.771689497716895,
+      "costPer1k": 0.433427
+    },
+    {
+      "threshold": 0.557,
+      "accuracy": 0.73,
+      "localShare": 0.7266666666666667,
+      "localAccuracy": 0.7752293577981652,
+      "costPer1k": 0.438867
+    },
+    {
+      "threshold": 0.558,
+      "accuracy": 0.73,
+      "localShare": 0.7233333333333334,
+      "localAccuracy": 0.7741935483870968,
+      "costPer1k": 0.443293
+    },
+    {
+      "threshold": 0.559,
+      "accuracy": 0.73,
+      "localShare": 0.72,
+      "localAccuracy": 0.7777777777777778,
+      "costPer1k": 0.447973
+    },
+    {
+      "threshold": 0.5593,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.7166666666666667,
+      "localAccuracy": 0.7767441860465116,
+      "costPer1k": 0.45256
+    },
+    {
+      "threshold": 0.5596,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.7133333333333334,
+      "localAccuracy": 0.780373831775701,
+      "costPer1k": 0.457693
+    },
+    {
+      "threshold": 0.56,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.71,
+      "localAccuracy": 0.7793427230046949,
+      "costPer1k": 0.46316
+    },
+    {
+      "threshold": 0.5603,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.7066666666666667,
+      "localAccuracy": 0.7783018867924528,
+      "costPer1k": 0.468587
+    },
+    {
+      "threshold": 0.5605,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.7033333333333334,
+      "localAccuracy": 0.7819905213270142,
+      "costPer1k": 0.473267
+    },
+    {
+      "threshold": 0.561,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.7,
+      "localAccuracy": 0.7857142857142857,
+      "costPer1k": 0.490827
+    },
+    {
+      "threshold": 0.5613,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.6966666666666667,
+      "localAccuracy": 0.7894736842105263,
+      "costPer1k": 0.495253
+    },
+    {
+      "threshold": 0.562,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.6933333333333334,
+      "localAccuracy": 0.7932692307692307,
+      "costPer1k": 0.500493
+    },
+    {
+      "threshold": 0.5631,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.69,
+      "localAccuracy": 0.7971014492753623,
+      "costPer1k": 0.505173
+    },
+    {
+      "threshold": 0.564,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.6866666666666666,
+      "localAccuracy": 0.8009708737864077,
+      "costPer1k": 0.511027
+    },
+    {
+      "threshold": 0.5641,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.6833333333333333,
+      "localAccuracy": 0.8048780487804879,
+      "costPer1k": 0.515853
+    },
+    {
+      "threshold": 0.56428,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.68,
+      "localAccuracy": 0.8088235294117647,
+      "costPer1k": 0.520747
+    },
+    {
+      "threshold": 0.5643,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.6766666666666666,
+      "localAccuracy": 0.8078817733990148,
+      "costPer1k": 0.53472
+    },
+    {
+      "threshold": 0.56451,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.6733333333333333,
+      "localAccuracy": 0.806930693069307,
+      "costPer1k": 0.539987
+    },
+    {
+      "threshold": 0.565,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.67,
+      "localAccuracy": 0.8059701492537313,
+      "costPer1k": 0.545907
+    },
+    {
+      "threshold": 0.567,
+      "accuracy": 0.7233333333333334,
+      "localShare": 0.6666666666666666,
+      "localAccuracy": 0.81,
+      "costPer1k": 0.551587
+    },
+    {
+      "threshold": 0.568,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.6633333333333333,
+      "localAccuracy": 0.8140703517587939,
+      "costPer1k": 0.556867
+    },
+    {
+      "threshold": 0.569,
+      "accuracy": 0.7266666666666667,
+      "localShare": 0.66,
+      "localAccuracy": 0.8181818181818182,
+      "costPer1k": 0.56152
+    },
+    {
+      "threshold": 0.57,
+      "accuracy": 0.73,
+      "localShare": 0.6566666666666666,
+      "localAccuracy": 0.8223350253807107,
+      "costPer1k": 0.567267
+    },
+    {
+      "threshold": 0.571,
+      "accuracy": 0.73,
+      "localShare": 0.6533333333333333,
+      "localAccuracy": 0.826530612244898,
+      "costPer1k": 0.57196
+    },
+    {
+      "threshold": 0.5717,
+      "accuracy": 0.73,
+      "localShare": 0.65,
+      "localAccuracy": 0.8256410256410256,
+      "costPer1k": 0.576973
+    },
+    {
+      "threshold": 0.57194,
+      "accuracy": 0.73,
+      "localShare": 0.6466666666666666,
+      "localAccuracy": 0.8247422680412371,
+      "costPer1k": 0.582947
+    },
+    {
+      "threshold": 0.572,
+      "accuracy": 0.73,
+      "localShare": 0.6433333333333333,
+      "localAccuracy": 0.8290155440414507,
+      "costPer1k": 0.5874
+    },
+    {
+      "threshold": 0.5732,
+      "accuracy": 0.7333333333333333,
+      "localShare": 0.64,
+      "localAccuracy": 0.8333333333333334,
+      "costPer1k": 0.593187
+    },
+    {
+      "threshold": 0.574,
+      "accuracy": 0.7366666666666667,
+      "localShare": 0.6366666666666667,
+      "localAccuracy": 0.837696335078534,
+      "costPer1k": 0.604427
+    },
+    {
+      "threshold": 0.575,
+      "accuracy": 0.7366666666666667,
+      "localShare": 0.6333333333333333,
+      "localAccuracy": 0.8368421052631579,
+      "costPer1k": 0.609653
+    },
+    {
+      "threshold": 0.577,
+      "accuracy": 0.74,
+      "localShare": 0.63,
+      "localAccuracy": 0.8412698412698413,
+      "costPer1k": 0.61484
+    },
+    {
+      "threshold": 0.579,
+      "accuracy": 0.7366666666666667,
+      "localShare": 0.6266666666666667,
+      "localAccuracy": 0.8404255319148937,
+      "costPer1k": 0.619533
+    },
+    {
+      "threshold": 0.5793,
+      "accuracy": 0.7366666666666667,
+      "localShare": 0.6233333333333333,
+      "localAccuracy": 0.8449197860962567,
+      "costPer1k": 0.624027
+    },
+    {
+      "threshold": 0.58,
+      "accuracy": 0.74,
+      "localShare": 0.62,
+      "localAccuracy": 0.8494623655913979,
+      "costPer1k": 0.628907
+    },
+    {
+      "threshold": 0.583,
+      "accuracy": 0.74,
+      "localShare": 0.6166666666666667,
+      "localAccuracy": 0.8486486486486486,
+      "costPer1k": 0.63444
+    },
+    {
+      "threshold": 0.584,
+      "accuracy": 0.74,
+      "localShare": 0.6133333333333333,
+      "localAccuracy": 0.8532608695652174,
+      "costPer1k": 0.639827
+    },
+    {
+      "threshold": 0.5841,
+      "accuracy": 0.74,
+      "localShare": 0.61,
+      "localAccuracy": 0.8579234972677595,
+      "costPer1k": 0.644827
+    },
+    {
+      "threshold": 0.585,
+      "accuracy": 0.74,
+      "localShare": 0.6066666666666667,
+      "localAccuracy": 0.8571428571428571,
+      "costPer1k": 0.64972
+    },
+    {
+      "threshold": 0.5851,
+      "accuracy": 0.74,
+      "localShare": 0.6033333333333334,
+      "localAccuracy": 0.856353591160221,
+      "costPer1k": 0.65464
+    },
+    {
+      "threshold": 0.586,
+      "accuracy": 0.74,
+      "localShare": 0.6,
+      "localAccuracy": 0.8555555555555555,
+      "costPer1k": 0.65908
+    },
+    {
+      "threshold": 0.588,
+      "accuracy": 0.74,
+      "localShare": 0.5966666666666667,
+      "localAccuracy": 0.8547486033519553,
+      "costPer1k": 0.664093
+    },
+    {
+      "threshold": 0.59,
+      "accuracy": 0.74,
+      "localShare": 0.5933333333333334,
+      "localAccuracy": 0.8539325842696629,
+      "costPer1k": 0.66904
+    },
+    {
+      "threshold": 0.592,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.59,
+      "localAccuracy": 0.8587570621468926,
+      "costPer1k": 0.674373
+    },
+    {
+      "threshold": 0.594,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.5866666666666667,
+      "localAccuracy": 0.8636363636363636,
+      "costPer1k": 0.68004
+    },
+    {
+      "threshold": 0.5962,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.5833333333333334,
+      "localAccuracy": 0.8628571428571429,
+      "costPer1k": 0.684813
+    },
+    {
+      "threshold": 0.6,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.58,
+      "localAccuracy": 0.8620689655172413,
+      "costPer1k": 0.689947
+    },
+    {
+      "threshold": 0.602,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.5766666666666667,
+      "localAccuracy": 0.861271676300578,
+      "costPer1k": 0.695507
+    },
+    {
+      "threshold": 0.603,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.5733333333333334,
+      "localAccuracy": 0.8604651162790697,
+      "costPer1k": 0.700827
+    },
+    {
+      "threshold": 0.604,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.57,
+      "localAccuracy": 0.8654970760233918,
+      "costPer1k": 0.706533
+    },
+    {
+      "threshold": 0.6062,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.5666666666666667,
+      "localAccuracy": 0.8647058823529412,
+      "costPer1k": 0.71132
+    },
+    {
+      "threshold": 0.607,
+      "accuracy": 0.7433333333333333,
+      "localShare": 0.5633333333333334,
+      "localAccuracy": 0.863905325443787,
+      "costPer1k": 0.716107
+    },
+    {
+      "threshold": 0.609,
+      "accuracy": 0.7466666666666667,
+      "localShare": 0.56,
+      "localAccuracy": 0.8690476190476191,
+      "costPer1k": 0.721107
+    },
+    {
+      "threshold": 0.61,
+      "accuracy": 0.7466666666666667,
+      "localShare": 0.5566666666666666,
+      "localAccuracy": 0.8682634730538922,
+      "costPer1k": 0.726253
+    },
+    {
+      "threshold": 0.611,
+      "accuracy": 0.7466666666666667,
+      "localShare": 0.5533333333333333,
+      "localAccuracy": 0.8734939759036144,
+      "costPer1k": 0.730987
+    },
+    {
+      "threshold": 0.613,
+      "accuracy": 0.7466666666666667,
+      "localShare": 0.55,
+      "localAccuracy": 0.8787878787878788,
+      "costPer1k": 0.73632
+    },
+    {
+      "threshold": 0.614,
+      "accuracy": 0.7466666666666667,
+      "localShare": 0.5466666666666666,
+      "localAccuracy": 0.8780487804878049,
+      "costPer1k": 0.740973
+    },
+    {
+      "threshold": 0.62,
+      "accuracy": 0.75,
+      "localShare": 0.5433333333333333,
+      "localAccuracy": 0.8834355828220859,
+      "costPer1k": 0.746933
+    },
+    {
+      "threshold": 0.6213,
+      "accuracy": 0.75,
+      "localShare": 0.54,
+      "localAccuracy": 0.8827160493827161,
+      "costPer1k": 0.752347
+    },
+    {
+      "threshold": 0.622,
+      "accuracy": 0.75,
+      "localShare": 0.5366666666666666,
+      "localAccuracy": 0.8881987577639752,
+      "costPer1k": 0.756933
+    },
+    {
+      "threshold": 0.63,
+      "accuracy": 0.75,
+      "localShare": 0.5333333333333333,
+      "localAccuracy": 0.8875,
+      "costPer1k": 0.761587
+    },
+    {
+      "threshold": 0.631,
+      "accuracy": 0.75,
+      "localShare": 0.53,
+      "localAccuracy": 0.8930817610062893,
+      "costPer1k": 0.781573
+    },
+    {
+      "threshold": 0.638,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.5266666666666666,
+      "localAccuracy": 0.8987341772151899,
+      "costPer1k": 0.787147
+    },
+    {
+      "threshold": 0.64,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.5233333333333333,
+      "localAccuracy": 0.8980891719745223,
+      "costPer1k": 0.792613
+    },
+    {
+      "threshold": 0.6405,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.52,
+      "localAccuracy": 0.8974358974358975,
+      "costPer1k": 0.798253
+    },
+    {
+      "threshold": 0.641,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.5166666666666667,
+      "localAccuracy": 0.896774193548387,
+      "costPer1k": 0.803853
+    },
+    {
+      "threshold": 0.6447,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.5133333333333333,
+      "localAccuracy": 0.9025974025974026,
+      "costPer1k": 0.809053
+    },
+    {
+      "threshold": 0.645,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.51,
+      "localAccuracy": 0.9019607843137255,
+      "costPer1k": 0.813987
+    },
+    {
+      "threshold": 0.646,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.5066666666666667,
+      "localAccuracy": 0.9078947368421053,
+      "costPer1k": 0.818907
+    },
+    {
+      "threshold": 0.6475,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.5033333333333333,
+      "localAccuracy": 0.9139072847682119,
+      "costPer1k": 0.823773
+    },
+    {
+      "threshold": 0.65,
+      "accuracy": 0.7533333333333333,
+      "localShare": 0.5,
+      "localAccuracy": 0.92,
+      "costPer1k": 0.828413
+    },
+    {
+      "threshold": 0.655,
+      "accuracy": 0.7566666666666667,
+      "localShare": 0.49666666666666665,
+      "localAccuracy": 0.9261744966442953,
+      "costPer1k": 0.83344
+    },
+    {
+      "threshold": 0.656,
+      "accuracy": 0.76,
+      "localShare": 0.49333333333333335,
+      "localAccuracy": 0.9324324324324325,
+      "costPer1k": 0.842613
+    },
+    {
+      "threshold": 0.6599,
+      "accuracy": 0.76,
+      "localShare": 0.49,
+      "localAccuracy": 0.9387755102040817,
+      "costPer1k": 0.847613
+    },
+    {
+      "threshold": 0.66,
+      "accuracy": 0.76,
+      "localShare": 0.4866666666666667,
+      "localAccuracy": 0.9383561643835616,
+      "costPer1k": 0.8534
+    },
+    {
+      "threshold": 0.6602,
+      "accuracy": 0.76,
+      "localShare": 0.48333333333333334,
+      "localAccuracy": 0.9379310344827586,
+      "costPer1k": 0.8586
+    },
+    {
+      "threshold": 0.661,
+      "accuracy": 0.76,
+      "localShare": 0.48,
+      "localAccuracy": 0.9444444444444444,
+      "costPer1k": 0.864253
+    },
+    {
+      "threshold": 0.665,
+      "accuracy": 0.76,
+      "localShare": 0.4766666666666667,
+      "localAccuracy": 0.9440559440559441,
+      "costPer1k": 0.868933
+    },
+    {
+      "threshold": 0.666,
+      "accuracy": 0.76,
+      "localShare": 0.47333333333333333,
+      "localAccuracy": 0.9436619718309859,
+      "costPer1k": 0.873413
+    },
+    {
+      "threshold": 0.67,
+      "accuracy": 0.76,
+      "localShare": 0.47,
+      "localAccuracy": 0.9432624113475178,
+      "costPer1k": 0.877973
+    },
+    {
+      "threshold": 0.672,
+      "accuracy": 0.76,
+      "localShare": 0.4666666666666667,
+      "localAccuracy": 0.95,
+      "costPer1k": 0.882787
+    },
+    {
+      "threshold": 0.678,
+      "accuracy": 0.76,
+      "localShare": 0.4633333333333333,
+      "localAccuracy": 0.9496402877697842,
+      "costPer1k": 0.888453
+    },
+    {
+      "threshold": 0.68,
+      "accuracy": 0.76,
+      "localShare": 0.46,
+      "localAccuracy": 0.9565217391304348,
+      "costPer1k": 0.893053
+    },
+    {
+      "threshold": 0.684,
+      "accuracy": 0.76,
+      "localShare": 0.45666666666666667,
+      "localAccuracy": 0.9562043795620438,
+      "costPer1k": 0.897827
+    },
+    {
+      "threshold": 0.69,
+      "accuracy": 0.76,
+      "localShare": 0.4533333333333333,
+      "localAccuracy": 0.9558823529411765,
+      "costPer1k": 0.903733
+    },
+    {
+      "threshold": 0.691,
+      "accuracy": 0.76,
+      "localShare": 0.45,
+      "localAccuracy": 0.9555555555555556,
+      "costPer1k": 0.909707
+    },
+    {
+      "threshold": 0.692,
+      "accuracy": 0.76,
+      "localShare": 0.44666666666666666,
+      "localAccuracy": 0.9552238805970149,
+      "costPer1k": 0.915053
+    },
+    {
+      "threshold": 0.694,
+      "accuracy": 0.76,
+      "localShare": 0.44333333333333336,
+      "localAccuracy": 0.9548872180451128,
+      "costPer1k": 0.920253
+    },
+    {
+      "threshold": 0.7,
+      "accuracy": 0.76,
+      "localShare": 0.44,
+      "localAccuracy": 0.9545454545454546,
+      "costPer1k": 0.926013
+    },
+    {
+      "threshold": 0.7022,
+      "accuracy": 0.76,
+      "localShare": 0.43666666666666665,
+      "localAccuracy": 0.9618320610687023,
+      "costPer1k": 0.93056
+    },
+    {
+      "threshold": 0.703,
+      "accuracy": 0.76,
+      "localShare": 0.43333333333333335,
+      "localAccuracy": 0.9692307692307692,
+      "costPer1k": 0.935453
+    },
+    {
+      "threshold": 0.705,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.43,
+      "localAccuracy": 0.9767441860465116,
+      "costPer1k": 0.94036
+    },
+    {
+      "threshold": 0.7051,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.4266666666666667,
+      "localAccuracy": 0.9765625,
+      "costPer1k": 0.945307
+    },
+    {
+      "threshold": 0.7057,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.42333333333333334,
+      "localAccuracy": 0.9763779527559056,
+      "costPer1k": 0.949773
+    },
+    {
+      "threshold": 0.706,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.42,
+      "localAccuracy": 0.9761904761904762,
+      "costPer1k": 0.955707
+    },
+    {
+      "threshold": 0.707,
+      "accuracy": 0.76,
+      "localShare": 0.4166666666666667,
+      "localAccuracy": 0.976,
+      "costPer1k": 0.960707
+    },
+    {
+      "threshold": 0.709,
+      "accuracy": 0.76,
+      "localShare": 0.41333333333333333,
+      "localAccuracy": 0.9758064516129032,
+      "costPer1k": 0.966133
+    },
+    {
+      "threshold": 0.71,
+      "accuracy": 0.76,
+      "localShare": 0.41,
+      "localAccuracy": 0.975609756097561,
+      "costPer1k": 0.971653
+    },
+    {
+      "threshold": 0.713,
+      "accuracy": 0.76,
+      "localShare": 0.4066666666666667,
+      "localAccuracy": 0.9754098360655737,
+      "costPer1k": 0.977227
+    },
+    {
+      "threshold": 0.716,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.4033333333333333,
+      "localAccuracy": 0.9834710743801653,
+      "costPer1k": 0.982053
+    },
+    {
+      "threshold": 0.7161,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.4,
+      "localAccuracy": 0.9833333333333333,
+      "costPer1k": 0.986973
+    },
+    {
+      "threshold": 0.717,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.39666666666666667,
+      "localAccuracy": 0.9915966386554622,
+      "costPer1k": 0.992787
+    },
+    {
+      "threshold": 0.718,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.3933333333333333,
+      "localAccuracy": 0.9915254237288136,
+      "costPer1k": 0.997867
+    },
+    {
+      "threshold": 0.719,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.39,
+      "localAccuracy": 0.9914529914529915,
+      "costPer1k": 1.002547
+    },
+    {
+      "threshold": 0.72,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.38666666666666666,
+      "localAccuracy": 0.9913793103448276,
+      "costPer1k": 1.007453
+    },
+    {
+      "threshold": 0.721,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.38333333333333336,
+      "localAccuracy": 0.991304347826087,
+      "costPer1k": 1.012787
+    },
+    {
+      "threshold": 0.722,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.38,
+      "localAccuracy": 0.9912280701754386,
+      "costPer1k": 1.017453
+    },
+    {
+      "threshold": 0.724,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.37666666666666665,
+      "localAccuracy": 0.9911504424778761,
+      "costPer1k": 1.0222
+    },
+    {
+      "threshold": 0.725,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.37333333333333335,
+      "localAccuracy": 0.9910714285714286,
+      "costPer1k": 1.02796
+    },
+    {
+      "threshold": 0.73,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.37,
+      "localAccuracy": 0.990990990990991,
+      "costPer1k": 1.033427
+    },
+    {
+      "threshold": 0.731,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.36666666666666664,
+      "localAccuracy": 0.990909090909091,
+      "costPer1k": 1.039067
+    },
+    {
+      "threshold": 0.7313,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.36333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.043867
+    },
+    {
+      "threshold": 0.732,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.36,
+      "localAccuracy": 1,
+      "costPer1k": 1.048307
+    },
+    {
+      "threshold": 0.733,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.3566666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.054173
+    },
+    {
+      "threshold": 0.735,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.35333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.05896
+    },
+    {
+      "threshold": 0.736,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.35,
+      "localAccuracy": 1,
+      "costPer1k": 1.06408
+    },
+    {
+      "threshold": 0.7363,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.3466666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.068787
+    },
+    {
+      "threshold": 0.7364,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.3433333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.0744
+    },
+    {
+      "threshold": 0.737,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.34,
+      "localAccuracy": 1,
+      "costPer1k": 1.07892
+    },
+    {
+      "threshold": 0.738,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.33666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.0838
+    },
+    {
+      "threshold": 0.7389,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.3333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.089067
+    },
+    {
+      "threshold": 0.74,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.33,
+      "localAccuracy": 1,
+      "costPer1k": 1.093947
+    },
+    {
+      "threshold": 0.741,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.32666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.098547
+    },
+    {
+      "threshold": 0.742,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.3233333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.103467
+    },
+    {
+      "threshold": 0.743,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.32,
+      "localAccuracy": 1,
+      "costPer1k": 1.10832
+    },
+    {
+      "threshold": 0.7443,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.31666666666666665,
+      "localAccuracy": 1,
+      "costPer1k": 1.113147
+    },
+    {
+      "threshold": 0.745,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.31333333333333335,
+      "localAccuracy": 1,
+      "costPer1k": 1.11892
+    },
+    {
+      "threshold": 0.747,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.31,
+      "localAccuracy": 1,
+      "costPer1k": 1.123493
+    },
+    {
+      "threshold": 0.7476,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.30666666666666664,
+      "localAccuracy": 1,
+      "costPer1k": 1.129387
+    },
+    {
+      "threshold": 0.748,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.30333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.134427
+    },
+    {
+      "threshold": 0.75,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.3,
+      "localAccuracy": 1,
+      "costPer1k": 1.139133
+    },
+    {
+      "threshold": 0.7501,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.2966666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.1448
+    },
+    {
+      "threshold": 0.751,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.29333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.14968
+    },
+    {
+      "threshold": 0.7526,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.29,
+      "localAccuracy": 1,
+      "costPer1k": 1.155333
+    },
+    {
+      "threshold": 0.753,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.2866666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.16004
+    },
+    {
+      "threshold": 0.7533,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.2833333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.16488
+    },
+    {
+      "threshold": 0.754,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.28,
+      "localAccuracy": 1,
+      "costPer1k": 1.16956
+    },
+    {
+      "threshold": 0.7562,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.27666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.174507
+    },
+    {
+      "threshold": 0.75632,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.2733333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.17912
+    },
+    {
+      "threshold": 0.757,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.27,
+      "localAccuracy": 1,
+      "costPer1k": 1.18376
+    },
+    {
+      "threshold": 0.76,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.26666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.188547
+    },
+    {
+      "threshold": 0.762,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.2633333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.19376
+    },
+    {
+      "threshold": 0.7635,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.26,
+      "localAccuracy": 1,
+      "costPer1k": 1.198653
+    },
+    {
+      "threshold": 0.764,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.25666666666666665,
+      "localAccuracy": 1,
+      "costPer1k": 1.203253
+    },
+    {
+      "threshold": 0.765,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.25333333333333335,
+      "localAccuracy": 1,
+      "costPer1k": 1.208053
+    },
+    {
+      "threshold": 0.765123,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.25,
+      "localAccuracy": 1,
+      "costPer1k": 1.213293
+    },
+    {
+      "threshold": 0.7652,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.24666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.218373
+    },
+    {
+      "threshold": 0.7658,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.24333333333333335,
+      "localAccuracy": 1,
+      "costPer1k": 1.22392
+    },
+    {
+      "threshold": 0.766,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.24,
+      "localAccuracy": 1,
+      "costPer1k": 1.229053
+    },
+    {
+      "threshold": 0.768,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.23666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.2336
+    },
+    {
+      "threshold": 0.77,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.23333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.238533
+    },
+    {
+      "threshold": 0.7702,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.23,
+      "localAccuracy": 1,
+      "costPer1k": 1.243173
+    },
+    {
+      "threshold": 0.7703,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.22666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.247627
+    },
+    {
+      "threshold": 0.771,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.22333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.252987
+    },
+    {
+      "threshold": 0.773,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.22,
+      "localAccuracy": 1,
+      "costPer1k": 1.257533
+    },
+    {
+      "threshold": 0.774,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.21666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.262373
+    },
+    {
+      "threshold": 0.776,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.21333333333333335,
+      "localAccuracy": 1,
+      "costPer1k": 1.26696
+    },
+    {
+      "threshold": 0.7767,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.21,
+      "localAccuracy": 1,
+      "costPer1k": 1.272853
+    },
+    {
+      "threshold": 0.7768,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.20666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.277853
+    },
+    {
+      "threshold": 0.777,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.20333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.282587
+    },
+    {
+      "threshold": 0.78,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.2,
+      "localAccuracy": 1,
+      "costPer1k": 1.28848
+    },
+    {
+      "threshold": 0.781,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.19666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.293867
+    },
+    {
+      "threshold": 0.783,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.19333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.298427
+    },
+    {
+      "threshold": 0.7835,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.19,
+      "localAccuracy": 1,
+      "costPer1k": 1.30376
+    },
+    {
+      "threshold": 0.7836,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.18666666666666668,
+      "localAccuracy": 1,
+      "costPer1k": 1.3086
+    },
+    {
+      "threshold": 0.7838,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.18333333333333332,
+      "localAccuracy": 1,
+      "costPer1k": 1.313373
+    },
+    {
+      "threshold": 0.784,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.18,
+      "localAccuracy": 1,
+      "costPer1k": 1.317973
+    },
+    {
+      "threshold": 0.785,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.17666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.32276
+    },
+    {
+      "threshold": 0.7851,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.17333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.327533
+    },
+    {
+      "threshold": 0.786,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.17,
+      "localAccuracy": 1,
+      "costPer1k": 1.33364
+    },
+    {
+      "threshold": 0.788,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.16666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.338173
+    },
+    {
+      "threshold": 0.78909,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.16333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.343053
+    },
+    {
+      "threshold": 0.7891,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.16,
+      "localAccuracy": 1,
+      "costPer1k": 1.347733
+    },
+    {
+      "threshold": 0.7894,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.15666666666666668,
+      "localAccuracy": 1,
+      "costPer1k": 1.352653
+    },
+    {
+      "threshold": 0.79,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.15333333333333332,
+      "localAccuracy": 1,
+      "costPer1k": 1.357387
+    },
+    {
+      "threshold": 0.7912,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.15,
+      "localAccuracy": 1,
+      "costPer1k": 1.36184
+    },
+    {
+      "threshold": 0.792,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.14666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.366413
+    },
+    {
+      "threshold": 0.79201,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.14333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.370893
+    },
+    {
+      "threshold": 0.793,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.14,
+      "localAccuracy": 1,
+      "costPer1k": 1.376093
+    },
+    {
+      "threshold": 0.794,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.13666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.3808
+    },
+    {
+      "threshold": 0.796,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.13333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.385253
+    },
+    {
+      "threshold": 0.797,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.13,
+      "localAccuracy": 1,
+      "costPer1k": 1.38968
+    },
+    {
+      "threshold": 0.7975,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.12666666666666668,
+      "localAccuracy": 1,
+      "costPer1k": 1.394333
+    },
+    {
+      "threshold": 0.7978,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.12333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.398853
+    },
+    {
+      "threshold": 0.79791,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.12,
+      "localAccuracy": 1,
+      "costPer1k": 1.403987
+    },
+    {
+      "threshold": 0.798,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.11666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.40892
+    },
+    {
+      "threshold": 0.79826,
+      "accuracy": 0.7666666666666667,
+      "localShare": 0.11333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.4148
+    },
+    {
+      "threshold": 0.799,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.11,
+      "localAccuracy": 1,
+      "costPer1k": 1.419853
+    },
+    {
+      "threshold": 0.7991,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.10666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.424573
+    },
+    {
+      "threshold": 0.8,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.10333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.42952
+    },
+    {
+      "threshold": 0.802,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.1,
+      "localAccuracy": 1,
+      "costPer1k": 1.43464
+    },
+    {
+      "threshold": 0.803,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.09666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.439947
+    },
+    {
+      "threshold": 0.8031,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.09333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.445053
+    },
+    {
+      "threshold": 0.804,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.09,
+      "localAccuracy": 1,
+      "costPer1k": 1.450067
+    },
+    {
+      "threshold": 0.8064,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.08666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.454893
+    },
+    {
+      "threshold": 0.807,
+      "accuracy": 0.7633333333333333,
+      "localShare": 0.08333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.459467
+    },
+    {
+      "threshold": 0.8071,
+      "accuracy": 0.76,
+      "localShare": 0.08,
+      "localAccuracy": 1,
+      "costPer1k": 1.465227
+    },
+    {
+      "threshold": 0.808,
+      "accuracy": 0.76,
+      "localShare": 0.07666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.471333
+    },
+    {
+      "threshold": 0.81,
+      "accuracy": 0.76,
+      "localShare": 0.07333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.476293
+    },
+    {
+      "threshold": 0.811,
+      "accuracy": 0.76,
+      "localShare": 0.07,
+      "localAccuracy": 1,
+      "costPer1k": 1.481587
+    },
+    {
+      "threshold": 0.8125,
+      "accuracy": 0.76,
+      "localShare": 0.06666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.486067
+    },
+    {
+      "threshold": 0.813,
+      "accuracy": 0.76,
+      "localShare": 0.06333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.490973
+    },
+    {
+      "threshold": 0.8131,
+      "accuracy": 0.76,
+      "localShare": 0.06,
+      "localAccuracy": 1,
+      "costPer1k": 1.4962
+    },
+    {
+      "threshold": 0.814,
+      "accuracy": 0.76,
+      "localShare": 0.056666666666666664,
+      "localAccuracy": 1,
+      "costPer1k": 1.500693
+    },
+    {
+      "threshold": 0.816,
+      "accuracy": 0.76,
+      "localShare": 0.05333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.505693
+    },
+    {
+      "threshold": 0.82,
+      "accuracy": 0.76,
+      "localShare": 0.05,
+      "localAccuracy": 1,
+      "costPer1k": 1.510373
+    },
+    {
+      "threshold": 0.821,
+      "accuracy": 0.76,
+      "localShare": 0.04666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.514973
+    },
+    {
+      "threshold": 0.823,
+      "accuracy": 0.76,
+      "localShare": 0.043333333333333335,
+      "localAccuracy": 1,
+      "costPer1k": 1.51952
+    },
+    {
+      "threshold": 0.825,
+      "accuracy": 0.76,
+      "localShare": 0.04,
+      "localAccuracy": 1,
+      "costPer1k": 1.52436
+    },
+    {
+      "threshold": 0.8282,
+      "accuracy": 0.76,
+      "localShare": 0.03666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.529013
+    },
+    {
+      "threshold": 0.829,
+      "accuracy": 0.76,
+      "localShare": 0.03333333333333333,
+      "localAccuracy": 1,
+      "costPer1k": 1.53348
+    },
+    {
+      "threshold": 0.8297,
+      "accuracy": 0.76,
+      "localShare": 0.03,
+      "localAccuracy": 1,
+      "costPer1k": 1.538467
+    },
+    {
+      "threshold": 0.83,
+      "accuracy": 0.76,
+      "localShare": 0.02666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.543693
+    },
+    {
+      "threshold": 0.832,
+      "accuracy": 0.76,
+      "localShare": 0.023333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.5486
+    },
+    {
+      "threshold": 0.84,
+      "accuracy": 0.76,
+      "localShare": 0.02,
+      "localAccuracy": 1,
+      "costPer1k": 1.553733
+    },
+    {
+      "threshold": 0.8413,
+      "accuracy": 0.76,
+      "localShare": 0.016666666666666666,
+      "localAccuracy": 1,
+      "costPer1k": 1.558573
+    },
+    {
+      "threshold": 0.842,
+      "accuracy": 0.76,
+      "localShare": 0.013333333333333334,
+      "localAccuracy": 1,
+      "costPer1k": 1.56384
+    },
+    {
+      "threshold": 0.85,
+      "accuracy": 0.76,
+      "localShare": 0.01,
+      "localAccuracy": 1,
+      "costPer1k": 1.568347
+    },
+    {
+      "threshold": 0.858,
+      "accuracy": 0.76,
+      "localShare": 0.006666666666666667,
+      "localAccuracy": 1,
+      "costPer1k": 1.572853
+    },
+    {
+      "threshold": 0.8581,
+      "accuracy": 0.76,
+      "localShare": 0.0033333333333333335,
+      "localAccuracy": 1,
+      "costPer1k": 1.57744
+    },
+    {
+      "threshold": 0.9,
+      "accuracy": 0.76,
+      "localShare": 0,
+      "localAccuracy": null,
+      "costPer1k": 1.582427
+    }
+  ],
+  "confidenceHistogram": {
+    "edges": [
+      0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1
+    ],
+    "counts": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      126,
+      42,
+      101,
+      31,
+      0
+    ]
+  },
+  "confusion": {
+    "labels": [
+      "true",
+      "false"
+    ],
+    "local": [
+      [
+        62,
+        88
+      ],
+      [
+        0,
+        150
+      ]
+    ]
+  }
+}

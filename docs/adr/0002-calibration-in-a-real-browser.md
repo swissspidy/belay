@@ -92,6 +92,35 @@ It is a perfect cloud and is named that way in the file and report. The local ha
 report is real. The cascade numbers are an upper bound. `ANTHROPIC_API_KEY` switches the examples
 to Claude with no other change.
 
+### 8. Built-in AI under Playwright
+
+Added when the first generation example (Gemini Nano through the Prompt API) was calibrated,
+following [web-ai-evals](https://github.com/swissspidy/web-ai-evals/blob/main/docs/browser-automation.md).
+Verified with Google Chrome 154 on a 4-core, 16 GB Linux VM without a GPU.
+
+- **Google Chrome, not Chromium.** Gemini Nano is delivered by Chrome's component updater, which
+  Chromium and Chrome for Testing lack. The default `channel: 'chrome'` stays.
+- **Playwright's defaults are removed.** `--disable-component-update`,
+  `--disable-background-networking`, `--disable-field-trial-config`, `--disable-extensions`,
+  `--disable-component-extensions-with-background-pages` and `--disable-default-apps` go through
+  `ignoreDefaultArgs`. Playwright's `--disable-features` list disables `OptimizationHints`, the
+  on-device model service ("Unable to create a text session because the service is not running"),
+  so a later `--disable-features` with only its harmless entries overrides it.
+- **Extensions load through the DevTools protocol.** Google Chrome 137+ ignores `--load-extension`
+  (and the `DisableLoadExtensionCommandLineSwitch` opt-out no longer works in 154). The launcher
+  adds `--enable-unsafe-extension-debugging` and calls `Extensions.loadUnpacked` on a browser-level
+  session. Tabs opened before that never get the extension's content scripts, so the harness uses
+  a new tab.
+- **`forceCpu`** enables `OnDeviceModelForceCpuBackend` for machines without a supported GPU.
+- **The judge counts for availability.** The harness reports the less ready of the local runner and
+  its judge, as `task.availability()` does, so a missing judge model is downloaded with the same
+  gesture instead of failing every judgement.
+
+Environment-specific, and therefore in the examples' browser config rather than the library:
+behind a proxy that only tunnels HTTPS, the component updater's plain-HTTP update check is
+redirected with `--component-updater=url-source=https://update.googleapis.com/service/update2/json`,
+and the proxy's CA must be in Chrome's NSS store. The first model download ran headful under Xvfb.
+
 ## Consequences
 
 - Calibration needs Chrome (or Chromium) and `playwright-core`. The latter is an optional peer

@@ -5,6 +5,8 @@ export const CALIBRATION_VERSION = 1;
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isProb = (v: unknown): v is number => isNum(v) && v >= 0 && v <= 1;
+/** A threshold above 1 keeps nothing local: every run escalates. */
+const isThreshold = (v: unknown): v is number => isNum(v) && v >= 0;
 
 /**
  * Validates an unknown value as a v1 calibration file. When `task` is given, also checks
@@ -20,11 +22,11 @@ export function parseCalibration(data: unknown, task?: string): CalibrationFile 
   if (typeof c.task !== 'string') fail('missing task');
   if (task !== undefined && c.task !== task) fail(`file is for task "${c.task}", not "${task}"`);
   if (typeof c.schemaFingerprint !== 'string') fail('missing schemaFingerprint');
-  if (!isProb(c.threshold)) fail('threshold must be a number in [0, 1]');
+  if (!isThreshold(c.threshold)) fail('threshold must be a number ≥ 0');
   if (c.thresholds !== undefined) {
     if (typeof c.thresholds !== 'object' || c.thresholds === null) fail('thresholds must be an object');
     for (const [label, t] of Object.entries(c.thresholds as object)) {
-      if (!isProb(t)) fail(`thresholds["${label}"] must be a number in [0, 1]`);
+      if (!isThreshold(t)) fail(`thresholds["${label}"] must be a number ≥ 0`);
     }
   }
   if (!c.expected || !isProb(c.expected.localShare) || !isProb(c.expected.accuracy)) {

@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Belay calibration: ticket-triage</title>
+<style>
+.viz-root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e;
+  --text-muted: #6f6d68; --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --series-1: #2a78d6; --series-2: #eb6834; --good: #006300; --critical: #d03b3b;
+  --seq-0: #f0efec; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #5598e7; --seq-4: #256abf; --seq-5: #104281;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --text-muted: #9a988f; --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5; --series-2: #d95926; --good: #0ca30c; --critical: #e66767;
+    --seq-0: #383835; --seq-1: #104281; --seq-2: #184f95; --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #86b6ef;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+  --text-muted: #9a988f; --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --series-1: #3987e5; --series-2: #d95926; --good: #0ca30c; --critical: #e66767;
+  --seq-0: #383835; --seq-1: #104281; --seq-2: #184f95; --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #86b6ef;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: #f9f9f7; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) body { background: #0d0d0d; } }
+:root[data-theme="dark"] body { background: #0d0d0d; }
+.viz-root { background: var(--page); color: var(--text-primary); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 1040px; margin: 0 auto; padding: 32px 16px 48px; min-height: 100vh; }
+header h1 { font-size: 28px; margin: 2px 0 4px; letter-spacing: -0.01em; }
+.eyebrow { margin: 0; color: var(--text-secondary); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; }
+.meta { margin: 0; color: var(--text-secondary); font-size: 14px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 24px 0 12px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.tile .label { color: var(--text-secondary); font-size: 13px; }
+.tile .value { font-size: 28px; font-weight: 600; margin-top: 2px; }
+.tile .note { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+.callout { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; color: var(--text-secondary); }
+.callout strong { color: var(--text-primary); }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 14px; margin: 16px 0; }
+.card h2 { font-size: 17px; margin: 0 0 2px; }
+.sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 10px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key-line { width: 16px; height: 2px; border-radius: 1px; display: inline-block; }
+.key-box { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.chart .label-strong { fill: var(--text-secondary); }
+.chart .ref-label { paint-order: stroke; stroke: var(--surface-1); stroke-width: 5px; stroke-linejoin: round; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--text-secondary); font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.confusion td.cell { text-align: center; font-variant-numeric: tabular-nums; min-width: 56px; border: 2px solid var(--surface-1); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); color: var(--text-secondary); }
+.status-good { color: var(--good); font-weight: 600; }
+.status-bad { color: var(--critical); font-weight: 600; }
+details summary { cursor: pointer; font-weight: 600; }
+.tooltip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); max-width: 260px; }
+.tooltip .row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+.tooltip .row b { font-weight: 600; font-variant-numeric: tabular-nums; }
+footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
+.projection-input { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); margin: 4px 0 10px; }
+.projection-input input { font: inherit; color: var(--text-primary); background: var(--page); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; width: 140px; font-variant-numeric: tabular-nums; }
+code { font-size: 0.95em; }
+</style>
+</head>
+<body>
+<main class="viz-root">
+  <header>
+    <p class="eyebrow">Belay calibration report</p>
+    <h1>ticket-triage</h1>
+    <p class="meta" id="meta"></p>
+  </header>
+  <section class="tiles" id="tiles" aria-label="Summary"></section>
+  <p class="callout" id="callout"></p>
+  <section class="card">
+    <h2>Accuracy and local share by threshold</h2>
+    <p class="sub">Runs with local confidence at or above the threshold keep the local answer; the rest go to the cloud. Hover for values.</p>
+    <div class="legend" id="curve-legend"></div>
+    <div class="chart" id="curve-chart"></div>
+  </section>
+  <section class="card" id="cost-card" hidden>
+    <h2>Cloud cost per 1,000 runs by threshold</h2>
+    <p class="sub" id="cost-basis"></p>
+    <div class="chart" id="cost-chart"></div>
+  </section>
+  <section class="card" id="projection-card" hidden>
+    <h2>Savings projection</h2>
+    <p class="sub">At the recommended threshold, assuming production inputs look like this dataset.</p>
+    <label class="projection-input">Runs per month <input type="number" id="runs" min="0" step="1000" inputmode="numeric"></label>
+    <div class="table-wrap" id="projection"></div>
+  </section>
+  <section class="card">
+    <h2>Local confidence distribution</h2>
+    <p class="sub">Examples per confidence bin, split by whether the local answer was correct. A well-calibrated model has few wrong answers in the high bins.</p>
+    <div class="legend" id="hist-legend"></div>
+    <div class="chart" id="hist-chart"></div>
+  </section>
+  <section class="card" id="confusion-card" hidden>
+    <h2>Local confusion matrix</h2>
+    <p class="sub">Rows are true labels, columns are local predictions (all examples, before escalation). Shade shows the share of the row.</p>
+    <div class="table-wrap" id="confusion"></div>
+  </section>
+  <section class="card">
+    <h2>Per option</h2>
+    <p class="sub">At the recommended threshold.</p>
+    <div class="table-wrap" id="per-option"></div>
+  </section>
+  <section class="card" id="mistakes-card" hidden>
+    <h2>Confident local mistakes</h2>
+    <p class="sub">Wrong local answers that would still be accepted at the recommended threshold, most confident first. Good candidates for better option descriptions.</p>
+    <div class="table-wrap" id="mistakes"></div>
+  </section>
+  <section class="card">
+    <details>
+      <summary>Curve data (table view)</summary>
+      <div class="table-wrap" id="curve-table"></div>
+    </details>
+  </section>
+  <footer>Generated by <code>belay calibrate</code>. Reproduce with the same dataset and output cache.</footer>
+</main>
+<div class="tooltip" id="tooltip" role="status" hidden></div>
+<script id="belay-data" type="application/json">{"task":"ticket-triage","createdAt":"2026-09-29T17:07:33.334Z","datasetPath":"examples.jsonl","datasetSize":300,"local":{"runner":"classifier-api","model":"Laya multilingual, 256 tokens (WebAI Studio extension)","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36"},"cloud":{"runner":"typesafe:jev-1.13.0","model":"jev-1.13.0"},"target":0.9566666666666667,"targetMode":"max","targetMet":true,"headToHead":{"kept":141,"bothRight":130,"localOnlyRight":10,"cloudOnlyRight":0,"bothWrong":1},"threshold":0.984,"thresholds":null,"expected":{"accuracy":0.9566666666666667,"localShare":0.47,"localAccuracy":0.9929078014184397,"cloudAccuracy":0.9233333333333333,"costPer1k":0.009679,"cloudOnlyCostPer1k":0.018298,"savingsPer1k":0.008619,"heldOut":{"folds":5,"accuracy":0.95,"localShare":0.546666667,"cloudAccuracy":0.923333333,"costPer1k":0.008276}},"accuracyInterval":[0.9272825343659885,0.9745035519155927],"baseline":{"localOnly":0.93,"cloudOnly":0.9233333333333333},"currency":"USD","cloudOnlyCostPer1k":0.018298,"cost":{"currency":"USD","cloudPerRun":0.000018298,"basis":"measured","prices":{"jev-1.13.0":{"input":0.042,"output":0}},"tokensPerRun":{"input":435.7,"output":52,"cacheRead":0,"cacheWrite":0},"runsPerMonth":1000000},"curve":[{"threshold":0,"accuracy":0.93,"localShare":1,"localAccuracy":0.93,"costPer1k":0},{"threshold":0.26,"accuracy":0.9266666666666666,"localShare":0.9966666666666667,"localAccuracy":0.9297658862876255,"costPer1k":0.000061},{"threshold":0.27,"accuracy":0.9233333333333333,"localShare":0.9933333333333333,"localAccuracy":0.9295302013422819,"costPer1k":0.000122},{"threshold":0.3,"accuracy":0.9233333333333333,"localShare":0.99,"localAccuracy":0.9326599326599326,"costPer1k":0.000183},{"threshold":0.31,"accuracy":0.9233333333333333,"localShare":0.9866666666666667,"localAccuracy":0.9324324324324325,"costPer1k":0.000243},{"threshold":0.33,"accuracy":0.9266666666666666,"localShare":0.9833333333333333,"localAccuracy":0.9355932203389831,"costPer1k":0.000305},{"threshold":0.3301,"accuracy":0.9266666666666666,"localShare":0.98,"localAccuracy":0.9387755102040817,"costPer1k":0.000366},{"threshold":0.331,"accuracy":0.9266666666666666,"localShare":0.9766666666666667,"localAccuracy":0.9385665529010239,"costPer1k":0.000427},{"threshold":0.34,"accuracy":0.9266666666666666,"localShare":0.9733333333333334,"localAccuracy":0.9383561643835616,"costPer1k":0.000488},{"threshold":0.36,"accuracy":0.9266666666666666,"localShare":0.97,"localAccuracy":0.9381443298969072,"costPer1k":0.000549},{"threshold":0.37153,"accuracy":0.9233333333333333,"localShare":0.9666666666666667,"localAccuracy":0.9379310344827586,"costPer1k":0.00061},{"threshold":0.38,"accuracy":0.9233333333333333,"localShare":0.9633333333333334,"localAccuracy":0.9377162629757786,"costPer1k":0.000671},{"threshold":0.3802,"accuracy":0.9233333333333333,"localShare":0.96,"localAccuracy":0.9375,"costPer1k":0.000731},{"threshold":0.4,"accuracy":0.9233333333333333,"localShare":0.9566666666666667,"localAccuracy":0.9372822299651568,"costPer1k":0.000792},{"threshold":0.404,"accuracy":0.9233333333333333,"localShare":0.9533333333333334,"localAccuracy":0.9405594405594405,"costPer1k":0.000853},{"threshold":0.41,"accuracy":0.9266666666666666,"localShare":0.95,"localAccuracy":0.9438596491228071,"costPer1k":0.000913},{"threshold":0.42,"accuracy":0.93,"localShare":0.9466666666666667,"localAccuracy":0.9471830985915493,"costPer1k":0.000974},{"threshold":0.43,"accuracy":0.9333333333333333,"localShare":0.9433333333333334,"localAccuracy":0.950530035335689,"costPer1k":0.001035},{"threshold":0.437,"accuracy":0.9366666666666666,"localShare":0.94,"localAccuracy":0.9539007092198581,"costPer1k":0.001095},{"threshold":0.44,"accuracy":0.9366666666666666,"localShare":0.9366666666666666,"localAccuracy":0.9537366548042705,"costPer1k":0.001157},{"threshold":0.45,"accuracy":0.94,"localShare":0.9333333333333333,"localAccuracy":0.9571428571428572,"costPer1k":0.001217},{"threshold":0.47,"accuracy":0.94,"localShare":0.93,"localAccuracy":0.956989247311828,"costPer1k":0.001278},{"threshold":0.474,"accuracy":0.9433333333333334,"localShare":0.9266666666666666,"localAccuracy":0.960431654676259,"costPer1k":0.001339},{"threshold":0.476,"accuracy":0.9433333333333334,"localShare":0.9233333333333333,"localAccuracy":0.9602888086642599,"costPer1k":0.001399},{"threshold":0.48,"accuracy":0.9433333333333334,"localShare":0.92,"localAccuracy":0.9601449275362319,"costPer1k":0.00146},{"threshold":0.487,"accuracy":0.9433333333333334,"localShare":0.9166666666666666,"localAccuracy":0.96,"costPer1k":0.001521},{"threshold":0.49,"accuracy":0.9433333333333334,"localShare":0.9133333333333333,"localAccuracy":0.9598540145985401,"costPer1k":0.001583},{"threshold":0.5,"accuracy":0.9433333333333334,"localShare":0.91,"localAccuracy":0.9597069597069597,"costPer1k":0.001644},{"threshold":0.51,"accuracy":0.9433333333333334,"localShare":0.9066666666666666,"localAccuracy":0.9595588235294118,"costPer1k":0.001704},{"threshold":0.52,"accuracy":0.9433333333333334,"localShare":0.9033333333333333,"localAccuracy":0.959409594095941,"costPer1k":0.001766},{"threshold":0.521,"accuracy":0.9433333333333334,"localShare":0.9,"localAccuracy":0.9592592592592593,"costPer1k":0.001827},{"threshold":0.5243,"accuracy":0.9433333333333334,"localShare":0.8966666666666666,"localAccuracy":0.9628252788104089,"costPer1k":0.001887},{"threshold":0.525,"accuracy":0.9466666666666667,"localShare":0.8933333333333333,"localAccuracy":0.9664179104477612,"costPer1k":0.001948},{"threshold":0.53,"accuracy":0.9466666666666667,"localShare":0.89,"localAccuracy":0.9662921348314607,"costPer1k":0.002009},{"threshold":0.534,"accuracy":0.9433333333333334,"localShare":0.8866666666666667,"localAccuracy":0.9661654135338346,"costPer1k":0.00207},{"threshold":0.54,"accuracy":0.9433333333333334,"localShare":0.8833333333333333,"localAccuracy":0.9660377358490566,"costPer1k":0.00213},{"threshold":0.544,"accuracy":0.9433333333333334,"localShare":0.88,"localAccuracy":0.9659090909090909,"costPer1k":0.002191},{"threshold":0.55,"accuracy":0.9466666666666667,"localShare":0.8766666666666667,"localAccuracy":0.9695817490494296,"costPer1k":0.002252},{"threshold":0.555,"accuracy":0.9466666666666667,"localShare":0.8733333333333333,"localAccuracy":0.9694656488549618,"costPer1k":0.002313},{"threshold":0.56,"accuracy":0.95,"localShare":0.87,"localAccuracy":0.9731800766283525,"costPer1k":0.002375},{"threshold":0.592,"accuracy":0.95,"localShare":0.8666666666666667,"localAccuracy":0.9730769230769231,"costPer1k":0.002435},{"threshold":0.6,"accuracy":0.95,"localShare":0.8633333333333333,"localAccuracy":0.972972972972973,"costPer1k":0.002496},{"threshold":0.602,"accuracy":0.95,"localShare":0.86,"localAccuracy":0.9728682170542635,"costPer1k":0.002558},{"threshold":0.607,"accuracy":0.9466666666666667,"localShare":0.8566666666666667,"localAccuracy":0.9727626459143969,"costPer1k":0.002619},{"threshold":0.61,"accuracy":0.9466666666666667,"localShare":0.8533333333333334,"localAccuracy":0.97265625,"costPer1k":0.002679},{"threshold":0.616,"accuracy":0.9466666666666667,"localShare":0.85,"localAccuracy":0.9725490196078431,"costPer1k":0.00274},{"threshold":0.62,"accuracy":0.9466666666666667,"localShare":0.8466666666666667,"localAccuracy":0.9724409448818898,"costPer1k":0.002801},{"threshold":0.6215,"accuracy":0.9466666666666667,"localShare":0.8433333333333334,"localAccuracy":0.9723320158102767,"costPer1k":0.002862},{"threshold":0.622,"accuracy":0.9466666666666667,"localShare":0.84,"localAccuracy":0.9722222222222222,"costPer1k":0.002923},{"threshold":0.6287,"accuracy":0.9466666666666667,"localShare":0.8366666666666667,"localAccuracy":0.9721115537848606,"costPer1k":0.002984},{"threshold":0.63,"accuracy":0.9466666666666667,"localShare":0.8333333333333334,"localAccuracy":0.972,"costPer1k":0.003045},{"threshold":0.632,"accuracy":0.95,"localShare":0.83,"localAccuracy":0.9759036144578314,"costPer1k":0.003105},{"threshold":0.64,"accuracy":0.9533333333333334,"localShare":0.8266666666666667,"localAccuracy":0.9798387096774194,"costPer1k":0.003167},{"threshold":0.6462,"accuracy":0.9533333333333334,"localShare":0.8233333333333334,"localAccuracy":0.979757085020243,"costPer1k":0.003227},{"threshold":0.65,"accuracy":0.9533333333333334,"localShare":0.82,"localAccuracy":0.9796747967479674,"costPer1k":0.003288},{"threshold":0.664,"accuracy":0.9533333333333334,"localShare":0.8166666666666667,"localAccuracy":0.9795918367346939,"costPer1k":0.003349},{"threshold":0.67,"accuracy":0.9533333333333334,"localShare":0.8133333333333334,"localAccuracy":0.9795081967213115,"costPer1k":0.00341},{"threshold":0.68,"accuracy":0.9533333333333334,"localShare":0.81,"localAccuracy":0.9794238683127572,"costPer1k":0.00347},{"threshold":0.69,"accuracy":0.9533333333333334,"localShare":0.8066666666666666,"localAccuracy":0.9793388429752066,"costPer1k":0.003532},{"threshold":0.7,"accuracy":0.9533333333333334,"localShare":0.8033333333333333,"localAccuracy":0.979253112033195,"costPer1k":0.003593},{"threshold":0.701,"accuracy":0.9533333333333334,"localShare":0.8,"localAccuracy":0.9833333333333333,"costPer1k":0.003654},{"threshold":0.7071,"accuracy":0.9533333333333334,"localShare":0.7966666666666666,"localAccuracy":0.9832635983263598,"costPer1k":0.003715},{"threshold":0.71,"accuracy":0.9533333333333334,"localShare":0.7933333333333333,"localAccuracy":0.9831932773109243,"costPer1k":0.003776},{"threshold":0.72,"accuracy":0.9533333333333334,"localShare":0.79,"localAccuracy":0.9831223628691983,"costPer1k":0.003837},{"threshold":0.722,"accuracy":0.9533333333333334,"localShare":0.7866666666666666,"localAccuracy":0.9830508474576272,"costPer1k":0.003899},{"threshold":0.727,"accuracy":0.9533333333333334,"localShare":0.7833333333333333,"localAccuracy":0.9829787234042553,"costPer1k":0.00396},{"threshold":0.73,"accuracy":0.9533333333333334,"localShare":0.78,"localAccuracy":0.9829059829059829,"costPer1k":0.004021},{"threshold":0.744,"accuracy":0.9533333333333334,"localShare":0.7766666666666666,"localAccuracy":0.9828326180257511,"costPer1k":0.004082},{"threshold":0.745,"accuracy":0.9533333333333334,"localShare":0.7733333333333333,"localAccuracy":0.9827586206896551,"costPer1k":0.004144},{"threshold":0.75,"accuracy":0.9533333333333334,"localShare":0.77,"localAccuracy":0.9826839826839827,"costPer1k":0.004204},{"threshold":0.8,"accuracy":0.9533333333333334,"localShare":0.7666666666666667,"localAccuracy":0.9826086956521739,"costPer1k":0.004264},{"threshold":0.802,"accuracy":0.95,"localShare":0.7633333333333333,"localAccuracy":0.982532751091703,"costPer1k":0.004325},{"threshold":0.805,"accuracy":0.95,"localShare":0.76,"localAccuracy":0.9824561403508771,"costPer1k":0.004386},{"threshold":0.81,"accuracy":0.95,"localShare":0.7566666666666667,"localAccuracy":0.9823788546255506,"costPer1k":0.004447},{"threshold":0.8201,"accuracy":0.95,"localShare":0.7533333333333333,"localAccuracy":0.9823008849557522,"costPer1k":0.004507},{"threshold":0.821,"accuracy":0.9533333333333334,"localShare":0.75,"localAccuracy":0.9866666666666667,"costPer1k":0.004567},{"threshold":0.829,"accuracy":0.9533333333333334,"localShare":0.7466666666666667,"localAccuracy":0.9866071428571429,"costPer1k":0.004628},{"threshold":0.8294,"accuracy":0.9533333333333334,"localShare":0.7433333333333333,"localAccuracy":0.9865470852017937,"costPer1k":0.00469},{"threshold":0.83,"accuracy":0.9533333333333334,"localShare":0.74,"localAccuracy":0.9864864864864865,"costPer1k":0.004751},{"threshold":0.84,"accuracy":0.95,"localShare":0.7366666666666667,"localAccuracy":0.9864253393665159,"costPer1k":0.004812},{"threshold":0.847,"accuracy":0.95,"localShare":0.7333333333333333,"localAccuracy":0.9863636363636363,"costPer1k":0.004873},{"threshold":0.85,"accuracy":0.95,"localShare":0.73,"localAccuracy":0.9863013698630136,"costPer1k":0.004933},{"threshold":0.851,"accuracy":0.95,"localShare":0.7266666666666667,"localAccuracy":0.9862385321100917,"costPer1k":0.004994},{"threshold":0.8567,"accuracy":0.95,"localShare":0.7233333333333334,"localAccuracy":0.9861751152073732,"costPer1k":0.005055},{"threshold":0.857,"accuracy":0.95,"localShare":0.72,"localAccuracy":0.9861111111111112,"costPer1k":0.005115},{"threshold":0.858,"accuracy":0.95,"localShare":0.7166666666666667,"localAccuracy":0.986046511627907,"costPer1k":0.005176},{"threshold":0.86,"accuracy":0.95,"localShare":0.7133333333333334,"localAccuracy":0.985981308411215,"costPer1k":0.005236},{"threshold":0.86292,"accuracy":0.95,"localShare":0.71,"localAccuracy":0.9859154929577465,"costPer1k":0.005297},{"threshold":0.863,"accuracy":0.95,"localShare":0.7066666666666667,"localAccuracy":0.9858490566037735,"costPer1k":0.005358},{"threshold":0.87,"accuracy":0.95,"localShare":0.7033333333333334,"localAccuracy":0.985781990521327,"costPer1k":0.00542},{"threshold":0.872,"accuracy":0.95,"localShare":0.7,"localAccuracy":0.9857142857142858,"costPer1k":0.005481},{"threshold":0.873,"accuracy":0.95,"localShare":0.6966666666666667,"localAccuracy":0.9856459330143541,"costPer1k":0.005541},{"threshold":0.88,"accuracy":0.95,"localShare":0.6933333333333334,"localAccuracy":0.9855769230769231,"costPer1k":0.005602},{"threshold":0.884,"accuracy":0.95,"localShare":0.69,"localAccuracy":0.9855072463768116,"costPer1k":0.005662},{"threshold":0.89,"accuracy":0.95,"localShare":0.6866666666666666,"localAccuracy":0.9854368932038835,"costPer1k":0.005723},{"threshold":0.893,"accuracy":0.95,"localShare":0.6833333333333333,"localAccuracy":0.9853658536585366,"costPer1k":0.005784},{"threshold":0.9,"accuracy":0.95,"localShare":0.68,"localAccuracy":0.9852941176470589,"costPer1k":0.005844},{"threshold":0.902,"accuracy":0.95,"localShare":0.6766666666666666,"localAccuracy":0.9852216748768473,"costPer1k":0.005905},{"threshold":0.906,"accuracy":0.95,"localShare":0.6733333333333333,"localAccuracy":0.9851485148514851,"costPer1k":0.005966},{"threshold":0.91,"accuracy":0.95,"localShare":0.67,"localAccuracy":0.9850746268656716,"costPer1k":0.006027},{"threshold":0.911,"accuracy":0.95,"localShare":0.6666666666666666,"localAccuracy":0.985,"costPer1k":0.006088},{"threshold":0.915,"accuracy":0.95,"localShare":0.6633333333333333,"localAccuracy":0.9849246231155779,"costPer1k":0.006149},{"threshold":0.916,"accuracy":0.95,"localShare":0.66,"localAccuracy":0.9848484848484849,"costPer1k":0.00621},{"threshold":0.917,"accuracy":0.95,"localShare":0.6566666666666666,"localAccuracy":0.9847715736040609,"costPer1k":0.00627},{"threshold":0.9173,"accuracy":0.95,"localShare":0.6533333333333333,"localAccuracy":0.9846938775510204,"costPer1k":0.006331},{"threshold":0.918,"accuracy":0.95,"localShare":0.65,"localAccuracy":0.9846153846153847,"costPer1k":0.006392},{"threshold":0.92,"accuracy":0.95,"localShare":0.6466666666666666,"localAccuracy":0.9845360824742269,"costPer1k":0.006452},{"threshold":0.921,"accuracy":0.95,"localShare":0.6433333333333333,"localAccuracy":0.9844559585492227,"costPer1k":0.006512},{"threshold":0.93,"accuracy":0.95,"localShare":0.64,"localAccuracy":0.984375,"costPer1k":0.006574},{"threshold":0.934,"accuracy":0.95,"localShare":0.6366666666666667,"localAccuracy":0.9842931937172775,"costPer1k":0.006634},{"threshold":0.94,"accuracy":0.95,"localShare":0.6333333333333333,"localAccuracy":0.9842105263157894,"costPer1k":0.006695},{"threshold":0.9403,"accuracy":0.95,"localShare":0.63,"localAccuracy":0.9841269841269841,"costPer1k":0.006756},{"threshold":0.941,"accuracy":0.95,"localShare":0.6266666666666667,"localAccuracy":0.9840425531914894,"costPer1k":0.006817},{"threshold":0.943,"accuracy":0.95,"localShare":0.6233333333333333,"localAccuracy":0.983957219251337,"costPer1k":0.006878},{"threshold":0.9445,"accuracy":0.95,"localShare":0.62,"localAccuracy":0.9838709677419355,"costPer1k":0.006939},{"threshold":0.945,"accuracy":0.95,"localShare":0.6166666666666667,"localAccuracy":0.9837837837837838,"costPer1k":0.007},{"threshold":0.947,"accuracy":0.95,"localShare":0.6133333333333333,"localAccuracy":0.9836956521739131,"costPer1k":0.00706},{"threshold":0.95,"accuracy":0.95,"localShare":0.61,"localAccuracy":0.9836065573770492,"costPer1k":0.00712},{"threshold":0.952,"accuracy":0.9533333333333334,"localShare":0.6066666666666667,"localAccuracy":0.989010989010989,"costPer1k":0.007181},{"threshold":0.9524,"accuracy":0.9533333333333334,"localShare":0.6033333333333334,"localAccuracy":0.988950276243094,"costPer1k":0.007242},{"threshold":0.9525,"accuracy":0.9533333333333334,"localShare":0.6,"localAccuracy":0.9888888888888889,"costPer1k":0.007303},{"threshold":0.953,"accuracy":0.9533333333333334,"localShare":0.5966666666666667,"localAccuracy":0.9888268156424581,"costPer1k":0.007363},{"threshold":0.954,"accuracy":0.9533333333333334,"localShare":0.5933333333333334,"localAccuracy":0.9887640449438202,"costPer1k":0.007423},{"threshold":0.955,"accuracy":0.9533333333333334,"localShare":0.59,"localAccuracy":0.9887005649717514,"costPer1k":0.007485},{"threshold":0.9565,"accuracy":0.9533333333333334,"localShare":0.5866666666666667,"localAccuracy":0.9886363636363636,"costPer1k":0.007546},{"threshold":0.957,"accuracy":0.9533333333333334,"localShare":0.5833333333333334,"localAccuracy":0.9885714285714285,"costPer1k":0.007607},{"threshold":0.9587,"accuracy":0.9533333333333334,"localShare":0.58,"localAccuracy":0.9885057471264368,"costPer1k":0.007668},{"threshold":0.96,"accuracy":0.9533333333333334,"localShare":0.5766666666666667,"localAccuracy":0.9884393063583815,"costPer1k":0.00773},{"threshold":0.96081,"accuracy":0.9533333333333334,"localShare":0.5733333333333334,"localAccuracy":0.9883720930232558,"costPer1k":0.007791},{"threshold":0.961,"accuracy":0.9533333333333334,"localShare":0.57,"localAccuracy":0.9883040935672515,"costPer1k":0.007851},{"threshold":0.966,"accuracy":0.9533333333333334,"localShare":0.5666666666666667,"localAccuracy":0.9882352941176471,"costPer1k":0.007913},{"threshold":0.968,"accuracy":0.9533333333333334,"localShare":0.5633333333333334,"localAccuracy":0.9881656804733728,"costPer1k":0.007974},{"threshold":0.969,"accuracy":0.9533333333333334,"localShare":0.56,"localAccuracy":0.9880952380952381,"costPer1k":0.008034},{"threshold":0.9694,"accuracy":0.9533333333333334,"localShare":0.5566666666666666,"localAccuracy":0.9880239520958084,"costPer1k":0.008096},{"threshold":0.97,"accuracy":0.9533333333333334,"localShare":0.5533333333333333,"localAccuracy":0.9879518072289156,"costPer1k":0.008157},{"threshold":0.9702,"accuracy":0.9533333333333334,"localShare":0.55,"localAccuracy":0.9878787878787879,"costPer1k":0.008218},{"threshold":0.9706,"accuracy":0.9533333333333334,"localShare":0.5466666666666666,"localAccuracy":0.9878048780487805,"costPer1k":0.008279},{"threshold":0.971,"accuracy":0.9533333333333334,"localShare":0.5433333333333333,"localAccuracy":0.9877300613496932,"costPer1k":0.00834},{"threshold":0.9711,"accuracy":0.9533333333333334,"localShare":0.54,"localAccuracy":0.9876543209876543,"costPer1k":0.0084},{"threshold":0.972,"accuracy":0.9533333333333334,"localShare":0.5366666666666666,"localAccuracy":0.9875776397515528,"costPer1k":0.008462},{"threshold":0.974,"accuracy":0.9533333333333334,"localShare":0.5333333333333333,"localAccuracy":0.9875,"costPer1k":0.008522},{"threshold":0.975,"accuracy":0.9533333333333334,"localShare":0.53,"localAccuracy":0.9874213836477987,"costPer1k":0.008584},{"threshold":0.97513,"accuracy":0.9533333333333334,"localShare":0.5266666666666666,"localAccuracy":0.9873417721518988,"costPer1k":0.008645},{"threshold":0.9752,"accuracy":0.9533333333333334,"localShare":0.5233333333333333,"localAccuracy":0.9872611464968153,"costPer1k":0.008705},{"threshold":0.9753,"accuracy":0.9533333333333334,"localShare":0.52,"localAccuracy":0.9871794871794872,"costPer1k":0.008766},{"threshold":0.97581,"accuracy":0.9533333333333334,"localShare":0.5166666666666667,"localAccuracy":0.9870967741935484,"costPer1k":0.008827},{"threshold":0.9759,"accuracy":0.9533333333333334,"localShare":0.5133333333333333,"localAccuracy":0.987012987012987,"costPer1k":0.008888},{"threshold":0.976,"accuracy":0.9533333333333334,"localShare":0.51,"localAccuracy":0.9869281045751634,"costPer1k":0.008949},{"threshold":0.977,"accuracy":0.9533333333333334,"localShare":0.5066666666666667,"localAccuracy":0.9868421052631579,"costPer1k":0.00901},{"threshold":0.9772,"accuracy":0.9533333333333334,"localShare":0.5033333333333333,"localAccuracy":0.9867549668874173,"costPer1k":0.00907},{"threshold":0.9777,"accuracy":0.9533333333333334,"localShare":0.5,"localAccuracy":0.9866666666666667,"costPer1k":0.00913},{"threshold":0.978,"accuracy":0.9533333333333334,"localShare":0.49666666666666665,"localAccuracy":0.9865771812080537,"costPer1k":0.009192},{"threshold":0.979,"accuracy":0.9533333333333334,"localShare":0.49333333333333335,"localAccuracy":0.9864864864864865,"costPer1k":0.009253},{"threshold":0.97981,"accuracy":0.9533333333333334,"localShare":0.49,"localAccuracy":0.9863945578231292,"costPer1k":0.009315},{"threshold":0.98,"accuracy":0.9533333333333334,"localShare":0.4866666666666667,"localAccuracy":0.9863013698630136,"costPer1k":0.009376},{"threshold":0.98167,"accuracy":0.9533333333333334,"localShare":0.48333333333333334,"localAccuracy":0.9862068965517241,"costPer1k":0.009436},{"threshold":0.982,"accuracy":0.9533333333333334,"localShare":0.48,"localAccuracy":0.9861111111111112,"costPer1k":0.009497},{"threshold":0.983,"accuracy":0.9533333333333334,"localShare":0.4766666666666667,"localAccuracy":0.986013986013986,"costPer1k":0.009557},{"threshold":0.9832,"accuracy":0.9533333333333334,"localShare":0.47333333333333333,"localAccuracy":0.9859154929577465,"costPer1k":0.009618},{"threshold":0.984,"accuracy":0.9566666666666667,"localShare":0.47,"localAccuracy":0.9929078014184397,"costPer1k":0.009679},{"threshold":0.9842,"accuracy":0.9566666666666667,"localShare":0.4666666666666667,"localAccuracy":0.9928571428571429,"costPer1k":0.00974},{"threshold":0.985,"accuracy":0.9566666666666667,"localShare":0.4633333333333333,"localAccuracy":0.9928057553956835,"costPer1k":0.009801},{"threshold":0.9858,"accuracy":0.9566666666666667,"localShare":0.46,"localAccuracy":0.9927536231884058,"costPer1k":0.009862},{"threshold":0.986,"accuracy":0.9566666666666667,"localShare":0.45666666666666667,"localAccuracy":0.9927007299270073,"costPer1k":0.009923},{"threshold":0.9863,"accuracy":0.9566666666666667,"localShare":0.4533333333333333,"localAccuracy":0.9926470588235294,"costPer1k":0.009984},{"threshold":0.987,"accuracy":0.9566666666666667,"localShare":0.45,"localAccuracy":0.9925925925925926,"costPer1k":0.010045},{"threshold":0.9871,"accuracy":0.9566666666666667,"localShare":0.44666666666666666,"localAccuracy":0.9925373134328358,"costPer1k":0.010106},{"threshold":0.9878,"accuracy":0.9566666666666667,"localShare":0.44333333333333336,"localAccuracy":0.9924812030075187,"costPer1k":0.010167},{"threshold":0.988,"accuracy":0.9566666666666667,"localShare":0.44,"localAccuracy":0.9924242424242424,"costPer1k":0.010228},{"threshold":0.9884,"accuracy":0.9566666666666667,"localShare":0.43666666666666665,"localAccuracy":0.9923664122137404,"costPer1k":0.010289},{"threshold":0.989,"accuracy":0.9566666666666667,"localShare":0.43333333333333335,"localAccuracy":0.9923076923076923,"costPer1k":0.01035},{"threshold":0.9891,"accuracy":0.9566666666666667,"localShare":0.43,"localAccuracy":0.9922480620155039,"costPer1k":0.010411},{"threshold":0.9898,"accuracy":0.9566666666666667,"localShare":0.4266666666666667,"localAccuracy":0.9921875,"costPer1k":0.010472},{"threshold":0.99,"accuracy":0.9566666666666667,"localShare":0.42333333333333334,"localAccuracy":0.9921259842519685,"costPer1k":0.010532},{"threshold":0.9901,"accuracy":0.9566666666666667,"localShare":0.42,"localAccuracy":0.9920634920634921,"costPer1k":0.010594},{"threshold":0.9906,"accuracy":0.9566666666666667,"localShare":0.4166666666666667,"localAccuracy":0.992,"costPer1k":0.010655},{"threshold":0.99069,"accuracy":0.9566666666666667,"localShare":0.41333333333333333,"localAccuracy":0.9919354838709677,"costPer1k":0.010716},{"threshold":0.9907,"accuracy":0.9566666666666667,"localShare":0.41,"localAccuracy":0.991869918699187,"costPer1k":0.010778},{"threshold":0.991,"accuracy":0.9566666666666667,"localShare":0.4066666666666667,"localAccuracy":0.9918032786885246,"costPer1k":0.010839},{"threshold":0.992,"accuracy":0.9566666666666667,"localShare":0.4033333333333333,"localAccuracy":0.9917355371900827,"costPer1k":0.010899},{"threshold":0.9922,"accuracy":0.9566666666666667,"localShare":0.4,"localAccuracy":0.9916666666666667,"costPer1k":0.01096},{"threshold":0.993,"accuracy":0.9566666666666667,"localShare":0.39666666666666667,"localAccuracy":0.9915966386554622,"costPer1k":0.011021},{"threshold":0.9935,"accuracy":0.9566666666666667,"localShare":0.3933333333333333,"localAccuracy":0.9915254237288136,"costPer1k":0.011082},{"threshold":0.9937,"accuracy":0.9566666666666667,"localShare":0.39,"localAccuracy":0.9914529914529915,"costPer1k":0.011143},{"threshold":0.994,"accuracy":0.9566666666666667,"localShare":0.38666666666666666,"localAccuracy":0.9913793103448276,"costPer1k":0.011204},{"threshold":0.994021,"accuracy":0.9566666666666667,"localShare":0.38333333333333336,"localAccuracy":0.991304347826087,"costPer1k":0.011265},{"threshold":0.9941,"accuracy":0.9566666666666667,"localShare":0.38,"localAccuracy":0.9912280701754386,"costPer1k":0.011326},{"threshold":0.995,"accuracy":0.9566666666666667,"localShare":0.37666666666666665,"localAccuracy":0.9911504424778761,"costPer1k":0.011387},{"threshold":0.9961,"accuracy":0.9566666666666667,"localShare":0.37333333333333335,"localAccuracy":0.9910714285714286,"costPer1k":0.011448},{"threshold":0.9968,"accuracy":0.9566666666666667,"localShare":0.37,"localAccuracy":0.990990990990991,"costPer1k":0.011509},{"threshold":0.997,"accuracy":0.9566666666666667,"localShare":0.36666666666666664,"localAccuracy":0.990909090909091,"costPer1k":0.01157},{"threshold":0.9974,"accuracy":0.9566666666666667,"localShare":0.36333333333333334,"localAccuracy":1,"costPer1k":0.01163},{"threshold":0.998,"accuracy":0.9566666666666667,"localShare":0.36,"localAccuracy":1,"costPer1k":0.011692},{"threshold":0.9982,"accuracy":0.9566666666666667,"localShare":0.3566666666666667,"localAccuracy":1,"costPer1k":0.011753},{"threshold":0.9983,"accuracy":0.9566666666666667,"localShare":0.35333333333333333,"localAccuracy":1,"costPer1k":0.011814},{"threshold":0.9984,"accuracy":0.9566666666666667,"localShare":0.35,"localAccuracy":1,"costPer1k":0.011876},{"threshold":0.9985,"accuracy":0.9566666666666667,"localShare":0.3466666666666667,"localAccuracy":1,"costPer1k":0.011937},{"threshold":0.99852,"accuracy":0.9566666666666667,"localShare":0.3433333333333333,"localAccuracy":1,"costPer1k":0.011998},{"threshold":0.9986,"accuracy":0.9566666666666667,"localShare":0.34,"localAccuracy":1,"costPer1k":0.012058},{"threshold":0.999,"accuracy":0.9566666666666667,"localShare":0.33666666666666667,"localAccuracy":1,"costPer1k":0.012119},{"threshold":0.9991,"accuracy":0.9566666666666667,"localShare":0.3333333333333333,"localAccuracy":1,"costPer1k":0.01218},{"threshold":0.9992,"accuracy":0.9566666666666667,"localShare":0.33,"localAccuracy":1,"costPer1k":0.012241},{"threshold":0.99924,"accuracy":0.9566666666666667,"localShare":0.32666666666666666,"localAccuracy":1,"costPer1k":0.012302},{"threshold":0.99925,"accuracy":0.9566666666666667,"localShare":0.3233333333333333,"localAccuracy":1,"costPer1k":0.012364},{"threshold":0.9993,"accuracy":0.9566666666666667,"localShare":0.32,"localAccuracy":1,"costPer1k":0.012425},{"threshold":0.99943,"accuracy":0.9566666666666667,"localShare":0.31666666666666665,"localAccuracy":1,"costPer1k":0.012486},{"threshold":0.99944,"accuracy":0.9566666666666667,"localShare":0.31333333333333335,"localAccuracy":1,"costPer1k":0.012547},{"threshold":0.99946,"accuracy":0.9566666666666667,"localShare":0.31,"localAccuracy":1,"costPer1k":0.012607},{"threshold":0.9995,"accuracy":0.9566666666666667,"localShare":0.30666666666666664,"localAccuracy":1,"costPer1k":0.012669},{"threshold":0.9996,"accuracy":0.9566666666666667,"localShare":0.30333333333333334,"localAccuracy":1,"costPer1k":0.01273},{"threshold":0.9997,"accuracy":0.9566666666666667,"localShare":0.3,"localAccuracy":1,"costPer1k":0.012791},{"threshold":0.999754,"accuracy":0.9566666666666667,"localShare":0.2966666666666667,"localAccuracy":1,"costPer1k":0.012852},{"threshold":0.99976,"accuracy":0.9566666666666667,"localShare":0.29333333333333333,"localAccuracy":1,"costPer1k":0.012913},{"threshold":0.9998,"accuracy":0.9566666666666667,"localShare":0.29,"localAccuracy":1,"costPer1k":0.012974},{"threshold":0.99981,"accuracy":0.9566666666666667,"localShare":0.2866666666666667,"localAccuracy":1,"costPer1k":0.013034},{"threshold":0.99984,"accuracy":0.9566666666666667,"localShare":0.2833333333333333,"localAccuracy":1,"costPer1k":0.013095},{"threshold":0.99986,"accuracy":0.9566666666666667,"localShare":0.28,"localAccuracy":1,"costPer1k":0.013155},{"threshold":0.9999,"accuracy":0.9566666666666667,"localShare":0.27666666666666667,"localAccuracy":1,"costPer1k":0.013217},{"threshold":0.99993,"accuracy":0.9566666666666667,"localShare":0.2733333333333333,"localAccuracy":1,"costPer1k":0.013277},{"threshold":0.99994,"accuracy":0.9566666666666667,"localShare":0.27,"localAccuracy":1,"costPer1k":0.013338},{"threshold":0.99996,"accuracy":0.9566666666666667,"localShare":0.26666666666666666,"localAccuracy":1,"costPer1k":0.013398},{"threshold":0.9999677,"accuracy":0.9566666666666667,"localShare":0.2633333333333333,"localAccuracy":1,"costPer1k":0.013459},{"threshold":0.999968,"accuracy":0.9566666666666667,"localShare":0.26,"localAccuracy":1,"costPer1k":0.013521},{"threshold":0.999969,"accuracy":0.9566666666666667,"localShare":0.25666666666666665,"localAccuracy":1,"costPer1k":0.013582},{"threshold":0.99997,"accuracy":0.9566666666666667,"localShare":0.25333333333333335,"localAccuracy":1,"costPer1k":0.013644},{"threshold":0.9999756,"accuracy":0.9566666666666667,"localShare":0.25,"localAccuracy":1,"costPer1k":0.013705},{"threshold":0.999976,"accuracy":0.9566666666666667,"localShare":0.24666666666666667,"localAccuracy":1,"costPer1k":0.013766},{"threshold":0.999977,"accuracy":0.9566666666666667,"localShare":0.24333333333333335,"localAccuracy":1,"costPer1k":0.013827},{"threshold":0.99998,"accuracy":0.9566666666666667,"localShare":0.24,"localAccuracy":1,"costPer1k":0.013888},{"threshold":0.999981,"accuracy":0.9566666666666667,"localShare":0.23666666666666666,"localAccuracy":1,"costPer1k":0.013948},{"threshold":0.999983,"accuracy":0.9566666666666667,"localShare":0.23333333333333334,"localAccuracy":1,"costPer1k":0.01401},{"threshold":0.99998344,"accuracy":0.9566666666666667,"localShare":0.23,"localAccuracy":1,"costPer1k":0.01407},{"threshold":0.9999835,"accuracy":0.9566666666666667,"localShare":0.22666666666666666,"localAccuracy":1,"costPer1k":0.014132},{"threshold":0.999984,"accuracy":0.9566666666666667,"localShare":0.22333333333333333,"localAccuracy":1,"costPer1k":0.014193},{"threshold":0.9999841,"accuracy":0.9566666666666667,"localShare":0.22,"localAccuracy":1,"costPer1k":0.014255},{"threshold":0.999985,"accuracy":0.9566666666666667,"localShare":0.21666666666666667,"localAccuracy":1,"costPer1k":0.014316},{"threshold":0.999986,"accuracy":0.9566666666666667,"localShare":0.21333333333333335,"localAccuracy":1,"costPer1k":0.014376},{"threshold":0.999987,"accuracy":0.9566666666666667,"localShare":0.21,"localAccuracy":1,"costPer1k":0.014437},{"threshold":0.99999,"accuracy":0.9533333333333334,"localShare":0.20666666666666667,"localAccuracy":1,"costPer1k":0.014499},{"threshold":0.999993,"accuracy":0.9533333333333334,"localShare":0.20333333333333334,"localAccuracy":1,"costPer1k":0.014559},{"threshold":0.9999936,"accuracy":0.9533333333333334,"localShare":0.2,"localAccuracy":1,"costPer1k":0.01462},{"threshold":0.999994,"accuracy":0.9533333333333334,"localShare":0.19666666666666666,"localAccuracy":1,"costPer1k":0.014681},{"threshold":0.999995,"accuracy":0.9533333333333334,"localShare":0.19333333333333333,"localAccuracy":1,"costPer1k":0.014742},{"threshold":0.999997,"accuracy":0.9533333333333334,"localShare":0.19,"localAccuracy":1,"costPer1k":0.014803},{"threshold":0.9999974,"accuracy":0.9533333333333334,"localShare":0.18666666666666668,"localAccuracy":1,"costPer1k":0.014864},{"threshold":0.999998,"accuracy":0.9533333333333334,"localShare":0.18333333333333332,"localAccuracy":1,"costPer1k":0.014926},{"threshold":0.99999821,"accuracy":0.9533333333333334,"localShare":0.18,"localAccuracy":1,"costPer1k":0.014987},{"threshold":0.9999983,"accuracy":0.9533333333333334,"localShare":0.17666666666666667,"localAccuracy":1,"costPer1k":0.015049},{"threshold":0.99999854,"accuracy":0.9533333333333334,"localShare":0.17333333333333334,"localAccuracy":1,"costPer1k":0.01511},{"threshold":0.9999986,"accuracy":0.9533333333333334,"localShare":0.17,"localAccuracy":1,"costPer1k":0.015171},{"threshold":0.9999987,"accuracy":0.9533333333333334,"localShare":0.16666666666666666,"localAccuracy":1,"costPer1k":0.015232},{"threshold":0.99999885,"accuracy":0.9533333333333334,"localShare":0.16333333333333333,"localAccuracy":1,"costPer1k":0.015294},{"threshold":0.9999989,"accuracy":0.9533333333333334,"localShare":0.16,"localAccuracy":1,"costPer1k":0.015355},{"threshold":0.99999894,"accuracy":0.9533333333333334,"localShare":0.15666666666666668,"localAccuracy":1,"costPer1k":0.015417},{"threshold":0.99999898,"accuracy":0.9533333333333334,"localShare":0.15333333333333332,"localAccuracy":1,"costPer1k":0.015478},{"threshold":0.999998993,"accuracy":0.9533333333333334,"localShare":0.15,"localAccuracy":1,"costPer1k":0.01554},{"threshold":0.999999,"accuracy":0.9533333333333334,"localShare":0.14666666666666667,"localAccuracy":1,"costPer1k":0.0156},{"threshold":0.9999991,"accuracy":0.9533333333333334,"localShare":0.14333333333333334,"localAccuracy":1,"costPer1k":0.015662},{"threshold":0.99999912,"accuracy":0.9533333333333334,"localShare":0.14,"localAccuracy":1,"costPer1k":0.015724},{"threshold":0.99999916,"accuracy":0.9533333333333334,"localShare":0.13666666666666666,"localAccuracy":1,"costPer1k":0.015785},{"threshold":0.99999918,"accuracy":0.9533333333333334,"localShare":0.13333333333333333,"localAccuracy":1,"costPer1k":0.015847},{"threshold":0.999999184,"accuracy":0.9533333333333334,"localShare":0.13,"localAccuracy":1,"costPer1k":0.015909},{"threshold":0.9999992,"accuracy":0.9533333333333334,"localShare":0.12666666666666668,"localAccuracy":1,"costPer1k":0.01597},{"threshold":0.99999924,"accuracy":0.95,"localShare":0.12333333333333334,"localAccuracy":1,"costPer1k":0.016032},{"threshold":0.99999925,"accuracy":0.95,"localShare":0.12,"localAccuracy":1,"costPer1k":0.016092},{"threshold":0.99999926,"accuracy":0.95,"localShare":0.11666666666666667,"localAccuracy":1,"costPer1k":0.016155},{"threshold":0.999999272,"accuracy":0.95,"localShare":0.11333333333333333,"localAccuracy":1,"costPer1k":0.016216},{"threshold":0.99999928,"accuracy":0.9466666666666667,"localShare":0.11,"localAccuracy":1,"costPer1k":0.016278},{"threshold":0.9999993,"accuracy":0.9466666666666667,"localShare":0.10666666666666667,"localAccuracy":1,"costPer1k":0.016339},{"threshold":0.99999932,"accuracy":0.9466666666666667,"localShare":0.10333333333333333,"localAccuracy":1,"costPer1k":0.0164},{"threshold":0.999999326,"accuracy":0.9466666666666667,"localShare":0.1,"localAccuracy":1,"costPer1k":0.016461},{"threshold":0.999999327,"accuracy":0.9433333333333334,"localShare":0.09666666666666666,"localAccuracy":1,"costPer1k":0.016523},{"threshold":0.99999933,"accuracy":0.9433333333333334,"localShare":0.09333333333333334,"localAccuracy":1,"costPer1k":0.016584},{"threshold":0.999999356,"accuracy":0.9433333333333334,"localShare":0.09,"localAccuracy":1,"costPer1k":0.016645},{"threshold":0.999999357,"accuracy":0.94,"localShare":0.08666666666666667,"localAccuracy":1,"costPer1k":0.016707},{"threshold":0.99999936,"accuracy":0.94,"localShare":0.08333333333333333,"localAccuracy":1,"costPer1k":0.016769},{"threshold":0.99999937,"accuracy":0.94,"localShare":0.08,"localAccuracy":1,"costPer1k":0.016829},{"threshold":0.99999938,"accuracy":0.9366666666666666,"localShare":0.07666666666666666,"localAccuracy":1,"costPer1k":0.016891},{"threshold":0.9999994,"accuracy":0.9366666666666666,"localShare":0.07333333333333333,"localAccuracy":1,"costPer1k":0.016952},{"threshold":0.999999401,"accuracy":0.9366666666666666,"localShare":0.07,"localAccuracy":1,"costPer1k":0.017013},{"threshold":0.999999403,"accuracy":0.9333333333333333,"localShare":0.06666666666666667,"localAccuracy":1,"costPer1k":0.017075},{"threshold":0.99999941,"accuracy":0.93,"localShare":0.06333333333333334,"localAccuracy":1,"costPer1k":0.017136},{"threshold":0.99999942,"accuracy":0.93,"localShare":0.06,"localAccuracy":1,"costPer1k":0.017197},{"threshold":0.99999943,"accuracy":0.93,"localShare":0.056666666666666664,"localAccuracy":1,"costPer1k":0.017259},{"threshold":0.99999944,"accuracy":0.93,"localShare":0.05333333333333334,"localAccuracy":1,"costPer1k":0.01732},{"threshold":0.999999443,"accuracy":0.93,"localShare":0.05,"localAccuracy":1,"costPer1k":0.017381},{"threshold":0.99999945,"accuracy":0.93,"localShare":0.04666666666666667,"localAccuracy":1,"costPer1k":0.017443},{"threshold":0.99999947,"accuracy":0.93,"localShare":0.043333333333333335,"localAccuracy":1,"costPer1k":0.017504},{"threshold":0.999999472,"accuracy":0.93,"localShare":0.04,"localAccuracy":1,"costPer1k":0.017565},{"threshold":0.99999948,"accuracy":0.93,"localShare":0.03666666666666667,"localAccuracy":1,"costPer1k":0.017626},{"threshold":0.9999994822,"accuracy":0.93,"localShare":0.03333333333333333,"localAccuracy":1,"costPer1k":0.017687},{"threshold":0.99999949,"accuracy":0.93,"localShare":0.03,"localAccuracy":1,"costPer1k":0.017748},{"threshold":0.999999491,"accuracy":0.93,"localShare":0.02666666666666667,"localAccuracy":1,"costPer1k":0.017809},{"threshold":0.9999995,"accuracy":0.93,"localShare":0.023333333333333334,"localAccuracy":1,"costPer1k":0.01787},{"threshold":0.999999509,"accuracy":0.93,"localShare":0.02,"localAccuracy":1,"costPer1k":0.017931},{"threshold":0.99999951,"accuracy":0.9266666666666666,"localShare":0.016666666666666666,"localAccuracy":1,"costPer1k":0.017993},{"threshold":0.99999952,"accuracy":0.9266666666666666,"localShare":0.013333333333333334,"localAccuracy":1,"costPer1k":0.018054},{"threshold":0.9999996,"accuracy":0.9233333333333333,"localShare":0.01,"localAccuracy":1,"costPer1k":0.018115},{"threshold":0.99999962,"accuracy":0.9233333333333333,"localShare":0.006666666666666667,"localAccuracy":1,"costPer1k":0.018176},{"threshold":0.999999632,"accuracy":0.9233333333333333,"localShare":0.0033333333333333335,"localAccuracy":1,"costPer1k":0.018236},{"threshold":1,"accuracy":0.9233333333333333,"localShare":0,"localAccuracy":null,"costPer1k":0.018298}],"histogram":{"edges":[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1],"correct":[0,0,2,8,7,10,16,10,25,201],"wrong":[0,0,1,2,7,4,2,1,1,3]},"confusion":{"labels":["account","billing","order","shipping","feedback"],"local":[[60,0,0,0,0],[2,58,0,0,0],[3,5,49,3,0],[4,0,0,56,0],[4,0,0,0,56]]},"perOption":[{"label":"account","count":60,"localAccuracy":1,"cloudAccuracy":1,"localShare":0.4166666666666667,"cascadeAccuracy":1,"threshold":0.984},{"label":"billing","count":60,"localAccuracy":0.9666666666666667,"cloudAccuracy":1,"localShare":0.6833333333333333,"cascadeAccuracy":1,"threshold":0.984},{"label":"order","count":60,"localAccuracy":0.8166666666666667,"cloudAccuracy":0.6333333333333333,"localShare":0.5333333333333333,"cascadeAccuracy":0.7833333333333333,"threshold":0.984},{"label":"shipping","count":60,"localAccuracy":0.9333333333333333,"cloudAccuracy":0.9833333333333333,"localShare":0.5833333333333334,"cascadeAccuracy":1,"threshold":0.984},{"label":"feedback","count":60,"localAccuracy":0.9333333333333333,"cloudAccuracy":1,"localShare":0.13333333333333333,"cascadeAccuracy":1,"threshold":0.984}],"counts":{"total":300,"localFailed":0,"cloudFailed":0},"mistakes":[{"id":"218","input":"where do i see the early termination fees","truth":"order","predicted":"billing","confidence":0.9973236378887372}],"cached":{"local":300,"cloud":300}}</script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById('belay-data').textContent);
+  const NS = 'http://www.w3.org/2000/svg';
+  const $ = (id) => document.getElementById(id);
+  const pct = (v, d = 1) => (v == null ? '–' : (v * 100).toFixed(d) + '%');
+  const points = (v) => (v * 100).toFixed(1) + (Math.abs(v * 100 - 1) < 0.05 ? ' point' : ' points');
+  const times = (k) => (k === 1 ? 'time' : 'times');
+  const num = (v, d = 2) => (v == null ? '–' : Number(v).toFixed(d));
+  const money = (v) => (v == null ? '–' : new Intl.NumberFormat(undefined, Object.assign({ style: 'currency', currency: data.currency || 'USD' },
+    v !== 0 && Math.abs(v) < 0.1 ? { maximumSignificantDigits: 2 } : { maximumFractionDigits: Math.abs(v) < 10 ? 2 : 0 })).format(v));
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const el = (tag, attrs = {}, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const tip = $('tooltip');
+  function showTip(evt, html) {
+    tip.innerHTML = html;
+    tip.hidden = false;
+    const pad = 14;
+    const r = tip.getBoundingClientRect();
+    let x = evt.clientX + pad, y = evt.clientY + pad;
+    if (x + r.width > innerWidth - 8) x = evt.clientX - r.width - pad;
+    if (y + r.height > innerHeight - 8) y = evt.clientY - r.height - pad;
+    tip.style.left = x + 'px';
+    tip.style.top = y + 'px';
+  }
+  const hideTip = () => { tip.hidden = true; };
+  const row = (color, label, value) =>
+    '<div class="row"><span>' + (color ? '<span class="key-line" style="background:' + color + '"></span> ' : '') + esc(label) + '</span><b>' + value + '</b></div>';
+
+  // ---- Header, tiles, callout ------------------------------------------------
+  const e = data.expected;
+  const targetName = data.targetMode === 'cloud' ? '≥ cloud only' : data.targetMode === 'max' ? 'most accurate' : pct(data.target, 0);
+  $('meta').textContent = [
+    data.datasetSize + ' examples' + (data.datasetPath ? ' from ' + data.datasetPath : ''),
+    'local: ' + data.local.runner + (data.local.model ? ' (' + data.local.model + ')' : ''),
+    'cloud: ' + (data.cloud ? data.cloud.runner + (data.cloud.model ? ' (' + data.cloud.model + ')' : '') : 'none'),
+    new Date(data.createdAt).toISOString().slice(0, 10),
+  ].join(' · ');
+  const tiles = [
+ ['Recommended threshold', String(data.threshold), data.thresholds ? Object.keys(data.thresholds).length + ' per-label override(s)' : 'global'],
+    ['Expected accuracy', pct(e.accuracy), '95% CI ' + pct(data.accuracyInterval[0], 0) + '–' + pct(data.accuracyInterval[1], 0) + ' · target ' + targetName],
+    ...(e.heldOut ? [['Held-out accuracy', pct(e.heldOut.accuracy), e.heldOut.folds + '-fold cross-validation · cloud only ' + pct(e.heldOut.cloudAccuracy) + ' · ' + pct(e.heldOut.localShare, 0) + ' local']] : []),
+    ['Answered locally', pct(e.localShare, 0), 'local accuracy ' + pct(e.localAccuracy)],
+    ['Cloud only', pct(data.baseline.cloudOnly), 'local only ' + pct(data.baseline.localOnly)],
+  ];
+  if (e.costPer1k != null) {
+    tiles.push(['Cloud cost / 1k runs', money(e.costPer1k), 'vs ' + money(data.cloudOnlyCostPer1k) + ' cloud only']);
+    if (e.savingsPer1k != null) {
+      tiles.push(['Saved / 1k runs', money(e.savingsPer1k), pct(data.cloudOnlyCostPer1k ? e.savingsPer1k / data.cloudOnlyCostPer1k : null, 0) + ' of the cloud-only cost · ' + (data.cost && data.cost.basis === 'measured' ? 'measured' : 'estimated')]);
+    }
+  }
+  $('tiles').innerHTML = tiles.map(([l, v, n]) => '<div class="tile"><div class="label">' + esc(l) + '</div><div class="value">' + esc(v) + '</div><div class="note">' + esc(n) + '</div></div>').join('');
+  const h = data.headToHead;
+  const vsCloud = data.baseline.cloudOnly == null ? '' : e.accuracy > data.baseline.cloudOnly + 1e-9
+    ? ', <strong>' + points(e.accuracy - data.baseline.cloudOnly) + ' more accurate</strong> than cloud only'
+    : e.accuracy < data.baseline.cloudOnly - 1e-9 ? ', ' + points(data.baseline.cloudOnly - e.accuracy) + ' less accurate than cloud only' : ', as accurate as cloud only';
+  $('callout').innerHTML = (data.targetMet
+    ? '<span class="status-good">✓ Target met.</span> At threshold <strong>' + data.threshold + '</strong> the cascade reaches <strong>' + pct(e.accuracy) + '</strong> accuracy' + vsCloud + ', answering <strong>' + pct(e.localShare, 0) + '</strong> of runs on device.'
+    : '<span class="status-bad">✕ Target not met.</span> No threshold reaches ' + pct(data.target, 0) + ' on this dataset; the recommended threshold <strong>' + data.threshold + '</strong> maximizes accuracy (' + pct(e.accuracy) + '). Improve the cloud runner or lower the target.') +
+    (h.kept ? ' Of the ' + h.kept + ' runs kept local, the local answer was right where the cloud was wrong <strong>' + h.localOnlyRight + '</strong> ' + times(h.localOnlyRight) + ' and wrong where the cloud was right <strong>' + h.cloudOnlyRight + '</strong> ' + times(h.cloudOnlyRight) + '.' : '');
+  if (data.counts.localFailed || data.counts.cloudFailed) {
+    $('callout').innerHTML += ' <span class="pill">' + data.counts.localFailed + ' local failure(s), ' + data.counts.cloudFailed + ' cloud failure(s)</span>';
+  }
+
+  // ---- Line chart (step curves over threshold) --------------------------------
+  const css = (name) => getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(name).trim();
+
+  function lineChart(container, opts) {
+    container.innerHTML = '';
+    const W = Math.max(320, container.clientWidth), H = Math.round(Math.min(340, Math.max(220, W * 0.42)));
+    const m = { l: 48, r: W < 500 ? 72 : 96, t: 12, b: 34 };
+    const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': opts.label }, container);
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const x = (v) => m.l + v * iw;
+    const y = (v) => m.t + ih - (v / opts.yMax) * ih;
+    for (const t of opts.yTicks) {
+      el('line', { x1: m.l, x2: m.l + iw, y1: y(t), y2: y(t), stroke: css('--grid'), 'stroke-width': 1 }, svg);
+      el('text', { x: m.l - 8, y: y(t) + 4, 'text-anchor': 'end' }, svg).textContent = opts.yFormat(t);
+    }
+    el('line', { x1: m.l, x2: m.l + iw, y1: y(0), y2: y(0), stroke: css('--axis'), 'stroke-width': 1 }, svg);
+    const xStep = iw < 420 ? 0.25 : 0.1;
+    for (let t = 0; t <= 1.0001; t += xStep) {
+      el('text', { x: x(t), y: m.t + ih + 20, 'text-anchor': 'middle' }, svg).textContent = xStep === 0.25 ? t.toFixed(2) : t.toFixed(1);
+    }
+    el('text', { x: m.l + iw / 2, y: H - 2, 'text-anchor': 'middle' }, svg).textContent = 'threshold';
+    // reference lines (their labels are drawn last, above the data, with a halo)
+    const refLabels = [];
+    for (const ref of opts.refs || []) {
+      if (ref.axis === 'y') {
+        el('line', { x1: m.l, x2: m.l + iw, y1: y(ref.value), y2: y(ref.value), stroke: css('--text-muted'), 'stroke-width': 1 }, svg);
+        refLabels.push(['text', { x: m.l + 4, y: y(ref.value) - 5, class: 'label-strong ref-label' }, ref.label]);
+      } else {
+        el('line', { x1: x(ref.value), x2: x(ref.value), y1: m.t, y2: m.t + ih, stroke: css('--text-secondary'), 'stroke-width': 1 }, svg);
+        const anchorEnd = ref.value > 0.75;
+        // Bottom of the plot: the curves usually live near the top.
+        refLabels.push(['text', { x: x(ref.value) + (anchorEnd ? -6 : 6), y: m.t + ih - 8, 'text-anchor': anchorEnd ? 'end' : 'start', class: 'label-strong ref-label' }, ref.label]);
+      }
+    }
+    const pts = data.curve;
+    const stepPath = (key) => {
+      let d = '';
+      pts.forEach((p, i) => {
+        const x0 = x(p.threshold), x1 = x(i + 1 < pts.length ? pts[i + 1].threshold : 1);
+        d += (i === 0 ? 'M' : 'L') + x0 + ',' + y(p[key]) + 'L' + x1 + ',' + y(p[key]);
+      });
+      return d;
+    };
+    const endY = [];
+    for (const s of opts.series) {
+      el('path', { d: stepPath(s.key), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+      if (opts.series.length > 1 || opts.directLabel) {
+        const last = pts[pts.length - 1];
+        endY.push({ y: y(last[s.key]), s });
+      }
+    }
+    // direct end labels; leader offset if they collide
+    endY.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < endY.length; i++) if (endY[i].y - endY[i - 1].y < 16) endY[i].ly = endY[i - 1].y + 16;
+    for (const { y: yy, ly, s } of endY) {
+      const ty = ly || yy;
+      if (ly) el('line', { x1: m.l + iw + 2, x2: m.l + iw + 8, y1: yy, y2: ty, stroke: css('--axis'), 'stroke-width': 1 }, svg);
+      el('text', { x: m.l + iw + 10, y: ty + 4, class: 'label-strong' }, svg).textContent = s.name;
+    }
+    for (const [tag, attrs, text] of refLabels) el(tag, attrs, svg).textContent = text;
+    // hover layer: crosshair + markers + tooltip
+    const cross = el('line', { y1: m.t, y2: m.t + ih, stroke: css('--axis'), 'stroke-width': 1, visibility: 'hidden' }, svg);
+    const dots = opts.series.map((s) => el('circle', { r: 4.5, fill: s.color, stroke: css('--surface-1'), 'stroke-width': 2, visibility: 'hidden' }, svg));
+    const hit = el('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' }, svg);
+    const move = (evt) => {
+      const r = svg.getBoundingClientRect();
+      const tv = Math.min(1, Math.max(0, ((evt.clientX - r.left) * (W / r.width) - m.l) / iw));
+      let p = pts[0];
+      for (const q of pts) if (q.threshold <= tv + 1e-9) p = q;
+      cross.setAttribute('x1', x(tv)); cross.setAttribute('x2', x(tv)); cross.setAttribute('visibility', 'visible');
+      opts.series.forEach((s, i) => { dots[i].setAttribute('cx', x(tv)); dots[i].setAttribute('cy', y(p[s.key])); dots[i].setAttribute('visibility', 'visible'); });
+      showTip(evt, '<div style="margin-bottom:4px;color:var(--text-secondary)">threshold ≥ ' + num(p.threshold, 3) + '</div>' + opts.tooltip(p));
+    };
+    const leave = () => { cross.setAttribute('visibility', 'hidden'); dots.forEach((d) => d.setAttribute('visibility', 'hidden')); hideTip(); };
+    hit.addEventListener('pointermove', move);
+    hit.addEventListener('pointerleave', leave);
+  }
+
+  function histogram(container) {
+    container.innerHTML = '';
+    const h = data.histogram;
+    const W = Math.max(320, container.clientWidth), H = Math.round(Math.min(280, Math.max(200, W * 0.32)));
+    const m = { l: 44, r: 16, t: 12, b: 34 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Histogram of local confidence' }, container);
+    const maxC = Math.max(1, ...h.correct.map((c, i) => c + h.wrong[i]));
+    const step = Math.pow(10, Math.floor(Math.log10(maxC))) * (maxC / Math.pow(10, Math.floor(Math.log10(maxC))) > 5 ? 2 : 1);
+    const yMax = Math.ceil(maxC / step) * step;
+    const y = (v) => m.t + ih - (v / yMax) * ih;
+    for (let t = 0; t <= yMax; t += step) {
+      el('line', { x1: m.l, x2: m.l + iw, y1: y(t), y2: y(t), stroke: css('--grid'), 'stroke-width': 1 }, svg);
+      el('text', { x: m.l - 8, y: y(t) + 4, 'text-anchor': 'end' }, svg).textContent = t.toLocaleString();
+    }
+    const n = h.correct.length, band = iw / n, bw = Math.min(24, band * 0.6);
+    const radius = 4;
+    const rounded = (x0, y0, w, hh) => {
+      const r = Math.min(radius, hh, w / 2);
+      return 'M' + x0 + ',' + (y0 + hh) + 'V' + (y0 + r) + 'Q' + x0 + ',' + y0 + ' ' + (x0 + r) + ',' + y0 + 'H' + (x0 + w - r) + 'Q' + (x0 + w) + ',' + y0 + ' ' + (x0 + w) + ',' + (y0 + r) + 'V' + (y0 + hh) + 'Z';
+    };
+    for (let i = 0; i < n; i++) {
+      const cx = m.l + band * i + band / 2, x0 = cx - bw / 2;
+      const c = h.correct[i], w = h.wrong[i];
+      const yc = y(c), yw = y(c + w);
+      if (c) {
+        const hh = y(0) - yc;
+        el('path', { d: w ? 'M' + x0 + ',' + y(0) + 'V' + yc + 'H' + (x0 + bw) + 'V' + y(0) + 'Z' : rounded(x0, yc, bw, hh), fill: css('--series-1') }, svg);
+      }
+      if (w) {
+        const top = yw, hh = (c ? yc - 2 : y(0)) - top;
+        if (hh > 0) el('path', { d: rounded(x0, top, bw, hh), fill: css('--series-2') }, svg);
+      }
+      const hit = el('rect', { x: m.l + band * i, y: m.t, width: band, height: ih, fill: 'transparent' }, svg);
+      hit.addEventListener('pointermove', (evt) => showTip(evt,
+        '<div style="margin-bottom:4px;color:var(--text-secondary)">confidence ' + h.edges[i].toFixed(1) + '–' + h.edges[i + 1].toFixed(1) + '</div>' +
+        row(css('--series-1'), 'Correct', c) + row(css('--series-2'), 'Wrong', w) +
+        row(null, 'Local accuracy', c + w ? pct(c / (c + w), 0) : '–')));
+      hit.addEventListener('pointerleave', hideTip);
+    }
+    const every = band < 36 ? 2 : 1;
+    for (let i = 0; i <= n; i += every) {
+      el('text', { x: m.l + band * i, y: m.t + ih + 20, 'text-anchor': 'middle' }, svg).textContent = h.edges[i].toFixed(1);
+    }
+    el('line', { x1: m.l, x2: m.l + iw, y1: y(0), y2: y(0), stroke: css('--axis'), 'stroke-width': 1 }, svg);
+    const tx = m.l + data.threshold * iw;
+    el('line', { x1: tx, x2: tx, y1: m.t, y2: m.t + ih, stroke: css('--text-secondary'), 'stroke-width': 1 }, svg);
+    el('text', { x: tx + (data.threshold > 0.75 ? -6 : 6), y: m.t + 12, 'text-anchor': data.threshold > 0.75 ? 'end' : 'start', class: 'label-strong ref-label' }, svg).textContent = 'threshold ' + data.threshold;
+    el('text', { x: m.l + iw / 2, y: H - 2, 'text-anchor': 'middle' }, svg).textContent = 'local confidence';
+  }
+
+  function render() {
+    lineChart($('curve-chart'), {
+      label: 'Cascade accuracy and local share by threshold',
+      yMax: 1, yTicks: [0, 0.25, 0.5, 0.75, 1], yFormat: (v) => Math.round(v * 100) + '%',
+      series: [
+        { key: 'accuracy', name: 'Accuracy', color: css('--series-1') },
+        { key: 'localShare', name: 'Local share', color: css('--series-2') },
+      ],
+      refs: [
+        { axis: 'y', value: data.target, label: (data.targetMode === 'cloud' ? 'cloud only ' : data.targetMode === 'max' ? 'best ' : 'target ') + pct(data.target, 1) },
+        { axis: 'x', value: data.threshold, label: 'recommended ' + data.threshold },
+      ],
+      tooltip: (p) => row(css('--series-1'), 'Accuracy', pct(p.accuracy)) + row(css('--series-2'), 'Local share', pct(p.localShare)) +
+        row(null, 'Local accuracy', pct(p.localAccuracy)) + (p.costPer1k != null ? row(null, 'Cost / 1k', money(p.costPer1k)) : ''),
+    });
+    if (data.currency) {
+      $('cost-card').hidden = false;
+      const maxCost = Math.max(...data.curve.map((p) => p.costPer1k || 0)) || 1;
+      const step = Math.pow(10, Math.floor(Math.log10(maxCost)));
+      const yMax = Math.ceil(maxCost / step) * step;
+      const ticks = [0, yMax / 4, yMax / 2, (3 * yMax) / 4, yMax];
+      lineChart($('cost-chart'), {
+        label: 'Cloud cost per 1,000 runs by threshold',
+        yMax, yTicks: ticks, yFormat: money,
+        series: [{ key: 'costPer1k', name: 'Cost', color: css('--series-1') }],
+        refs: [{ axis: 'x', value: data.threshold, label: 'recommended ' + data.threshold }],
+        tooltip: (p) => row(null, 'Cost / 1k', money(p.costPer1k)) + row(null, 'Accuracy', pct(p.accuracy)),
+      });
+    }
+    histogram($('hist-chart'));
+  }
+
+  $('curve-legend').innerHTML = '<span><span class="key-line" style="background:var(--series-1)"></span>Accuracy (cascade)</span><span><span class="key-line" style="background:var(--series-2)"></span>Local share</span>';
+  $('hist-legend').innerHTML = '<span><span class="key-box" style="background:var(--series-1)"></span>Local answer correct</span><span><span class="key-box" style="background:var(--series-2)"></span>Local answer wrong</span>';
+
+  // ---- Tables ------------------------------------------------------------------
+  // White or near-black text, whichever contrasts more with a hex fill.
+  const inkOn = (hex) => {
+    const c = hex.replace('#', '');
+    const lin = (i) => { const v = parseInt(c.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const L = 0.2126 * lin(0) + 0.7152 * lin(2) + 0.0722 * lin(4);
+    return (1.05) / (L + 0.05) >= (L + 0.05) / 0.05 ? '#ffffff' : '#0b0b0b';
+  };
+  const table = (head, rows) => '<table><thead><tr>' + head.map((h) => '<th' + (h.num ? ' class="num"' : '') + '>' + esc(h.label) + '</th>').join('') + '</tr></thead><tbody>' +
+    rows.map((r) => '<tr>' + r.map((c, i) => '<td' + (head[i].num ? ' class="num"' : '') + '>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+
+  if (data.confusion) {
+    $('confusion-card').hidden = false;
+    const L = data.confusion.labels, M = data.confusion.local;
+    const steps = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];
+    let html = '<table class="confusion"><thead><tr><th>true ↓ / predicted →</th>' + L.map((l) => '<th class="num">' + esc(l) + '</th>').join('') + '<th class="num">n</th></tr></thead><tbody>';
+    M.forEach((r, i) => {
+      const total = r.reduce((a, b) => a + b, 0);
+      html += '<tr><th>' + esc(L[i]) + '</th>' + r.map((v, j) => {
+        const share = total ? v / total : 0;
+        const s = v === 0 ? 0 : Math.min(5, 1 + Math.floor(share * 5));
+        return '<td class="cell" title="' + esc(L[i]) + ' → ' + esc(L[j]) + ': ' + v + ' (' + pct(share, 0) + ' of row)" style="background:var(' + steps[s] + ');color:' + inkOn(css(steps[s])) + (i === j ? ';font-weight:600' : '') + '">' + v + '</td>';
+      }).join('') + '<td class="num">' + total + '</td></tr>';
+    });
+    $('confusion').innerHTML = html + '</tbody></table>';
+  }
+
+  $('per-option').innerHTML = table(
+    [{ label: 'label' }, { label: 'examples', num: 1 }, { label: 'threshold', num: 1 }, { label: 'local accuracy', num: 1 }, { label: 'cloud accuracy', num: 1 }, { label: 'answered locally', num: 1 }, { label: 'cascade accuracy', num: 1 }],
+    data.perOption.map((o) => [esc(o.label), o.count, num(o.threshold, 3), pct(o.localAccuracy), pct(o.cloudAccuracy), pct(o.localShare, 0), pct(o.cascadeAccuracy)]),
+  );
+
+  if (data.mistakes.length) {
+    $('mistakes-card').hidden = false;
+    $('mistakes').innerHTML = table(
+      [{ label: 'id' }, { label: 'input' }, { label: 'true' }, { label: 'local' }, { label: 'confidence', num: 1 }],
+      data.mistakes.map((m) => [esc(m.id), esc(m.input), esc(m.truth), esc(m.predicted), num(m.confidence, 3)]),
+    );
+  }
+
+  $('curve-table').innerHTML = table(
+    [{ label: 'threshold', num: 1 }, { label: 'accuracy', num: 1 }, { label: 'local share', num: 1 }, { label: 'local accuracy', num: 1 }].concat(data.currency ? [{ label: 'cost / 1k', num: 1 }] : []),
+    data.curve.map((p) => [num(p.threshold, 4), pct(p.accuracy), pct(p.localShare), pct(p.localAccuracy)].concat(data.currency ? [money(p.costPer1k)] : [])),
+  );
+
+  if (data.cost) {
+    const c = data.cost;
+    const t = c.tokensPerRun;
+    $('cost-basis').textContent = c.basis === 'measured'
+      ? 'Measured: every cloud call priced from its token usage' + (t ? ' (on average ' + Math.round(t.input) + ' input, ' + Math.round(t.output) + ' output' + (t.cacheRead ? ', ' + Math.round(t.cacheRead) + ' cache-read' : '') + ' tokens)' : '') + ', ' + money(c.cloudPerRun * 1000) + ' per 1,000 calls. Prices per million tokens: ' +
+        Object.entries(c.prices || {}).map(([m, p]) => m + ' ' + money(p.input) + ' in / ' + money(p.output) + ' out').join('; ') + '.'
+      : 'Estimated at a flat ' + money(c.cloudPerRun) + ' per cloud call (cost.cloudPerRun), not measured.';
+  }
+  if (e.savingsPer1k != null) {
+    $('projection-card').hidden = false;
+    const input = $('runs');
+    const initial = (data.cost && data.cost.runsPerMonth) || 1000000;
+    let stored = null;
+    try { stored = localStorage.getItem('belay-runs-per-month'); } catch (err) {}
+    input.value = stored && Number(stored) >= 0 ? stored : String(initial);
+    const project = () => {
+      const runs = Math.max(0, Number(input.value) || 0);
+      try { localStorage.setItem('belay-runs-per-month', String(runs)); } catch (err) {}
+      const k = runs / 1000;
+      $('projection').innerHTML = table(
+        [{ label: '' }, { label: 'per month', num: 1 }, { label: 'per year', num: 1 }],
+        [
+          ['Cloud only', money(data.cloudOnlyCostPer1k * k), money(data.cloudOnlyCostPer1k * k * 12)],
+          ['Cascade', money(e.costPer1k * k), money(e.costPer1k * k * 12)],
+          ['<strong>Saved</strong>', '<strong>' + money(e.savingsPer1k * k) + '</strong>', '<strong>' + money(e.savingsPer1k * k * 12) + '</strong>'],
+        ],
+      );
+    };
+    input.addEventListener('input', project);
+    project();
+  }
+
+  render();
+  let frame;
+  addEventListener('resize', () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(render); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+})();
+</script>
+</body>
+</html>

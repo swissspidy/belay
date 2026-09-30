@@ -111,6 +111,73 @@ describe('calibrate (300 examples)', () => {
   });
 });
 
+describe('calibrate with measured cost', () => {
+  const usageCloud = (reportUsage = true) => {
+    const inner = fakeCloud();
+    const runner = {
+      id: inner.id,
+      get calls() {
+        return inner.calls;
+      },
+      async run(request: Parameters<typeof inner.run>[0]) {
+        const output = await inner.run(request, {});
+        return reportUsage ? { ...output, confidence: 0.7, usage: { model: 'm', inputTokens: 1000, outputTokens: 10 } } : output;
+      },
+    };
+    return runner;
+  };
+  const measure = async (cachePath: string | null, cloud: ReturnType<typeof usageCloud>, target: 'cloud' | 'max' = 'cloud') => {
+    await writeFile(join(dir, 'examples.jsonl'), datasetJsonl());
+    const dataset = await loadDataset(join(dir, 'examples.jsonl'), schema);
+    const local = fakeLocal();
+    return calibrate({
+      name: 'ticket-triage',
+      config: { schema, local, cloud, cost: { currency: 'USD', prices: { m: { input: 2, output: 10 } }, runsPerMonth: 1000 } },
+      dataset,
+      backend: nodeBackend(local, { task: 'ticket-triage', schema }),
+      cache: await OutputCache.open(cachePath),
+      target,
+      createdAt: '2026-09-29T00:00:00Z',
+    });
+  };
+
+  it('prices every call from its usage and records savings and a held-out estimate', async () => {
+    const { file, analysis, evaluation } = await measure(null, usageCloud());
+    expect(evaluation.samples.every((s) => s.cloud?.confidence === 0.7)).toBe(true);
+    // 1000 × $2/M + 10 × $10/M = $0.0021 per call.
+    expect(file.cost).toEqual({
+      currency: 'USD',
+      cloudPerRun: 0.0021,
+      basis: 'measured',
+      prices: { m: { input: 2, output: 10 } },
+      tokensPerRun: { input: 1000, output: 10, cacheRead: 0, cacheWrite: 0 },
+      runsPerMonth: 1000,
+    });
+    expect(file.target).toMatchObject({ mode: 'cloud', value: file.expected.cloudAccuracy });
+    expect(file.expected.accuracy).toBeGreaterThanOrEqual(file.expected.cloudAccuracy!);
+    expect(file.expected.cloudOnlyCostPer1k).toBeCloseTo(2.1);
+    expect(file.expected.savingsPer1k).toBeCloseTo(2.1 - file.expected.costPer1k!);
+    expect(file.expected.savingsPer1k).toBeGreaterThan(0);
+    expect(file.expected.heldOut).toMatchObject({ folds: 5 });
+    expect(analysis.headToHead.kept).toBe(Math.round(file.expected.localShare * 300));
+  });
+
+  it('fetches cached cloud outputs again when they have no usage', async () => {
+    const cachePath = join(dir, 'cache', 'outputs.jsonl');
+    await run(cachePath); // cloudPerRun config: caches outputs without usage
+    const cloud = usageCloud();
+    await measure(cachePath, cloud);
+    expect(cloud.calls).toBe(300);
+    const again = usageCloud();
+    await measure(cachePath, again);
+    expect(again.calls).toBe(0);
+  });
+
+  it('fails clearly when prices are set but the runner reports no usage', async () => {
+    await expect(measure(null, usageCloud(false))).rejects.toThrow(/reported no token usage/);
+  });
+});
+
 describe('nodeBackend', () => {
   it('includes the judge in its cache identity', () => {
     const runner = fakeLocal();

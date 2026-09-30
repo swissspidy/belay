@@ -19,7 +19,9 @@ interface ReportData {
   local: CalibrationFile['local'];
   cloud: CalibrationFile['cloud'];
   target: number;
+  targetMode: NonNullable<CalibrationFile['target']['mode']>;
   targetMet: boolean;
+  headToHead: Analysis['headToHead'];
   threshold: number;
   thresholds: Record<string, number> | null;
   expected: CalibrationFile['expected'];
@@ -27,6 +29,7 @@ interface ReportData {
   baseline: { localOnly: number; cloudOnly: number | null };
   currency: string | null;
   cloudOnlyCostPer1k: number | null;
+  cost: CalibrationFile['cost'] | null;
   curve: CalibrationFile['curve'];
   histogram: { edges: number[]; correct: number[]; wrong: number[] };
   confusion: CalibrationFile['confusion'] | null;
@@ -55,14 +58,17 @@ function toData(input: ReportInput): ReportData {
     local: file.local,
     cloud: file.cloud,
     target: file.target.value,
+    targetMode: file.target.mode ?? 'fixed',
     targetMet: analysis.targetMet,
+    headToHead: analysis.headToHead,
     threshold: file.threshold,
     thresholds: file.thresholds ?? null,
     expected: file.expected,
     accuracyInterval: analysis.accuracyInterval,
     baseline: { localOnly: atZero.accuracy, cloudOnly: file.expected.cloudAccuracy },
     currency: file.cost?.currency ?? null,
-    cloudOnlyCostPer1k: file.cost ? file.cost.cloudPerRun * 1000 : null,
+    cloudOnlyCostPer1k: file.expected.cloudOnlyCostPer1k ?? (file.cost ? file.cost.cloudPerRun * 1000 : null),
+    cost: file.cost ?? null,
     curve: file.curve,
     histogram: { edges: file.confidenceHistogram.edges, correct, wrong },
     confusion: file.confusion ?? null,
@@ -112,7 +118,14 @@ export function renderReport(input: ReportInput): string {
   </section>
   <section class="card" id="cost-card" hidden>
     <h2>Cloud cost per 1,000 runs by threshold</h2>
+    <p class="sub" id="cost-basis"></p>
     <div class="chart" id="cost-chart"></div>
+  </section>
+  <section class="card" id="projection-card" hidden>
+    <h2>Savings projection</h2>
+    <p class="sub">At the recommended threshold, assuming production inputs look like this dataset.</p>
+    <label class="projection-input">Runs per month <input type="number" id="runs" min="0" step="1000" inputmode="numeric"></label>
+    <div class="table-wrap" id="projection"></div>
   </section>
   <section class="card">
     <h2>Local confidence distribution</h2>
@@ -217,6 +230,8 @@ details summary { cursor: pointer; font-weight: 600; }
 .tooltip .row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
 .tooltip .row b { font-weight: 600; font-variant-numeric: tabular-nums; }
 footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
+.projection-input { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); margin: 4px 0 10px; }
+.projection-input input { font: inherit; color: var(--text-primary); background: var(--page); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; width: 140px; font-variant-numeric: tabular-nums; }
 code { font-size: 0.95em; }
 `;
 
@@ -227,8 +242,11 @@ const SCRIPT = String.raw`
   const NS = 'http://www.w3.org/2000/svg';
   const $ = (id) => document.getElementById(id);
   const pct = (v, d = 1) => (v == null ? '–' : (v * 100).toFixed(d) + '%');
+  const points = (v) => (v * 100).toFixed(1) + (Math.abs(v * 100 - 1) < 0.05 ? ' point' : ' points');
+  const times = (k) => (k === 1 ? 'time' : 'times');
   const num = (v, d = 2) => (v == null ? '–' : Number(v).toFixed(d));
-  const money = (v) => (v == null ? '–' : new Intl.NumberFormat(undefined, { style: 'currency', currency: data.currency || 'USD', maximumFractionDigits: v < 10 ? 2 : 0 }).format(v));
+  const money = (v) => (v == null ? '–' : new Intl.NumberFormat(undefined, Object.assign({ style: 'currency', currency: data.currency || 'USD' },
+    v !== 0 && Math.abs(v) < 0.1 ? { maximumSignificantDigits: 2 } : { maximumFractionDigits: Math.abs(v) < 10 ? 2 : 0 })).format(v));
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const el = (tag, attrs = {}, parent) => {
     const n = document.createElementNS(NS, tag);
@@ -254,6 +272,7 @@ const SCRIPT = String.raw`
 
   // ---- Header, tiles, callout ------------------------------------------------
   const e = data.expected;
+  const targetName = data.targetMode === 'cloud' ? '≥ cloud only' : data.targetMode === 'max' ? 'most accurate' : pct(data.target, 0);
   $('meta').textContent = [
     data.datasetSize + ' examples' + (data.datasetPath ? ' from ' + data.datasetPath : ''),
     'local: ' + data.local.runner + (data.local.model ? ' (' + data.local.model + ')' : ''),
@@ -262,17 +281,26 @@ const SCRIPT = String.raw`
   ].join(' · ');
   const tiles = [
  ['Recommended threshold', String(data.threshold), data.thresholds ? Object.keys(data.thresholds).length + ' per-label override(s)' : 'global'],
-    ['Expected accuracy', pct(e.accuracy), '95% CI ' + pct(data.accuracyInterval[0], 0) + '–' + pct(data.accuracyInterval[1], 0) + ' · target ' + pct(data.target, 0)],
+    ['Expected accuracy', pct(e.accuracy), '95% CI ' + pct(data.accuracyInterval[0], 0) + '–' + pct(data.accuracyInterval[1], 0) + ' · target ' + targetName],
+    ...(e.heldOut ? [['Held-out accuracy', pct(e.heldOut.accuracy), e.heldOut.folds + '-fold cross-validation · cloud only ' + pct(e.heldOut.cloudAccuracy) + ' · ' + pct(e.heldOut.localShare, 0) + ' local']] : []),
     ['Answered locally', pct(e.localShare, 0), 'local accuracy ' + pct(e.localAccuracy)],
     ['Cloud only', pct(data.baseline.cloudOnly), 'local only ' + pct(data.baseline.localOnly)],
   ];
   if (e.costPer1k != null) {
     tiles.push(['Cloud cost / 1k runs', money(e.costPer1k), 'vs ' + money(data.cloudOnlyCostPer1k) + ' cloud only']);
+    if (e.savingsPer1k != null) {
+      tiles.push(['Saved / 1k runs', money(e.savingsPer1k), pct(data.cloudOnlyCostPer1k ? e.savingsPer1k / data.cloudOnlyCostPer1k : null, 0) + ' of the cloud-only cost · ' + (data.cost && data.cost.basis === 'measured' ? 'measured' : 'estimated')]);
+    }
   }
   $('tiles').innerHTML = tiles.map(([l, v, n]) => '<div class="tile"><div class="label">' + esc(l) + '</div><div class="value">' + esc(v) + '</div><div class="note">' + esc(n) + '</div></div>').join('');
-  $('callout').innerHTML = data.targetMet
-    ? '<span class="status-good">✓ Target met.</span> At threshold <strong>' + data.threshold + '</strong> the cascade reaches <strong>' + pct(e.accuracy) + '</strong> accuracy while answering <strong>' + pct(e.localShare, 0) + '</strong> of runs on device.'
-    : '<span class="status-bad">✕ Target not met.</span> No threshold reaches ' + pct(data.target, 0) + ' on this dataset; the recommended threshold <strong>' + data.threshold + '</strong> maximizes accuracy (' + pct(e.accuracy) + '). Improve the cloud runner or lower the target.';
+  const h = data.headToHead;
+  const vsCloud = data.baseline.cloudOnly == null ? '' : e.accuracy > data.baseline.cloudOnly + 1e-9
+    ? ', <strong>' + points(e.accuracy - data.baseline.cloudOnly) + ' more accurate</strong> than cloud only'
+    : e.accuracy < data.baseline.cloudOnly - 1e-9 ? ', ' + points(data.baseline.cloudOnly - e.accuracy) + ' less accurate than cloud only' : ', as accurate as cloud only';
+  $('callout').innerHTML = (data.targetMet
+    ? '<span class="status-good">✓ Target met.</span> At threshold <strong>' + data.threshold + '</strong> the cascade reaches <strong>' + pct(e.accuracy) + '</strong> accuracy' + vsCloud + ', answering <strong>' + pct(e.localShare, 0) + '</strong> of runs on device.'
+    : '<span class="status-bad">✕ Target not met.</span> No threshold reaches ' + pct(data.target, 0) + ' on this dataset; the recommended threshold <strong>' + data.threshold + '</strong> maximizes accuracy (' + pct(e.accuracy) + '). Improve the cloud runner or lower the target.') +
+    (h.kept ? ' Of the ' + h.kept + ' runs kept local, the local answer was right where the cloud was wrong <strong>' + h.localOnlyRight + '</strong> ' + times(h.localOnlyRight) + ' and wrong where the cloud was right <strong>' + h.cloudOnlyRight + '</strong> ' + times(h.cloudOnlyRight) + '.' : '');
   if (data.counts.localFailed || data.counts.cloudFailed) {
     $('callout').innerHTML += ' <span class="pill">' + data.counts.localFailed + ' local failure(s), ' + data.counts.cloudFailed + ' cloud failure(s)</span>';
   }
@@ -415,7 +443,7 @@ const SCRIPT = String.raw`
         { key: 'localShare', name: 'Local share', color: css('--series-2') },
       ],
       refs: [
-        { axis: 'y', value: data.target, label: 'target ' + pct(data.target, 0) },
+        { axis: 'y', value: data.target, label: (data.targetMode === 'cloud' ? 'cloud only ' : data.targetMode === 'max' ? 'best ' : 'target ') + pct(data.target, 1) },
         { axis: 'x', value: data.threshold, label: 'recommended ' + data.threshold },
       ],
       tooltip: (p) => row(css('--series-1'), 'Accuracy', pct(p.accuracy)) + row(css('--series-2'), 'Local share', pct(p.localShare)) +
@@ -485,6 +513,38 @@ const SCRIPT = String.raw`
     [{ label: 'threshold', num: 1 }, { label: 'accuracy', num: 1 }, { label: 'local share', num: 1 }, { label: 'local accuracy', num: 1 }].concat(data.currency ? [{ label: 'cost / 1k', num: 1 }] : []),
     data.curve.map((p) => [num(p.threshold, 4), pct(p.accuracy), pct(p.localShare), pct(p.localAccuracy)].concat(data.currency ? [money(p.costPer1k)] : [])),
   );
+
+  if (data.cost) {
+    const c = data.cost;
+    const t = c.tokensPerRun;
+    $('cost-basis').textContent = c.basis === 'measured'
+      ? 'Measured: every cloud call priced from its token usage' + (t ? ' (on average ' + Math.round(t.input) + ' input, ' + Math.round(t.output) + ' output' + (t.cacheRead ? ', ' + Math.round(t.cacheRead) + ' cache-read' : '') + ' tokens)' : '') + ', ' + money(c.cloudPerRun * 1000) + ' per 1,000 calls. Prices per million tokens: ' +
+        Object.entries(c.prices || {}).map(([m, p]) => m + ' ' + money(p.input) + ' in / ' + money(p.output) + ' out').join('; ') + '.'
+      : 'Estimated at a flat ' + money(c.cloudPerRun) + ' per cloud call (cost.cloudPerRun), not measured.';
+  }
+  if (e.savingsPer1k != null) {
+    $('projection-card').hidden = false;
+    const input = $('runs');
+    const initial = (data.cost && data.cost.runsPerMonth) || 1000000;
+    let stored = null;
+    try { stored = localStorage.getItem('belay-runs-per-month'); } catch (err) {}
+    input.value = stored && Number(stored) >= 0 ? stored : String(initial);
+    const project = () => {
+      const runs = Math.max(0, Number(input.value) || 0);
+      try { localStorage.setItem('belay-runs-per-month', String(runs)); } catch (err) {}
+      const k = runs / 1000;
+      $('projection').innerHTML = table(
+        [{ label: '' }, { label: 'per month', num: 1 }, { label: 'per year', num: 1 }],
+        [
+          ['Cloud only', money(data.cloudOnlyCostPer1k * k), money(data.cloudOnlyCostPer1k * k * 12)],
+          ['Cascade', money(e.costPer1k * k), money(e.costPer1k * k * 12)],
+          ['<strong>Saved</strong>', '<strong>' + money(e.savingsPer1k * k) + '</strong>', '<strong>' + money(e.savingsPer1k * k * 12) + '</strong>'],
+        ],
+      );
+    };
+    input.addEventListener('input', project);
+    project();
+  }
 
   render();
   let frame;
