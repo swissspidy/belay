@@ -58,12 +58,13 @@ describe('cloudCascade', () => {
 });
 
 describe.each(structured)('$dir', ({ dir, task }) => {
-  it('has a config whose dataset parses against the structured schema: 300 unique examples', async () => {
+  it('has a config whose dataset parses against the structured schema: 240 unique examples, each with an event', async () => {
     process.env['BELAY_CLOUD'] ??= 'reference';
     const config = ((await import(`../${dir}/belay.config.mjs`)) as { default: BelayConfig }).default;
     const dataset = await loadDataset(new URL(`../${dir}/examples.jsonl`, import.meta.url).pathname, config.tasks[task]!.schema);
-    expect(dataset.examples).toHaveLength(300);
-    expect(new Set(dataset.examples.map((e) => e.input.toLowerCase())).size).toBe(300);
+    expect(dataset.examples).toHaveLength(240);
+    expect(new Set(dataset.examples.map((e) => e.input.toLowerCase())).size).toBe(240);
+    expect(dataset.examples.every((e) => (e.expected as { event_name: string | null }).event_name)).toBe(true);
   });
 
   it('compares extractions field by field, ignoring case, punctuation, articles and prepositions', async () => {

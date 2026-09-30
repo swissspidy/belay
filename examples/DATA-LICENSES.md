@@ -47,6 +47,9 @@ below. Belay's own code is Apache-2.0. These data files keep their original lice
 - **Source:** [MASSIVE 1.1](https://github.com/alexa/massive) en-US (all partitions, from the
   release archive `amazon-massive-dataset-1.1.tar.gz`), from FitzGerald et al., 2022. © Amazon.com, Inc.
 - **License:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **Changes:** 300 `calendar_set` utterances whose slot annotations only use `event_name`,
-  `date`, `time`, `person` and `place_name`, each at most once. The label is those slots as a JSON
-  object (absent ones `null`); the annotated utterance is kept in `source`.
+- **Changes:** 300 sampled `calendar_set` utterances whose slot annotations only use `event_name`,
+  `date`, `time`, `person` and `place_name`, each at most once; the 60 without an `event_name`
+  annotation are then dropped, because MASSIVE often leaves the event untagged even when the request
+  names one ("i have practice at wrigley tomorrow at six"). 240 remain, with their sampled ids. The
+  label is those slots as a JSON object (absent ones `null`); the annotated utterance is kept in
+  `source`. Other fields still carry some annotation noise.

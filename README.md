@@ -154,25 +154,25 @@ What the reports showed:
   With 300 examples, one point is three examples, so small differences between rows are noise.
 - **Generation needs a judge that can tell right from wrong, and Laya isn't one yet.**
   [`examples/event-extraction`](examples/event-extraction/belay-report.html) extracts a calendar
-  event (5 fields) from 300 voice requests with Gemini Nano through Chrome's Prompt API, judged
-  by Laya through the Classifier API, with Claude as the cloud. Gemini Nano got 47.7% of the
-  extractions fully right, Claude 62.7% (the annotations are noisy). But Laya's P(correct) sat
-  between 0.2 and 0.7 whether the extraction was right or wrong, so no threshold could trust the
-  local answer: the cascade kept 1% of runs on device and saved 1%. Calibration is what catches
-  this before shipping. [`scripts/extraction-signals.mjs`](examples/scripts/extraction-signals.mjs)
-  tried two other signals on the same outputs:
-  - A **verbatim check** (every extracted value appears in the request) is useless here: 96% of
+  event (5 fields) from 240 voice requests with Gemini Nano through Chrome's Prompt API, judged
+  by Laya through the Classifier API, with Claude as the cloud. Gemini Nano got 50.8% of the
+  extractions fully right, Claude 68.3% (the annotations are still somewhat noisy). But Laya's
+  P(correct) sat between 0.1 and 0.8 whether the extraction was right or wrong, so no threshold
+  could trust the local answer: the cascade kept about 1% of runs on device and saved 1%.
+  Calibration is what catches this before shipping.
+  [`scripts/extraction-signals.mjs`](examples/scripts/extraction-signals.mjs) tried other signals
+  on the same outputs:
+  - A **verbatim check** (every extracted value appears in the request) is useless here: 95% of
     Nano's extractions pass it. Nano copies faithfully; its mistakes are *which* words form the
-    event (107 of 157 wrong extractions get `event_name` wrong) and span boundaries.
-  - **Jev as the judge** separates better (its most trusted third is 60% right, against 41% for
-    Laya's) and keeps 12% of runs on device at Claude's accuracy (62.3% held out vs 62.7%). That
-    saves 13% of the Claude bill, less about $17 per million runs for the Jev calls.
+    event (81 of 118 wrong extractions get `event_name` wrong) and span boundaries.
+  - **Jev as the judge** separates better (its most trusted third is 68% right, against 46% for
+    Laya's) and keeps 12% of runs on device at about Claude's accuracy (67.5% held out vs 68.3%).
   - **Self-consistency** (three extra Nano runs per request, [`scripts/extraction-consistency.mjs`](examples/scripts/extraction-consistency.mjs))
-    separates about as well as Jev, and a majority vote of the four runs lifts Nano itself from
-    47.7% to 49.7%. But Nano's mistakes are systematic: on the 177 requests where all four runs
-    agree, Nano is right 102 times and Claude 117 (Claude alone right 19 times, Nano alone 4).
-    Keeping those local would save 59% at 5 points of accuracy, so a target of "at least cloud
-    accuracy" escalates everything. Agreement × Jev keeps 15% local at Claude's accuracy.
+    separates about as well, and a majority vote of the four runs lifts Nano itself from 50.8% to
+    52.5%. But Nano's mistakes are systematic: on the 143 requests where all four runs agree,
+    Nano is right 88 times and Claude 103 (Claude alone right 19 times, Nano alone 4). Keeping
+    those local would save 60% at about 6 points of accuracy, so a target of "at least cloud
+    accuracy" escalates everything. Agreement × Jev keeps 22% local at 67.1% held out.
 
   Structured generation is where a cascade is hardest: the local model and the judge both have
   to be good, and noisy labels cap what any judge can show.

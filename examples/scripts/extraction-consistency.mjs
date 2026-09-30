@@ -9,12 +9,13 @@
  */
 import { browserBackend } from '@belay/calibrate';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { webaiBrowser } from '../shared/extension.mjs';
 import { context, extractionSchema } from '../event-extraction/task.mjs';
 
 const SAMPLES = Number(process.env.SAMPLES ?? 3);
 const deadline = process.env.MAX_MINUTES ? Date.now() + Number(process.env.MAX_MINUTES) * 60_000 : Infinity;
-const dir = new URL('../event-extraction/', import.meta.url).pathname;
+const dir = fileURLToPath(new URL('../event-extraction/', import.meta.url));
 const file = `${dir}.belay-cache/consistency.jsonl`;
 const done = new Set(existsSync(file) ? readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).map((l) => { const r = JSON.parse(l); return `${r.id}:${r.run}`; }) : []);
 const rows = readFileSync(`${dir}examples.jsonl`, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
@@ -32,6 +33,13 @@ const backend = await browserBackend({
   log: (m) => console.error(m),
 });
 try {
+  // A fresh profile has no model yet: download it (under the harness's user gesture) before the runs.
+  const state = await backend.availability();
+  if (state === 'unavailable') throw new Error('The Prompt API is unavailable in this browser (see examples/README.md, "Gemini Nano")');
+  if (state !== 'available') {
+    console.log(`Gemini Nano is ${state}; downloading…`);
+    await backend.prepare();
+  }
   let n = 0;
   for (const r of todo) {
     if (Date.now() > deadline) break;

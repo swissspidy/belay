@@ -196,7 +196,11 @@ if (want('extraction')) {
     for (const [k, v] of slots) label[k] = v;
     examples.push({ input: r.utt, label, source: r.annot_utt });
   }
-  await write(new URL('../event-extraction/examples.jsonl', import.meta.url), pick(examples, 300, (e) => e.input, 'extraction'));
+  // MASSIVE's annotators sometimes left the event itself untagged ("i have practice at wrigley
+  // tomorrow at six" has no event_name), which would mark a correct extraction wrong. Rows without an
+  // event_name annotation are dropped after sampling, keeping the sampled ids stable.
+  const sampled = pick(examples, 300, (e) => e.input, 'extraction').map((e, i) => ({ id: `${i + 1}`, ...e }));
+  await write(new URL('../event-extraction/examples.jsonl', import.meta.url), sampled.filter((e) => e.label.event_name !== null));
 }
 
 /** Reads one file from an uncompressed tar archive (ustar headers, 512-byte blocks). */

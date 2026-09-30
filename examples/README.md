@@ -1,7 +1,7 @@
 # Belay examples
 
-Four tasks, each with a labeled dataset of 300 examples and a calibration config: three
-classification tasks and one generation task.
+Four tasks, each with a labeled dataset (300 examples; 240 for event extraction) and a
+calibration config: three classification tasks and one generation task.
 
 | Example | Schema | Dataset (license) |
 | --- | --- | --- |

@@ -37,7 +37,9 @@ async function samplesFor(name, cloud) {
     run: notCached,
     close: async () => {},
   };
-  const { samples, cached } = await evaluate({ name, config, dataset, backend, cache });
+  // Replay only: a cloud runner that rejects, so a cache miss can never become a paid request.
+  const replayCloud = { id: config.cloud.id, run: notCached };
+  const { samples, cached } = await evaluate({ name, config: { ...config, cloud: replayCloud }, dataset, backend, cache, cloudRetries: 0, log: () => {} });
   if (cached.local !== samples.length || cached.cloud !== samples.length) await notCached();
   return samples;
 }
