@@ -167,6 +167,12 @@ What the reports showed:
   - **Jev as the judge** separates better (its most trusted third is 60% right, against 41% for
     Laya's) and keeps 12% of runs on device at Claude's accuracy (62.3% held out vs 62.7%). That
     saves 13% of the Claude bill, less about $17 per million runs for the Jev calls.
+  - **Self-consistency** (three extra Nano runs per request, [`scripts/extraction-consistency.mjs`](examples/scripts/extraction-consistency.mjs))
+    separates about as well as Jev, and a majority vote of the four runs lifts Nano itself from
+    47.7% to 49.7%. But Nano's mistakes are systematic: on the 177 requests where all four runs
+    agree, Nano is right 102 times and Claude 117 (Claude alone right 19 times, Nano alone 4).
+    Keeping those local would save 59% at 5 points of accuracy, so a target of "at least cloud
+    accuracy" escalates everything. Agreement × Jev keeps 15% local at Claude's accuracy.
 
   Structured generation is where a cascade is hardest: the local model and the judge both have
   to be good, and noisy labels cap what any judge can show.
