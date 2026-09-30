@@ -40,6 +40,7 @@ export function webaiBrowser(options = {}) {
     ...(process.env.HTTPS_PROXY ? { args: ['--component-updater=url-source=https://update.googleapis.com/service/update2/json'] } : {}),
     // Downloads of the ~650 MB model can take a while on a slow connection.
     prepareTimeoutMs: 60 * 60_000,
-    timeoutMs: 120_000,
+    // The first run after a cold start loads the model from disk: Gemini Nano (4 GB) can take minutes.
+    timeoutMs: 300_000,
   };
 }

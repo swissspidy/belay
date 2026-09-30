@@ -1,6 +1,7 @@
 /**
  * Compares confidence signals for the event-extraction example from its cached outputs: the Laya
- * judge it was calibrated with, a verbatim check, and Jev as a judge. Each signal replaces the local
+ * judge it was calibrated with, a verbatim check, Jev as a judge, and self-consistency across extra
+ * Gemini Nano runs (from `scripts/extraction-consistency.mjs`, when its cache exists). Each signal replaces the local
  * confidence and goes through the same analysis as `belay calibrate` (target 'max', 5-fold held out).
  *
  *   node scripts/extraction-signals.mjs    (Jev judgements are cached; JEV_API_KEY fetches missing ones)
@@ -8,7 +9,7 @@
 import { analyze, crossValidate, evaluate, loadDataset, OutputCache } from '@belay/calibrate';
 import { TypeSafeClient } from '@typesafe-ai/sdk';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { FIELDS, normalize } from '../event-extraction/task.mjs';
+import { FIELDS, normalize, sameEvent } from '../event-extraction/task.mjs';
 
 process.env.BELAY_CLOUD ??= 'claude';
 const dir = new URL('../event-extraction/', import.meta.url).pathname;
@@ -47,23 +48,66 @@ if (missing.length) {
   writeFileSync(jevFile, JSON.stringify(jev, null, 0) + '\n');
 }
 
+// Self-consistency: extra Nano runs per request (scripts/extraction-consistency.mjs).
+const runsFile = `${dir}.belay-cache/consistency.jsonl`;
+const runs = new Map();
+if (existsSync(runsFile)) {
+  for (const line of readFileSync(runsFile, 'utf8').trim().split('\n').filter(Boolean)) {
+    const r = JSON.parse(line);
+    runs.set(r.id, [...(runs.get(r.id) ?? []), r.value]);
+  }
+}
+const extraRuns = Math.max(0, ...[...runs.values()].map((v) => v.length));
+const expected = new Map(dataset.examples.map((e) => [e.id, e.expected]));
+/** Share of the extra runs that agree with the original answer. */
+const agreement = (s) => {
+  const extra = runs.get(s.id) ?? [];
+  return extra.length ? extra.filter((v) => sameEvent(v, s.local.value)).length / extra.length : 0;
+};
+/** The most common answer among the original and the extra runs, and its share of the votes. */
+const majority = (s) => {
+  const answers = [s.local.value, ...(runs.get(s.id) ?? [])];
+  let best = answers[0], votes = 0;
+  for (const a of answers) {
+    const n = answers.filter((b) => sameEvent(a, b)).length;
+    if (n > votes) [best, votes] = [a, n];
+  }
+  return { value: best, share: votes / answers.length };
+};
+
 const signals = {
   'Laya judge (calibrated)': (s) => s.local.confidence,
   'Verbatim check': (s) => verbatim(s.input, s.local.value),
   'Jev judge': (s) => jev[s.id],
   'min(Jev, Laya)': (s) => Math.min(jev[s.id], s.local.confidence),
+  ...(extraRuns
+    ? {
+        [`Agreement of ${extraRuns} extra Nano runs`]: agreement,
+        'Agreement × Jev': (s) => agreement(s) * jev[s.id],
+        [`Majority vote of ${extraRuns + 1} runs (answer changes too)`]: { majority: true },
+      }
+    : {}),
 };
 const pct = (v) => `${(v * 100).toFixed(1)}%`;
 const locals = samples.filter((s) => s.local);
 console.log(`Gemini Nano: ${pct(locals.filter((s) => s.local.correct).length / samples.length)} right; Claude: ${pct(samples.filter((s) => s.cloud?.correct).length / samples.length)}\n`);
-console.log('| Signal | Top third by signal: right | Threshold | Accuracy | Held out | Local (held out) | Claude cost saved |');
-console.log('| --- | --- | --- | --- | --- | --- | --- |');
+const n = samples.filter((s) => !extraRuns || (runs.get(s.id)?.length ?? 0) === extraRuns).length;
+if (n < samples.length) console.log(`Scored on the ${n} requests with all ${extraRuns} extra runs cached.\n`);
+console.log('| Signal | Local right | Top third by signal: right | Threshold | Accuracy | Held out | Local (held out) | Claude cost saved |');
+console.log('| --- | --- | --- | --- | --- | --- | --- | --- |');
 for (const [name, signal] of Object.entries(signals)) {
-  const scored = samples.map((s) => (s.local ? { ...s, local: { ...s.local, confidence: signal(s) } } : s));
+  const score = (s) => {
+    if (typeof signal === 'function') return { ...s.local, confidence: signal(s) };
+    const m = majority(s);
+    return { ...s.local, value: m.value, confidence: m.share, correct: sameEvent(m.value, expected.get(s.id)) };
+  };
+  const complete = (s) => !extraRuns || (runs.get(s.id)?.length ?? 0) === extraRuns;
+  const scored = samples.filter(complete).map((s) => (s.local ? { ...s, local: score(s) } : s));
   const options = { target: 'max', cost: { currency: 'USD' } };
   const a = analyze(scored, options);
   const cv = crossValidate(scored, options);
-  const top = scored.filter((s) => s.local).sort((x, y) => y.local.confidence - x.local.confidence).slice(0, Math.floor(locals.length / 3));
+  const top = scored.filter((s) => s.local).sort((x, y) => y.local.confidence - x.local.confidence).slice(0, Math.floor(scored.length / 3));
   const saved = a.expected.savingsPer1k / a.expected.cloudOnlyCostPer1k;
-  console.log(`| ${name} | ${pct(top.filter((s) => s.local.correct).length / top.length)} | ${a.threshold} | ${pct(a.expected.accuracy)} | ${pct(cv.accuracy)} | ${pct(cv.localShare)} | ${pct(saved)} |`);
+  const localRight = scored.filter((s) => s.local?.correct).length / scored.length;
+  console.log(`| ${name} | ${pct(localRight)} | ${pct(top.filter((s) => s.local.correct).length / top.length)} | ${a.threshold} | ${pct(a.expected.accuracy)} | ${cv ? pct(cv.accuracy) : '–'} | ${cv ? pct(cv.localShare) : '–'} | ${pct(saved)} |`);
 }
