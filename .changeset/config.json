@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "swissspidy/belay" }],
+  "commit": false,
+  "fixed": [["@belay/core", "@belay/web", "@belay/calibrate"]],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["belay-examples"]
+}

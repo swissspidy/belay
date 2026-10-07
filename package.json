@@ -11,9 +11,14 @@
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
     "check": "npm run typecheck && npm run build && npm test",
-    "set-version": "node scripts/set-version.mjs"
+    "lint:publish": "publint --strict packages/core && publint --strict packages/web && publint --strict packages/calibrate",
+    "changeset": "changeset",
+    "version-packages": "changeset version && npm install --package-lock-only"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
+    "publint": "^0.3.25",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2"
   },

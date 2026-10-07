@@ -1,60 +1,50 @@
 name: Release
 
-# Publishes @belay/core, @belay/web and @belay/calibrate to npm when a version tag (v0.1.0) is
-# pushed. Uses npm trusted publishing (OIDC), so there is no npm token, and npm adds provenance
-# automatically. See RELEASING.md.
+# With changesets on main, opens or updates the "Version packages" pull request. Merging that
+# pull request publishes @belay/core, @belay/web and @belay/calibrate to npm, tags the release
+# and creates the GitHub releases. See RELEASING.md.
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
 
 permissions: {}
 
+# Queue rather than cancel: interrupting a run halfway through publishing would leave some
+# packages on npm and others not.
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Publish to npm
+  release:
+    name: Version or publish
     runs-on: ubuntu-latest
     environment: npm
     permissions:
-      contents: read
+      contents: write # push the version branch, tags and GitHub releases
+      pull-requests: write # open and update the "Version packages" pull request
       id-token: write # npm trusted publishing and provenance
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
-      # Node 24 ships npm 11, which trusted publishing needs. No dependency cache in a release job.
+      # Node 24 ships npm 11, which trusted publishing needs. No registry-url, so no .npmrc
+      # carries credentials into the install and build, and no dependency cache in a release job.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - run: npm ci
-      - name: Check that the tag matches the package versions
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          for pkg in core web calibrate; do
-            version=$(node -p "require('./packages/$pkg/package.json').version")
-            if [ "v$version" != "$TAG" ]; then
-              echo "::error::@belay/$pkg is at $version, but the tag is $TAG"
-              exit 1
-            fi
-          done
-      - run: npm run check
-      # In dependency order. A version that is already on npm is skipped, so a failed run can be
-      # re-run.
-      - name: Publish
-        run: |
-          for pkg in core web calibrate; do
-            name=$(node -p "require('./packages/$pkg/package.json').name")
-            version=$(node -p "require('./packages/$pkg/package.json').version")
-            if npm view "$name@$version" version >/dev/null 2>&1; then
-              echo "$name@$version is already published, skipping"
-            else
-              npm publish --workspace "packages/$pkg" --provenance
-            fi
-          done
+      - run: npm run build
+      # Publishing uses npm trusted publishing: npm exchanges the job's OIDC token (id-token:
+      # write above) for a short-lived credential and adds provenance, so no npm secret is
+      # involved. `changeset publish` skips versions that are already on npm.
+      - name: Create release pull request or publish
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          version-script: npm run version-packages
+          publish-script: npx changeset publish
+          commit-message: Version packages
+          pr-title: Version packages

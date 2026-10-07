@@ -416,7 +416,8 @@ GitHub Actions workflows are audited with [zizmor](https://docs.zizmor.sh) on ev
 request (`uvx zizmor .github/` runs it locally). Actions are pinned to commit SHAs, and Dependabot
 keeps them and the npm dependencies up to date.
 
-Releases are published to npm from a version tag by a GitHub Actions workflow; see
+Pull requests that change a published package add a changeset (`npx changeset`). Releases are
+versioned and published to npm with [Changesets](https://github.com/changesets/changesets); see
 [RELEASING.md](RELEASING.md).
 
 ## License
