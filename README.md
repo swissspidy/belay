@@ -53,6 +53,10 @@ cloud models; Belay decides which one answers, and proves the decision on your d
 
 ## Quick look
 
+```sh
+npm install @belay/core @belay/web
+```
+
 ```ts
 import { task, fetchAdapter } from '@belay/core';
 import { classifierApi } from '@belay/web';
@@ -411,6 +415,9 @@ npm run check   # typecheck, build, test
 GitHub Actions workflows are audited with [zizmor](https://docs.zizmor.sh) on every push and pull
 request (`uvx zizmor .github/` runs it locally). Actions are pinned to commit SHAs, and Dependabot
 keeps them and the npm dependencies up to date.
+
+Releases are published to npm from a version tag by a GitHub Actions workflow; see
+[RELEASING.md](RELEASING.md).
 
 ## License
 

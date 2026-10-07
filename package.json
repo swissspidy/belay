@@ -10,7 +10,8 @@
     "build": "tsc -b packages/core packages/web packages/calibrate",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run build && npm test"
+    "check": "npm run typecheck && npm run build && npm test",
+    "set-version": "node scripts/set-version.mjs"
   },
   "devDependencies": {
     "typescript": "^7.0.2",

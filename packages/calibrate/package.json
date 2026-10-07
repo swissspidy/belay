@@ -3,6 +3,25 @@
   "version": "0.1.0",
   "description": "Calibrate Belay task thresholds on labeled data in a real Chrome: CLI, calibration file and HTML report.",
   "license": "Apache-2.0",
+  "author": "Pascal Birchler",
+  "homepage": "https://github.com/swissspidy/belay/tree/main/packages/calibrate#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swissspidy/belay.git",
+    "directory": "packages/calibrate"
+  },
+  "bugs": {
+    "url": "https://github.com/swissspidy/belay/issues"
+  },
+  "keywords": [
+    "ai",
+    "calibration",
+    "threshold",
+    "cli",
+    "playwright",
+    "cascade",
+    "evaluation"
+  ],
   "type": "module",
   "bin": {
     "belay": "./dist/bin.js"
@@ -13,7 +32,10 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "dependencies": {
     "@belay/core": "^0.1.0",
     "@belay/web": "^0.1.0"
@@ -32,5 +54,11 @@
   },
   "scripts": {
     "build": "tsc -b"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
