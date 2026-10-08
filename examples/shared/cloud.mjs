@@ -44,7 +44,7 @@ export const claudePrices = {
  * https://ai.google.dev/gemini-api/docs/pricing (checked 2026-10-08). These are Gemini 3.8 Flash's
  * prices through December 31, 2026; from January 1, 2027 they double ($1.50 / $7.50, cache $0.15).
  * Output includes thinking tokens.
- * @type {import('@belay/core').PriceTable}
+ * @type {import('@swissspidy/belay-core').PriceTable}
  */
 export const geminiPrices = {
   'gemini-3.8-flash': { input: 0.75, output: 3.75, cacheRead: 0.075 },
