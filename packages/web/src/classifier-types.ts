@@ -6,7 +6,7 @@
  * flux: only the members Belay relies on are typed, and result fields are checked at runtime.
  */
 
-import type { Availability } from '@belay/core';
+import type { Availability } from '@swissspidy/belay-core';
 
 export type ClassifierQuestionType = 'binary' | 'categorical' | 'ordinal';
 

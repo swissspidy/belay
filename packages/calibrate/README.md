@@ -1,8 +1,8 @@
-# @belay/calibrate
+# @swissspidy/belay-calibrate
 
 The `belay calibrate` CLI for [Belay](https://github.com/swissspidy/belay#readme). It runs your
 labeled examples through a task's on-device model (in a real Chrome, through the same
-`@belay/web` code your app ships) and its cloud model, then picks the confidence threshold. It
+`@swissspidy/belay-web` code your app ships) and its cloud model, then picks the confidence threshold. It
 writes:
 
 - `belay.calibration.json`, which the task loads instead of a hand-picked threshold;
@@ -15,7 +15,7 @@ writes:
 ## Install
 
 ```sh
-npm install --save-dev @belay/calibrate playwright-core
+npm install --save-dev @swissspidy/belay-calibrate playwright-core
 ```
 
 `playwright-core` drives Chrome. It uses your installed Chrome, or the browser in `--browser` /
@@ -25,8 +25,8 @@ npm install --save-dev @belay/calibrate playwright-core
 
 ```js
 // belay.config.mjs
-import { defineConfig } from '@belay/calibrate';
-import { cloudAdapter } from '@belay/core';
+import { defineConfig } from '@swissspidy/belay-calibrate';
+import { cloudAdapter } from '@swissspidy/belay-core';
 import { triageSchema } from './src/tasks.js'; // the same schema object your app uses
 
 export default defineConfig({

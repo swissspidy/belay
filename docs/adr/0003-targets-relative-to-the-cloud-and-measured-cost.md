@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-29
-- Scope: `@belay/core`, `@belay/calibrate`, examples
+- Scope: `@swissspidy/belay-core`, `@swissspidy/belay-calibrate`, examples
 - Amends: ADR 0001, Decision 4 (calibration file); ADR 0002, Decision 7 (reference cloud)
 
 ## Context
@@ -60,7 +60,7 @@ but it is no longer what you get without asking.
   (`cost.runsPerMonth`).
 
 Price tables live with the runner that calls the model (the examples copy them from the
-providers' pricing pages, with the date checked), not in `@belay/core`, because prices change
+providers' pricing pages, with the date checked), not in `@swissspidy/belay-core`, because prices change
 more often than the library.
 
 ### 3. Every calibration includes a held-out estimate
@@ -88,7 +88,7 @@ justified by the held-out estimate.
 Each example then uses the cloud that suited it best in that comparison (Claude for ticket
 triage, Jev for moderation) or, for intent detection, `cloudCascade(jev, claude)`: Jev answers
 when its own confidence is at least 0.8, Claude otherwise. That routing lives in the examples as a
-cloud runner, not in `@belay/core`: the usage of both calls is reported, so the calibration prices
+cloud runner, not in `@swissspidy/belay-core`: the usage of both calls is reported, so the calibration prices
 it correctly, and the library's cascade stays one local tier and one cloud tier.
 
 ## Consequences

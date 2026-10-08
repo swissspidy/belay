@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-29
-- Scope: `@belay/calibrate`, `@belay/web`
+- Scope: `@swissspidy/belay-calibrate`, `@swissspidy/belay-web`
 
 ## Context
 
@@ -15,12 +15,12 @@ models are not deterministic.
 
 ## Decisions
 
-### 1. The page runs the published `@belay/web` runners, unmodified
+### 1. The page runs the published `@swissspidy/belay-web` runners, unmodified
 
 `belay calibrate` starts a small HTTP server on `127.0.0.1` (a secure context, so built-in AI APIs
 and extensions work) and serves:
 
-- `harness.html`, whose import map points `@belay/core` and `@belay/web` at the built `dist/`
+- `harness.html`, whose import map points `@swissspidy/belay-core` and `@swissspidy/belay-web` at the built `dist/`
   folders;
 - `harness.js`, a thin wrapper that instantiates `classifierApi()`, `promptApi()` or
   `classifierJudge()` from JSON options and exposes `run`, `judge`, `availability` and `prepare`.
@@ -28,7 +28,7 @@ and extensions work) and serves:
 Node calls those through Playwright's `page.evaluate`. The confidence recorded in a calibration
 file is therefore computed by the same code as in production, including `readDecision()`'s
 choice of the label probability. The confidence combination (`combineConfidence`) and schema
-validation (`parseValue`) run in Node from `@belay/core`, the same functions `task()` uses. A test
+validation (`parseValue`) run in Node from `@swissspidy/belay-core`, the same functions `task()` uses. A test
 asserts that replaying a calibrated threshold through `task()` reproduces the file's expected
 accuracy and local share exactly.
 

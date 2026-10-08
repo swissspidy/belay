@@ -1,7 +1,7 @@
 name: Release
 
 # With changesets on main, opens or updates the "Version packages" pull request. Merging that
-# pull request publishes @belay/core, @belay/web and @belay/calibrate to npm, tags the release
+# pull request publishes @swissspidy/belay-core, @swissspidy/belay-web and @swissspidy/belay-calibrate to npm, tags the release
 # and creates the GitHub releases. See RELEASING.md.
 
 on:

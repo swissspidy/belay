@@ -1,26 +1,26 @@
-# @belay/core
+# @swissspidy/belay-core
 
 Answer AI tasks with a small on-device model, and call a cloud model only for the inputs it is
-unsure about. `@belay/core` has the task, the cascade, confidence handling, calibration files,
+unsure about. `@swissspidy/belay-core` has the task, the cascade, confidence handling, calibration files,
 cloud adapters and savings telemetry. It has no runtime dependencies.
 
-Pair it with [`@belay/web`](https://www.npmjs.com/package/@belay/web) for the on-device runners
+Pair it with [`@swissspidy/belay-web`](https://www.npmjs.com/package/@swissspidy/belay-web) for the on-device runners
 (Chrome's Classifier and Prompt APIs), and calibrate the threshold on your own data with
-[`@belay/calibrate`](https://www.npmjs.com/package/@belay/calibrate).
+[`@swissspidy/belay-calibrate`](https://www.npmjs.com/package/@swissspidy/belay-calibrate).
 
 > **Status:** experimental (0.x). The API may change between minor versions.
 
 ## Install
 
 ```sh
-npm install @belay/core @belay/web
+npm install @swissspidy/belay-core @swissspidy/belay-web
 ```
 
 ## Usage
 
 ```ts
-import { task, fetchAdapter } from '@belay/core';
-import { classifierApi } from '@belay/web';
+import { task, fetchAdapter } from '@swissspidy/belay-core';
+import { classifierApi } from '@swissspidy/belay-web';
 
 const triage = task({
   name: 'ticket-triage',

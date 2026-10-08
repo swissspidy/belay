@@ -1,4 +1,4 @@
-import type { Judge, PrepareOptions, RunnerContext } from '@belay/core';
+import type { Judge, PrepareOptions, RunnerContext } from '@swissspidy/belay-core';
 import { classifierApi } from './classifier.js';
 import type { ClassifierExpectedInput, ClassifierStatic } from './classifier-types.js';
 

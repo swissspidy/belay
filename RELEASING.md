@@ -1,6 +1,6 @@
 # Releasing
 
-`@belay/core`, `@belay/web` and `@belay/calibrate` are released together, at the same version,
+`@swissspidy/belay-core`, `@swissspidy/belay-web` and `@swissspidy/belay-calibrate` are released together, at the same version,
 with [Changesets](https://github.com/changesets/changesets) and
 [`release.yml`](.github/workflows/release.yml).
 
@@ -19,7 +19,7 @@ don't affect the packages (examples, docs, CI) don't need one.
 ## Every release
 
 On each push to `main` with pending changesets, the release workflow opens or updates a
-**Version packages** pull request. It bumps the versions and the `@belay/*` ranges between the
+**Version packages** pull request. It bumps the versions and the `@swissspidy/belay-*` ranges between the
 packages, and writes each package's `CHANGELOG.md`. Merge it when you want to release: the
 workflow then publishes the new versions to npm (with provenance), pushes the tags and creates
 the GitHub releases.

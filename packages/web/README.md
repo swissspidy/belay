@@ -1,4 +1,4 @@
-# @belay/web
+# @swissspidy/belay-web
 
 On-device runners for [Belay](https://github.com/swissspidy/belay#readme), built on the
 browser's built-in AI:
@@ -18,14 +18,14 @@ They work with the native APIs and with polyfills that define the same globals, 
 ## Install
 
 ```sh
-npm install @belay/core @belay/web
+npm install @swissspidy/belay-core @swissspidy/belay-web
 ```
 
 ## Usage
 
 ```ts
-import { task, fetchAdapter } from '@belay/core';
-import { classifierApi } from '@belay/web';
+import { task, fetchAdapter } from '@swissspidy/belay-core';
+import { classifierApi } from '@swissspidy/belay-web';
 
 const moderate = task({
   name: 'moderation',

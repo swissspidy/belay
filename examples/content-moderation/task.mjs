@@ -1,5 +1,5 @@
-import { task } from '@belay/core';
-import { classifierApi } from '@belay/web';
+import { task } from '@swissspidy/belay-core';
+import { classifierApi } from '@swissspidy/belay-web';
 
 export const context = 'Reader comments posted under news articles.';
 
