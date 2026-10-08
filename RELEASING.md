@@ -27,32 +27,6 @@ the GitHub releases.
 The Version packages pull request is opened with the workflow's token, so CI doesn't run on it.
 It only changes versions, changelogs and the lockfile.
 
-## One-time setup
-
-Do this before merging the pull request that adds the release workflow. The workflow's first run
-on `main` tries to publish 0.1.0, and fails until these steps are done.
-
-1. **Publish 0.1.0 by hand.** The packages live in the `@swissspidy` user scope, so there is no
-   organization to create. npm can only configure trusted publishing for a package that exists.
-   Logged in as `swissspidy`, with 2FA:
-
-   ```sh
-   npm ci
-   npm run check
-   npm publish --workspace packages/core
-   npm publish --workspace packages/web
-   npm publish --workspace packages/calibrate
-   ```
-
-2. **Add a trusted publisher to each package** on npmjs.com (*Settings → Trusted publishing →
-   GitHub Actions*): organization `swissspidy`, repository `belay`, workflow `release.yml`,
-   environment `npm`.
-3. **Let the workflow open pull requests:** in the GitHub repository settings, under *Actions →
-   General → Workflow permissions*, check *Allow GitHub Actions to create and approve pull
-   requests*.
-4. Optionally, in each package's npm settings, set publishing access to *Require two-factor
-   authentication and disallow tokens*, so only the workflow can publish.
-
 The workflow runs in the `npm` GitHub environment, which GitHub creates on its first run. Don't
 add required reviewers to it: the job runs on every push to `main`, so each push would wait for
 an approval.
