@@ -1,5 +1,5 @@
-import { LocalUnavailableError, buildInstruction, toJsonSchema } from '@belay/core';
-import type { Availability, LocalOutput, LocalRunner, PrepareOptions, RunnerContext, TaskSchema } from '@belay/core';
+import { LocalUnavailableError, buildInstruction, toJsonSchema } from '@swissspidy/belay-core';
+import type { Availability, LocalOutput, LocalRunner, PrepareOptions, RunnerContext, TaskSchema } from '@swissspidy/belay-core';
 import type { LanguageModelCreateOptions, LanguageModelExpected, LanguageModelSession, LanguageModelStatic } from './prompt-types.js';
 
 export interface PromptApiOptions {

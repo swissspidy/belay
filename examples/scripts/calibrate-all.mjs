@@ -11,7 +11,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const bin = fileURLToPath(new URL('./bin.js', import.meta.resolve('@belay/calibrate')));
+const bin = fileURLToPath(new URL('./bin.js', import.meta.resolve('@swissspidy/belay-calibrate')));
 /** The first cloud is the one the example uses. */
 const TASKS = {
   'ticket-triage': ['claude', 'jev'],

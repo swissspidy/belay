@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { canonicalJson } from '@belay/core';
+import { canonicalJson } from '@swissspidy/belay-core';
 
 /**
  * Append-only JSONL cache of model outputs. Re-running a calibration replays cached outputs,

@@ -4,7 +4,7 @@ import {
   clamp01,
   normalizeOptions,
   topProbability,
-} from '@belay/core';
+} from '@swissspidy/belay-core';
 import type {
   Availability,
   BinarySchema,
@@ -16,7 +16,7 @@ import type {
   ProbabilityEntry,
   RunnerContext,
   TaskSchema,
-} from '@belay/core';
+} from '@swissspidy/belay-core';
 import type {
   ClassifierDecision,
   ClassifierExpectedInput,

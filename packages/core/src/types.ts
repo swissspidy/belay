@@ -1,5 +1,5 @@
 /**
- * Public types for @belay/core. See docs/adr/0001-public-api-confidence-and-calibration.md.
+ * Public types for @swissspidy/belay-core. See docs/adr/0001-public-api-confidence-and-calibration.md.
  */
 
 // ---------------------------------------------------------------------------
@@ -43,7 +43,7 @@ export interface StructuredSchema<T = unknown> {
   /** JSON Schema handed to the Prompt API (`responseConstraint`) and to the cloud adapter. */
   jsonSchema: Record<string, unknown>;
   /**
-   * Validates a parsed candidate. @belay/core has no runtime dependencies and therefore
+   * Validates a parsed candidate. @swissspidy/belay-core has no runtime dependencies and therefore
    * no JSON Schema validator; plug in your own (Ajv, Zod, a hand-written guard, ...).
    */
   validate: (value: unknown) => value is T;

@@ -32,3 +32,4 @@ jobs:
           npx playwright-core install --with-deps chromium
           echo "BELAY_CHROME=$(node -e "import('playwright-core').then(p => console.log(p.chromium.executablePath()))")" >> "$GITHUB_ENV"
       - run: npm run check
+      - run: npm run lint:publish

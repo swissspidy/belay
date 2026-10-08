@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { canonicalJson, fnv1a, labelOf, parseValue, type TaskSchema } from '@belay/core';
+import { canonicalJson, fnv1a, labelOf, parseValue, type TaskSchema } from '@swissspidy/belay-core';
 
 export interface Example {
   id: string;

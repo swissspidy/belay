@@ -1,4 +1,4 @@
-import { defineConfig } from '@belay/calibrate';
+import { defineConfig } from '@swissspidy/belay-calibrate';
 import { exampleCloud } from '../shared/cloud.mjs';
 import { webaiBrowser } from '../shared/extension.mjs';
 import { context, intentSchema } from './task.mjs';

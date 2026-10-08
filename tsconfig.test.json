@@ -7,8 +7,8 @@
     "declarationMap": false,
     "types": ["node"],
     "paths": {
-      "@belay/core": ["./packages/core/src/index.ts"],
-      "@belay/web": ["./packages/web/src/index.ts"]
+      "@swissspidy/belay-core": ["./packages/core/src/index.ts"],
+      "@swissspidy/belay-web": ["./packages/web/src/index.ts"]
     }
   },
   "include": ["packages/*/src", "packages/*/test", "vitest.config.ts"]

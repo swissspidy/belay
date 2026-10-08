@@ -1,5 +1,5 @@
-import { task } from '@belay/core';
-import { classifierApi } from '@belay/web';
+import { task } from '@swissspidy/belay-core';
+import { classifierApi } from '@swissspidy/belay-web';
 
 export const context = 'Customer support messages sent to an online store.';
 
@@ -26,7 +26,7 @@ export const triageSchema = {
 /**
  * The app side: create the task once and call `run()` per message.
  *
- * @param {{ cloud: import('@belay/core').CloudRunner, calibration?: string | object, onEvent?: (e: unknown) => void }} options
+ * @param {{ cloud: import('@swissspidy/belay-core').CloudRunner, calibration?: string | object, onEvent?: (e: unknown) => void }} options
  */
 export function createTriage({ cloud, calibration = '/belay.calibration.json', onEvent }) {
   return task({

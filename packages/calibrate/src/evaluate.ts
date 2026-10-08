@@ -14,7 +14,7 @@ import {
   type LocalRunner,
   type Judge,
   type TaskSchema,
-} from '@belay/core';
+} from '@swissspidy/belay-core';
 import type { Sample } from './analyze.js';
 import { OutputCache } from './cache.js';
 import type { CalibrationTaskConfig } from './config.js';

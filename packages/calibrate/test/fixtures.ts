@@ -1,4 +1,4 @@
-import { fnv1a, type CloudRunner, type LocalRunner } from '@belay/core';
+import { fnv1a, type CloudRunner, type LocalRunner } from '@swissspidy/belay-core';
 
 export const LABELS = ['bug', 'billing', 'feature', 'other'] as const;
 export const schema = { type: 'categorical', options: [...LABELS] } as const;

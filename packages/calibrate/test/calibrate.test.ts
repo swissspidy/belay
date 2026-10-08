@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { parseCalibration, schemaFingerprint, task } from '@belay/core';
+import { parseCalibration, schemaFingerprint, task } from '@swissspidy/belay-core';
 import { calibrate, loadDataset, main, nodeBackend, OutputCache } from '../src/index.js';
 import { datasetJsonl, fakeCloud, fakeLocal, LABELS, schema } from './fixtures.js';
 

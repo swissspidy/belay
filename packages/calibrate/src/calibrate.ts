@@ -1,4 +1,4 @@
-import { CALIBRATION_VERSION, optionLabels, schemaFingerprint, type CalibrationFile, type PriceTable, type TokenPrices } from '@belay/core';
+import { CALIBRATION_VERSION, optionLabels, schemaFingerprint, type CalibrationFile, type PriceTable, type TokenPrices } from '@swissspidy/belay-core';
 import { analyze, crossValidate, type Analysis, type AnalyzeOptions } from './analyze.js';
 import type { OutputCache } from './cache.js';
 import type { CalibrationTaskConfig } from './config.js';

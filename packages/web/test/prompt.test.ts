@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { task, type Availability, type CloudRunner } from '@belay/core';
+import { task, type Availability, type CloudRunner } from '@swissspidy/belay-core';
 import {
   classifierJudge,
   DEFAULT_JUDGE_QUESTION,

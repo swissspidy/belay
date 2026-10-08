@@ -1,8 +1,28 @@
 {
-  "name": "@belay/web",
+  "name": "@swissspidy/belay-web",
   "version": "0.1.0",
   "description": "Belay local runners for browser built-in AI (Classifier API, Prompt API).",
   "license": "Apache-2.0",
+  "author": "Pascal Birchler",
+  "homepage": "https://github.com/swissspidy/belay/tree/main/packages/web#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swissspidy/belay.git",
+    "directory": "packages/web"
+  },
+  "bugs": {
+    "url": "https://github.com/swissspidy/belay/issues"
+  },
+  "keywords": [
+    "ai",
+    "on-device",
+    "built-in-ai",
+    "classifier-api",
+    "prompt-api",
+    "chrome",
+    "gemini-nano",
+    "cascade"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -12,12 +32,16 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "peerDependencies": {
-    "@belay/core": "^0.1.0"
+    "@swissspidy/belay-core": "^0.1.0"
   },
   "scripts": {
     "build": "tsc -b"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

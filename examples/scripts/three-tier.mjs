@@ -8,7 +8,7 @@
  *
  *   node scripts/three-tier.mjs            (after `npm run calibrate:all` has filled the caches)
  */
-import { candidateThresholds, evaluate, loadDataset, OutputCache } from '@belay/calibrate';
+import { candidateThresholds, evaluate, loadDataset, OutputCache } from '@swissspidy/belay-calibrate';
 import { join } from 'node:path';
 import { dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';

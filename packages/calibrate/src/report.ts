@@ -1,4 +1,4 @@
-import type { CalibrationFile } from '@belay/core';
+import type { CalibrationFile } from '@swissspidy/belay-core';
 import type { Analysis, Sample } from './analyze.js';
 
 export interface ReportInput {
