@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Belay findings</title>
+<meta name="description" content="What we learned calibrating on-device AI against Claude, Gemini and Jev on four real tasks: when a cascade is cheaper and more accurate than the cloud alone, and when it isn't.">
+<style>
+:root {
+  color-scheme: light;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ef;
+  --line: #e4e2dc;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #6f6e69;
+  --link: #1c5cab;
+  --claude: #eb6834;
+  --gemini: #2a78d6;
+  --jev: #1baf7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: #1a1a19;
+    --surface-2: #242422;
+    --line: #383835;
+    --text: #ffffff;
+    --text-2: #c3c2b7;
+    --text-3: #9d9c93;
+    --link: #86b6ef;
+    --claude: #d95926;
+    --gemini: #3987e5;
+    --jev: #199e70;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #1a1a19;
+  --surface-2: #242422;
+  --line: #383835;
+  --text: #ffffff;
+  --text-2: #c3c2b7;
+  --text-3: #9d9c93;
+  --link: #86b6ef;
+  --claude: #d95926;
+  --gemini: #3987e5;
+  --jev: #199e70;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main, header, footer { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+.wide { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 56px; }
+.eyebrow { color: var(--text-3); font-size: 14px; letter-spacing: .02em; margin: 0 0 8px; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.12; margin: 0 0 16px; letter-spacing: -.01em; }
+h2 { font-size: 26px; line-height: 1.25; margin: 56px 0 12px; }
+h3 { font-size: 19px; line-height: 1.35; margin: 32px 0 6px; }
+p, li { color: var(--text); }
+.lede { font-size: 19px; color: var(--text-2); margin: 0 0 20px; }
+a { color: var(--link); text-underline-offset: 2px; }
+code { font: 0.88em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 15px; margin: 0 0 8px; }
+.muted { color: var(--text-3); }
+.small { font-size: 14px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 32px 0 8px; }
+.tile { background: var(--surface-2); border-radius: 10px; padding: 16px 18px; }
+.tile .label { font-size: 14px; color: var(--text-2); margin: 0 0 4px; }
+.tile .value { font-size: 34px; font-weight: 600; line-height: 1.15; margin: 0 0 6px; }
+.tile .note { font-size: 14px; color: var(--text-2); margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px; color: var(--text-2); margin: 16px 0 4px; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { overflow: visible; }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px 28px; margin: 8px 0 0; }
+.chart h3 { margin: 16px 0 0; font-size: 16px; }
+.chart .sub { margin: 0 0 4px; font-size: 13px; color: var(--text-3); }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font: 12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: var(--text-3); }
+.chart text.label { fill: var(--text-2); font-size: 12.5px; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .hit { fill: transparent; cursor: default; outline: none; }
+.chart .hit:focus-visible { stroke: var(--text); stroke-width: 1.5; }
+.tooltip {
+  position: fixed; pointer-events: none; z-index: 10; display: none;
+  background: var(--surface); color: var(--text); border: 1px solid var(--line);
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; max-width: 260px;
+}
+.tooltip strong { font-size: 15px; }
+.tooltip .key { display: inline-block; width: 12px; height: 2px; vertical-align: middle; margin-right: 6px; border-radius: 1px; }
+.caption { font-size: 14px; color: var(--text-2); margin: 12px 0 0; max-width: 760px; }
+
+.table-wrap { overflow-x: auto; margin: 16px 0 0; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 600; color: var(--text-2); font-size: 13px; }
+td.num, th.num { text-align: right; }
+tr.first td { border-top: 1px solid var(--line); }
+.swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+.gain { font-weight: 600; }
+
+ol.findings { padding-left: 22px; }
+ol.findings > li { margin: 0 0 10px; }
+blockquote { margin: 16px 0; padding: 4px 16px; border-left: 3px solid var(--line); color: var(--text-2); }
+footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 1px solid var(--line); font-size: 14px; color: var(--text-3); }
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  h2 { font-size: 23px; }
+  .tile .value { font-size: 30px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <p class="eyebrow">Belay · findings · October 2026</p>
+  <h1>On-device AI first, the cloud only when unsure: what it saves, and when it's also more accurate</h1>
+  <p class="lede">
+    <a href="https://github.com/swissspidy/belay">Belay</a> runs an AI task on a small model in the
+    browser and sends the input to a cloud model only when the small model's confidence is below a
+    threshold. We calibrated that threshold on four real tasks against three cloud models, priced
+    every cloud call from its measured token usage, and checked every result on held-out data.
+  </p>
+  <p class="links">
+    <a href="https://github.com/swissspidy/belay">Source on GitHub</a>
+    <a href="#results">All results</a>
+    <a href="#method">Method</a>
+    <a href="https://github.com/swissspidy/belay/tree/main/examples">Reproduce it</a>
+  </p>
+</header>
+
+<main>
+  <div class="tiles" id="tiles"></div>
+
+  <h2>The short version</h2>
+  <ol class="findings">
+    <li><strong>A calibrated cascade can be more accurate than the cloud model alone, not just cheaper.</strong>
+      On ticket triage, an on-device model plus Claude Opus 5.5 scored 97.3% on held-out data against
+      94.3% for Claude alone, for about half the cloud bill. It happened with every cloud model we
+      tried on triage and moderation.</li>
+    <li><strong>Calibrate against the cloud's accuracy, not a fixed number.</strong> A 95% target let
+      the cascade trade accuracy for savings on a task where the cloud reached 99%.</li>
+    <li><strong>Which cloud model you escalate to matters as much as the cascade.</strong> The same
+      classification cost $15, $172 or $1,582 per million runs, depending on the model.</li>
+    <li><strong>When the local model knows nothing the cloud doesn't, the cascade only saves money.</strong>
+      On intent detection it kept about a third of the runs on device at the cloud's accuracy, give or
+      take one example.</li>
+    <li><strong>For generation, the judge is the bottleneck.</strong> Gemini Nano extracted calendar
+      events reasonably well, but no confidence signal we tried could tell its right answers from its
+      wrong ones well enough to keep many on device.</li>
+  </ol>
+
+  <h2 id="chart">Accuracy against cost</h2>
+  <p>
+    Each line goes from a cloud model on its own (hollow dot) to the same cloud behind Belay
+    (filled dot): the on-device model answers when it is confident enough, the cloud model answers
+    the rest. Up is more accurate, left is cheaper. Accuracy is the held-out estimate (five-fold
+    cross-validation); cost is per million runs, at list prices.
+  </p>
+</main>
+
+<div class="wide">
+  <div class="legend" id="legend" aria-hidden="true"></div>
+  <div class="charts" id="charts"></div>
+  <p class="caption">
+    The cost axis is logarithmic and shared; each task has its own accuracy axis. Intent
+    detection's Jev → Claude chain is in the table below. Jev answers choice and yes/no questions
+    only, so it has no event-extraction point. With 300 examples (240 for extraction), one
+    percentage point is three examples (2.4).
+  </p>
+</div>
+
+<main>
+  <h2>What we learned</h2>
+
+  <h3>1. The cascade can beat the cloud, because the local model is sometimes right where the cloud is wrong</h3>
+  <p>
+    A cascade can only be as accurate as its two models allow. It gains accuracy when, among the
+    runs it keeps on device, the local model is right where the cloud model is wrong more often than
+    the reverse. On ticket triage, the local model (Laya, an open classification model running in
+    the browser) was right on 93% of messages on its own, and almost always right when it was very
+    sure. The 141 messages it answered at confidence ≥ 0.984 included 10 that Claude got wrong and
+    none that Claude got right and Laya didn't.
+  </p>
+  <p>
+    Held out, the triage cascade gained 3.0 points over Claude, 3.3 over Gemini 3.8 Flash and 2.7
+    over Jev, while cutting each one's bill by 52–61%. On content moderation it gained 0.7–2.3
+    points and cut the bill by 78–82%.
+  </p>
+
+  <h3>2. Calibrate against the cloud, not against a number</h3>
+  <p>
+    Our first calibrations used a fixed 95% accuracy target. On intent detection, Claude alone
+    reached 99.3%, so the threshold that "met the target" kept 87% of runs on a less accurate local
+    model: cheaper than the cloud, and worse. That is not what anyone wants from a cascade.
+    Belay's default target is now <code>'cloud'</code>, the cloud model's own accuracy on your data:
+    the cheapest threshold that loses nothing. <code>'max'</code> picks the most accurate threshold,
+    which is what the examples here use.
+  </p>
+
+  <h3>3. The choice of cloud model moves the bill by two orders of magnitude</h3>
+  <p>
+    Every cloud call was priced from the tokens it actually used. Per million classifications:
+  </p>
+  <ul>
+    <li><strong>Claude Opus 5.5</strong>: $1,582–$2,301. The most accurate on ticket triage (94.3%).</li>
+    <li><strong>Gemini 3.8 Flash</strong>: $172–$230, about 9× cheaper than Opus at the same
+      accuracy on moderation and intents, 2.6 points behind on triage.</li>
+    <li><strong>Jev 1.13</strong> (<a href="https://typesafe.ai">TypeSafe AI</a>), a classification
+      model that answers typed questions with probabilities instead of generating text: $15–$20,
+      about 100× cheaper than Opus, and the closest to the moderation labels (83.7% against 76.0%
+      for both LLMs).</li>
+  </ul>
+  <p>
+    Because Jev reports its own confidence, it can be a cascade tier too. For intent detection, Jev
+    first and Claude only when Jev is under 0.8 confident scored 99.7%, as accurate as Claude, for
+    $71 per million runs instead of $2,301. Adding a third tier everywhere (on-device → Jev →
+    Claude) helped less: on triage it reached 95.3% for $99, between Laya → Jev (95.0%, $8) and
+    Laya → Claude (97.3%, $967). Jev's confidence doesn't pick out the runs where Claude would do
+    better.
+  </p>
+  <p>
+    A cheaper cloud model shrinks what a cascade can save in dollars, not in share: Laya kept
+    72% of triage runs on device in front of Gemini and saved 61% of its bill.
+  </p>
+
+  <h3>4. When the local model has no edge, you save money and that's it</h3>
+  <p>
+    On intent detection, Laya was right on every message it was sure about, but so was every cloud
+    model. The cascade kept about a third of the runs on device at the cloud's accuracy, and on
+    held-out folds it lost one example in 300 against each cloud. That's the honest result for a
+    task the cloud already gets right: a 30–37% smaller bill with each single cloud model, and data that stays on the device for a
+    third of your users' requests.
+  </p>
+
+  <h3>5. Generation: the on-device model was fine, the judge wasn't</h3>
+  <p>
+    Belay also runs generation tasks: an on-device LLM writes structured output, and a judge model
+    scores it. We extracted a calendar event (name, date, time, person, place) from 240 voice-assistant
+    requests with Gemini Nano through Chrome's Prompt API. Nano got 50.8% fully right, Claude
+    68.3% and Gemini 3.8 Flash 67.5% (the annotations are somewhat noisy, which caps everyone).
+  </p>
+  <p>The hard part was knowing <em>which</em> of Nano's answers to trust:</p>
+  <ul>
+    <li><strong>Laya as a judge</strong> ("does the answer contain exactly the details in the
+      request?") gave right and wrong extractions the same scores. The calibration kept about 1% of
+      runs on device (11% on held-out folds, 1.3 points below Claude).</li>
+    <li><strong>A verbatim check</strong> (every value appears in the request) passed 95% of Nano's
+      extractions. Nano copies faithfully; its mistakes are which words make up the event.</li>
+    <li><strong>Jev as a judge</strong> separated better and kept 12% of runs on device at about
+      Claude's accuracy.</li>
+    <li><strong>Self-consistency</strong> (three extra Nano runs per request) showed that Nano's
+      mistakes are systematic: when all four runs agreed, Nano was right 88 times out of 143, Claude
+      103 times. Combined with Jev, it kept 22% on device at 67.1%.</li>
+  </ul>
+  <p>
+    For this task, a cheaper cloud model saves more than the cascade: Gemini 3.8 Flash cost $294
+    per million runs against $4,031 for Claude, within a point of its accuracy. Gemma 4 in Chrome
+    is the next local model to try; it needs a GPU, which our test machine didn't have.
+  </p>
+
+  <h3>6. The labels are not the truth either</h3>
+  <p>
+    On content moderation (Civil Comments), Claude called 87 of 300 comments toxic; the labels say
+    150. The dataset counts a comment as toxic when half its raters did, which includes sharp but
+    civil criticism. Both LLMs read "rude enough to make someone leave the discussion" as a stricter
+    bar and scored 76.0%. Jev, a classifier, matched the labels better. Gemini also declined one
+    comment outright (<code>PROHIBITED_CONTENT</code>), which counts as a cloud error. A calibration
+    measures agreement with <em>your</em> labels, so write the task's question to match them.
+  </p>
+
+  <h3>7. The report tells you how to fix the task</h3>
+  <p>
+    The first ticket-triage calibration had 88.0% local accuracy. The report's "confident local
+    mistakes" table was mostly customer <em>claims</em> routed to <code>account</code>. Adding
+    "claims against the company" to the <code>feedback</code> option's description raised local
+    accuracy to 93.0%. (We chose that change by looking at the same examples, so treat the gain as
+    optimistic.)
+  </p>
+
+  <h3>8. Built-in AI under automation works, with some effort</h3>
+  <p>
+    Calibration runs the same browser code the app ships, in a real Chrome driven by Playwright.
+    Getting Chrome's built-in models to download and run there took branded Google Chrome (not
+    Chromium or Chrome for Testing), removing several of Playwright's default switches, loading
+    extensions through the DevTools protocol, and a flag to run Gemini Nano on the CPU. The
+    <a href="https://github.com/swissspidy/belay/blob/main/docs/adr/0002-calibration-in-a-real-browser.md#8-built-in-ai-under-playwright">details are in ADR 0002</a>.
+  </p>
+
+  <h2 id="results">All results</h2>
+  <p class="small muted">
+    Accuracy and cost with Belay are held out (five-fold cross-validation). "On device" is the share
+    of runs the local model answers. ★ marks the cloud each example uses by default.
+  </p>
+</main>
+
+<div class="wide">
+  <div class="table-wrap"><table id="results-table"></table></div>
+</div>
+
+<main>
+  <h2 id="method">Method</h2>
+  <ul>
+    <li><strong>Tasks and data.</strong> Ticket triage (300 messages from the Bitext customer support
+      dataset, 5 teams), content moderation (300 Civil Comments, binary), intent detection (300
+      MASSIVE en-US utterances, 8 intents), event extraction (240 MASSIVE <code>calendar_set</code>
+      requests, 5 fields). Sources and licenses are in
+      <a href="https://github.com/swissspidy/belay/blob/main/examples/DATA-LICENSES.md">DATA-LICENSES.md</a>.</li>
+    <li><strong>On-device models.</strong> Laya (<a href="https://huggingface.co/convaiinnovations/laya">convaiinnovations/laya</a>,
+      Apache-2.0) through the Classifier API, via the WebAI Studio extension, for classification and as
+      the extraction judge. Gemini Nano through Chrome's Prompt API, on the CPU, for extraction.
+      All in Chrome, headless, driven by <code>belay calibrate</code>.</li>
+    <li><strong>Cloud models.</strong> Claude Opus 5.5 (effort low), Gemini 3.8 Flash (thinking low),
+      both with the answer constrained to a JSON Schema, and Jev 1.13 with typed choice and yes/no
+      questions.</li>
+    <li><strong>Cost.</strong> Each call is priced from the token usage the API reported, at list
+      prices: Claude $4 / $20 per million input / output tokens; Gemini 3.8 Flash $0.75 / $3.75
+      (its price through 2026; it doubles on January 1, 2027); Jev $0.042 per million input tokens,
+      output free. Checked September 29 and October 8, 2026.</li>
+    <li><strong>Threshold.</strong> The most accurate threshold (<code>target: 'max'</code>), ties to
+      the one that keeps the most runs on device.</li>
+    <li><strong>Held out.</strong> Thresholds fitted on four fifths of the examples and scored on the
+      fifth, over five folds. In-sample numbers, which flatter the cascade, are in each report.</li>
+    <li><strong>Reproducible.</strong> Every model output is committed in each example's
+      <code>.belay-cache/</code>, so re-running a calibration replays it and writes the same file.</li>
+  </ul>
+
+  <h2>Caveats</h2>
+  <ul>
+    <li>300 examples per task is enough to see effects of a few points, not to rank models that are
+      a point apart.</li>
+    <li>Each task's prompt was written once and tuned only where noted. A different prompt could
+      move any cloud model's accuracy by a few points.</li>
+    <li>LLM outputs vary between calls; these are single runs.</li>
+  </ul>
+</main>
+
+<footer>
+  <p>
+    Belay is open source (Apache-2.0):
+    <a href="https://github.com/swissspidy/belay">github.com/swissspidy/belay</a>.
+    The per-task calibration reports linked in the table are generated by <code>belay calibrate</code>.
+  </p>
+</footer>
+
+<div class="tooltip" id="tooltip" role="status"></div>
+
+<script type="application/json" id="results-data">"__RESULTS__"</script>
+<script>
+(() => {
+  const results = JSON.parse(document.getElementById("results-data").textContent);
+  const COLORS = { claude: 'var(--claude)', gemini: 'var(--gemini)', jev: 'var(--jev)' };
+  const SHORT = { claude: 'Claude', gemini: 'Gemini', jev: 'Jev' };
+  const tasks = [...new Set(results.map((r) => r.task))];
+  const byTask = (t) => results.filter((r) => r.task === t);
+  const find = (t, c) => results.find((r) => r.task === t && r.cloud === c);
+  const pct = (v) => (v * 100).toFixed(1) + '%';
+  const pts = (v) => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1);
+  const usd = (v) => '$' + (v >= 100 ? Math.round(v).toLocaleString('en-US') : v.toFixed(2));
+  const el = (tag, attrs = {}, text) => {
+    const svg = ['svg', 'g', 'line', 'circle', 'text', 'path', 'rect'].includes(tag);
+    const node = svg ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  // ---- Tiles ---------------------------------------------------------------
+  const tiles = document.getElementById('tiles');
+  const tile = (label, value, note) => {
+    const t = el('div', { class: 'tile' });
+    t.append(el('p', { class: 'label' }, label), el('p', { class: 'value' }, value), el('p', { class: 'note' }, note));
+    tiles.append(t);
+  };
+  const triage = find('ticket-triage', 'claude');
+  if (triage) {
+    tile('Ticket triage, Claude Opus 5.5: accuracy', pts(triage.accuracy - triage.cloudAccuracy) + ' pts',
+      `${pct(triage.accuracy)} vs ${pct(triage.cloudAccuracy)} for Claude alone, at ${Math.round((triage.costPer1M / triage.cloudOnlyCostPer1M) * 100)}% of its cost`);
+  }
+  const mod = find('content-moderation', 'jev');
+  if (mod) {
+    tile('Content moderation, Jev: cloud bill', '−' + Math.round((1 - mod.costPer1M / mod.cloudOnlyCostPer1M) * 100) + '%',
+      `and ${pts(mod.accuracy - mod.cloudAccuracy)} pts accuracy, with ${Math.round(mod.localShare * 100)}% of runs on device`);
+  }
+  const chain = find('intent-detection', 'jev-claude');
+  const claudeIntent = find('intent-detection', 'claude');
+  if (chain && claudeIntent) {
+    tile('Intent detection: a cheaper cloud', Math.round(claudeIntent.cloudOnlyCostPer1M / chain.cloudOnlyCostPer1M) + '×',
+      `Jev → Claude: ${pct(chain.cloudAccuracy)} for ${usd(chain.cloudOnlyCostPer1M)} per 1M runs; Claude alone ${pct(claudeIntent.cloudAccuracy)} for ${usd(claudeIntent.cloudOnlyCostPer1M)}`);
+  }
+
+  // ---- Legend --------------------------------------------------------------
+  const legend = document.getElementById('legend');
+  for (const c of ['claude', 'gemini', 'jev']) {
+    const s = el('span');
+    const key = el('svg', { width: 18, height: 10, viewBox: '0 0 18 10' });
+    key.append(el('line', { x1: 0, y1: 5, x2: 18, y2: 5, stroke: COLORS[c], 'stroke-width': 2, 'stroke-linecap': 'round' }));
+    key.append(el('circle', { cx: 9, cy: 5, r: 4, fill: COLORS[c] }));
+    s.append(key, document.createTextNode(results.find((r) => r.cloud === c).cloudName));
+    legend.append(s);
+  }
+  for (const [label, filled] of [['cloud alone', false], ['with Belay (held out)', true]]) {
+    const s = el('span');
+    const key = el('svg', { width: 12, height: 12, viewBox: '0 0 12 12' });
+    key.append(el('circle', { cx: 6, cy: 6, r: 4.5, fill: filled ? 'var(--text-2)' : 'var(--surface)', stroke: 'var(--text-2)', 'stroke-width': 2 }));
+    s.append(key, document.createTextNode(label));
+    legend.append(s);
+  }
+
+  // ---- Charts --------------------------------------------------------------
+  const tooltip = document.getElementById('tooltip');
+  const show = (evt, r, alone) => {
+    tooltip.replaceChildren();
+    const head = el('div');
+    head.append(el('strong', {}, pct(alone ? r.cloudAccuracy : r.accuracy)), document.createTextNode(' · ' + usd(alone ? r.cloudOnlyCostPer1M : r.costPer1M) + ' per 1M runs'));
+    const who = el('div');
+    who.append(el('span', { class: 'key', style: `background:${COLORS[r.cloud]}` }), document.createTextNode(r.cloudName + (alone ? ' alone' : ' with Belay')));
+    tooltip.append(head, who);
+    if (!alone) tooltip.append(el('div', { class: 'muted' }, `${Math.round(r.localShare * 100)}% of runs on device`));
+    tooltip.style.display = 'block';
+    const box = evt.target.getBoundingClientRect();
+    const x = evt.clientX ?? box.left + box.width / 2;
+    const y = evt.clientY ?? box.top;
+    const w = tooltip.offsetWidth;
+    tooltip.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, x + 12)) + 'px';
+    tooltip.style.top = Math.max(8, y - tooltip.offsetHeight - 12) + 'px';
+  };
+  const hide = () => (tooltip.style.display = 'none');
+
+  const W = 460, H = 280, M = { top: 14, right: 18, bottom: 40, left: 46 };
+  const costs = results.flatMap((r) => [r.costPer1M, r.cloudOnlyCostPer1M]);
+  const xMin = Math.pow(10, Math.floor(Math.log10(Math.min(...costs))));
+  const xMax = Math.pow(10, Math.ceil(Math.log10(Math.max(...costs))));
+  const x = (v) => M.left + ((Math.log10(v) - Math.log10(xMin)) / (Math.log10(xMax) - Math.log10(xMin))) * (W - M.left - M.right);
+
+  const charts = document.getElementById('charts');
+  for (const t of tasks) {
+    const rows = byTask(t).filter((r) => r.cloud in COLORS);
+    if (!rows.length) continue;
+    const accs = rows.flatMap((r) => [r.accuracy, r.cloudAccuracy]);
+    let lo = Math.floor(Math.min(...accs) * 100 - 0.5), hi = Math.ceil(Math.max(...accs) * 100 + 0.5);
+    const span = hi - lo;
+    const step = span <= 3 ? 0.5 : span <= 6 ? 1 : span <= 12 ? 2 : 5;
+    lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+    const y = (v) => M.top + (1 - (v * 100 - lo) / (hi - lo)) * (H - M.top - M.bottom);
+
+    const fig = el('figure', { class: 'chart', style: 'margin:0' });
+    fig.append(el('h3', {}, rows[0].taskTitle), el('p', { class: 'sub' }, `${rows[0].kind} · ${rows[0].examples} examples · local only ${pct(rows[0].localAccuracy)}`));
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${rows[0].taskTitle}: accuracy against cost per million runs` });
+    for (let v = lo; v <= hi + 1e-9; v += step) {
+      svg.append(el('line', { class: 'grid', x1: M.left, x2: W - M.right, y1: y(v / 100), y2: y(v / 100) }));
+      svg.append(el('text', { x: M.left - 8, y: y(v / 100) + 4, 'text-anchor': 'end' }, (step < 1 ? v.toFixed(1) : v) + '%'));
+    }
+    for (let v = xMin; v <= xMax + 1e-9; v *= 10) {
+      svg.append(el('line', { class: 'grid', x1: x(v), x2: x(v), y1: H - M.bottom, y2: H - M.bottom + 4 }));
+      svg.append(el('text', { x: x(v), y: H - M.bottom + 18, 'text-anchor': 'middle' }, v >= 1000 ? `$${v / 1000}k` : `$${v}`));
+    }
+    svg.append(el('text', { x: (M.left + W - M.right) / 2, y: H - 4, 'text-anchor': 'middle' }, 'cloud cost per 1M runs'));
+
+    for (const r of rows) {
+      const x0 = x(r.cloudOnlyCostPer1M), y0 = y(r.cloudAccuracy), x1 = x(r.costPer1M), y1 = y(r.accuracy);
+      svg.append(el('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: COLORS[r.cloud], 'stroke-width': 2, 'stroke-linecap': 'round' }));
+      svg.append(el('circle', { cx: x0, cy: y0, r: 4.5, fill: 'var(--surface)', stroke: COLORS[r.cloud], 'stroke-width': 2 }));
+      svg.append(el('circle', { cx: x1, cy: y1, r: 6, fill: COLORS[r.cloud], stroke: 'var(--surface)', 'stroke-width': 2 }));
+      const above = y1 <= y0;
+      svg.append(el('text', { class: 'label', x: x1, y: above ? y1 - 11 : y1 + 19, 'text-anchor': 'middle' }, SHORT[r.cloud]));
+      for (const [cx, cy, alone] of [[x0, y0, true], [x1, y1, false]]) {
+        const hit = el('circle', { class: 'hit', cx, cy, r: 13, tabindex: 0, 'aria-label': `${r.cloudName} ${alone ? 'alone' : 'with Belay'}: ${pct(alone ? r.cloudAccuracy : r.accuracy)}, ${usd(alone ? r.cloudOnlyCostPer1M : r.costPer1M)} per 1M runs` });
+        hit.addEventListener('pointermove', (e) => show(e, r, alone));
+        hit.addEventListener('pointerleave', hide);
+        hit.addEventListener('focus', (e) => show(e, r, alone));
+        hit.addEventListener('blur', hide);
+        svg.append(hit);
+      }
+    }
+    fig.append(svg);
+    charts.append(fig);
+  }
+
+  // ---- Table ---------------------------------------------------------------
+  const table = document.getElementById('results-table');
+  const head = el('thead');
+  const hr = el('tr');
+  for (const [label, num] of [['Task', false], ['Cloud model', false], ['Cloud alone', true], ['Cost / 1M', true], ['With Belay', true], ['Cost / 1M', true], ['On device', true], ['Report', false]]) {
+    hr.append(el('th', num ? { class: 'num' } : {}, label));
+  }
+  head.append(hr);
+  const body = el('tbody');
+  let last = null;
+  for (const r of results) {
+    const tr = el('tr', r.task !== last ? { class: 'first' } : {});
+    tr.append(el('td', {}, r.task !== last ? r.taskTitle : ''));
+    last = r.task;
+    const cloud = el('td');
+    cloud.append(el('span', { class: 'swatch', style: `background:${COLORS[r.cloud] ?? 'var(--text-3)'}` }), document.createTextNode(r.cloudName + (r.used ? ' ★' : '')));
+    tr.append(cloud);
+    tr.append(el('td', { class: 'num' }, pct(r.cloudAccuracy)));
+    tr.append(el('td', { class: 'num' }, usd(r.cloudOnlyCostPer1M)));
+    const acc = el('td', { class: 'num' });
+    acc.append(el('span', { class: r.accuracy > r.cloudAccuracy + 1e-9 ? 'gain' : '' }, pct(r.accuracy)), document.createTextNode(` (${pts(r.accuracy - r.cloudAccuracy)})`));
+    tr.append(acc);
+    tr.append(el('td', { class: 'num' }, usd(r.costPer1M)));
+    tr.append(el('td', { class: 'num' }, Math.round(r.localShare * 100) + '%'));
+    const link = el('td');
+    link.append(el('a', { href: r.report }, 'report'));
+    tr.append(link);
+    body.append(tr);
+  }
+  table.append(head, body);
+})();
+</script>
+</body>
+</html>
