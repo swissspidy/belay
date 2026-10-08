@@ -6,6 +6,7 @@
  *   would call; in the browser, point `fetchAdapter()` at that backend instead.
  * - `jevCloud()`: Jev, TypeSafe AI's System One model, which answers choice and yes/no questions
  *   with probabilities instead of generating text. Needs JEV_API_KEY (or TYPESAFE_API_KEY).
+ * - `geminiCloud()`: Gemini via the Gemini API (REST) with structured output. Needs GEMINI_API_KEY.
  * - `referenceCloud()`: for machines without cloud credentials, answers with the dataset's own
  *   labels, i.e. a perfect cloud. The calibration then shows the real local model against an upper
  *   bound for the cloud side: the local share it reports is the most the target allows, and a real
@@ -17,7 +18,7 @@
  * - `jevThenClaude()`: Jev first, Claude only for the runs Jev is unsure about (`cloudCascade()`).
  *
  * `exampleCloud()` picks the runner: each example names the cloud that suited it best, and
- * BELAY_CLOUD ("claude", "jev", "jev-claude" or "reference") overrides it.
+ * BELAY_CLOUD ("claude", "gemini", "jev", "jev-claude" or "reference") overrides it.
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { TypeSafeClient } from '@typesafe-ai/sdk';
@@ -36,6 +37,17 @@ export const claudePrices = {
   'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
   'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
   'claude-haiku-4-5': { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 },
+};
+
+/**
+ * Standard (not batch or flex) paid-tier prices in USD per million tokens, from
+ * https://ai.google.dev/gemini-api/docs/pricing (checked 2026-10-08). These are Gemini 3.8 Flash's
+ * prices through December 31, 2026; from January 1, 2027 they double ($1.50 / $7.50, cache $0.15).
+ * Output includes thinking tokens.
+ * @type {import('@belay/core').PriceTable}
+ */
+export const geminiPrices = {
+  'gemini-3.8-flash': { input: 0.75, output: 3.75, cacheRead: 0.075 },
 };
 
 /**
@@ -92,6 +104,45 @@ function claudeUsage(response, requestedModel) {
   const attempts = (response.usage.iterations ?? []).filter((it) => it.type === 'message' || it.type === 'fallback_message');
   if (!attempts.length) return [part(response.usage, response.model)];
   return attempts.map((it) => part(it, it.model ?? requestedModel));
+}
+
+/**
+ * Gemini through the Gemini API's REST endpoint, with the answer constrained to the JSON Schema.
+ * Thinking is set to "low", like Claude's effort: classification needs little reasoning.
+ */
+export function geminiCloud({ model = 'gemini-3.8-flash', thinkingLevel = 'low' } = {}) {
+  const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  return cloudAdapter(
+    async ({ instruction, input, jsonSchema }, { signal, reportUsage }) => {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey ?? '' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: instruction }] },
+          contents: [{ role: 'user', parts: [{ text: input }] }],
+          generationConfig: { responseMimeType: 'application/json', responseJsonSchema: jsonSchema, thinkingConfig: { thinkingLevel } },
+        }),
+        ...(signal ? { signal } : {}),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(`Gemini API ${res.status}: ${json.error?.message ?? JSON.stringify(json)}`);
+      const u = json.usageMetadata ?? {};
+      const cached = u.cachedContentTokenCount ?? 0;
+      reportUsage({
+        model: json.modelVersion ?? model,
+        inputTokens: (u.promptTokenCount ?? 0) - cached,
+        // Thinking tokens are billed as output.
+        outputTokens: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0),
+        cacheReadInputTokens: cached,
+      });
+      const candidate = json.candidates?.[0];
+      const text = candidate?.content?.parts?.filter((p) => !p.thought && typeof p.text === 'string').map((p) => p.text).join('');
+      if (!text) throw new Error(`No text in the response (finishReason: ${candidate?.finishReason ?? json.promptFeedback?.blockReason ?? 'none'})`);
+      return JSON.parse(text);
+    },
+    { id: `google:${model}` },
+  );
 }
 
 /**
@@ -177,6 +228,7 @@ export function referenceCloud({ data, redact = (s) => s }) {
 
 const CLOUDS = {
   claude: { keys: ['ANTHROPIC_API_KEY'], runner: () => claudeCloud(), model: 'claude-opus-5-5', prices: claudePrices },
+  gemini: { keys: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'], runner: () => geminiCloud(), model: 'gemini-3.8-flash', prices: geminiPrices },
   jev: { keys: ['JEV_API_KEY', 'TYPESAFE_API_KEY'], runner: () => jevCloud(), model: 'jev-1.13.0', prices: jevPrices },
   'jev-claude': {
     keys: ['ANTHROPIC_API_KEY'],
@@ -194,7 +246,7 @@ const hasKey = (names) => names.some((n) => process.env[n]);
  * example uses; BELAY_CLOUD overrides it. Without credentials for it, the reference labels stand
  * in (the report says so). The reference labels have no cost: nobody pays for them.
  * @param {{ data: string | URL, redact?: (input: string) => string }} dataset
- * @param {{ prefer?: 'claude' | 'jev' | 'jev-claude', runsPerMonth?: number }} [options]
+ * @param {{ prefer?: 'claude' | 'gemini' | 'jev' | 'jev-claude', runsPerMonth?: number }} [options]
  */
 export function exampleCloud(dataset, { prefer = 'claude', runsPerMonth = 1_000_000 } = {}) {
   let choice = process.env.BELAY_CLOUD;
