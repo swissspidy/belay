@@ -66,6 +66,8 @@ p, li { color: var(--text); }
 .lede { font-size: 19px; color: var(--text-2); margin: 0 0 20px; }
 a { color: var(--link); text-underline-offset: 2px; }
 code { font: 0.88em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--surface-2); border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
+pre code { background: none; padding: 0; font-size: 14px; }
 .links { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 15px; margin: 0 0 8px; }
 .muted { color: var(--text-3); }
 .small { font-size: 14px; }
@@ -132,6 +134,7 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
     <a href="#results">All results</a>
     <a href="#method">Method</a>
     <a href="https://github.com/swissspidy/belay/tree/main/examples">Reproduce it</a>
+    <a href="#try-it">Try it</a>
   </p>
 </header>
 
@@ -339,6 +342,15 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
       move any cloud model's accuracy by a few points.</li>
     <li>LLM outputs vary between calls; these are single runs.</li>
   </ul>
+
+  <h2 id="try-it">Try it</h2>
+  <p>The library and the calibration CLI are on npm:</p>
+  <pre><code>npm install @swissspidy/belay-core @swissspidy/belay-web
+npm install --save-dev @swissspidy/belay-calibrate playwright-core</code></pre>
+  <p>
+    The <a href="https://github.com/swissspidy/belay#readme">README</a> shows how to define a task
+    and calibrate it on your own labeled examples.
+  </p>
 </main>
 
 <footer>
