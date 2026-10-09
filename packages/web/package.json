@@ -1,6 +1,6 @@
 {
   "name": "@swissspidy/belay-web",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Belay local runners for browser built-in AI (Classifier API, Prompt API).",
   "license": "Apache-2.0",
   "author": "Pascal Birchler",
@@ -36,7 +36,7 @@
     "src"
   ],
   "peerDependencies": {
-    "@swissspidy/belay-core": "^0.1.0"
+    "@swissspidy/belay-core": "^0.1.1"
   },
   "scripts": {
     "build": "tsc -b",
