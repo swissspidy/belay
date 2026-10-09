@@ -125,10 +125,12 @@ jobs:
           name: packages
           path: release
       # No registry-url, so no .npmrc: npm exchanges the job's OIDC token for a short-lived
-      # credential instead.
+      # credential instead. check-latest: a cached older Node 24 can bundle an npm too old to
+      # stage.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
+          check-latest: true
           package-manager-cache: false
       - name: Check npm's version
         run: |
@@ -159,8 +161,11 @@ jobs:
             if npm view "$name@$version" version >/dev/null 2>&1; then
               echo "$name@$version is already on npm"
             else
-              npm stage publish "./$tarball" > stage.log
+              # Both streams, wherever npm prints the stage ID; the log is shown even on failure.
+              status=0
+              npm stage publish "./$tarball" > stage.log 2>&1 || status=$?
               cat stage.log
+              [ "$status" -eq 0 ] || exit "$status"
               stage_id="$(sed -n 's/.*(staged with id \(.*\))$/\1/p' stage.log)"
               echo "Staged $name@$version: approve it under Staged Packages on npmjs.com, or with \`npm stage approve ${stage_id:-<stage-id>}\`." >> "$GITHUB_STEP_SUMMARY"
             fi
