@@ -1,50 +1,177 @@
 name: Release
 
-# With changesets on main, opens or updates the "Version packages" pull request. Merging that
-# pull request publishes @swissspidy/belay-core, @swissspidy/belay-web and @swissspidy/belay-calibrate to npm, tags the release
-# and creates the GitHub releases. See RELEASING.md.
-
 on:
   push:
     branches: [main]
 
 permissions: {}
 
-# Queue rather than cancel: interrupting a run halfway through publishing would leave some
-# packages on npm and others not.
+# Queue rather than cancel: interrupting a run halfway through staging would leave some packages
+# staged and others not.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+# Three jobs, so that the job that can publish (id-token: write) installs and runs nothing from
+# the dependency tree. See RELEASING.md.
+# 1. version: Changesets opens or updates the "Version packages" pull request. When main's
+#    packages carry versions npm does not have yet (that pull request was merged), this push is a
+#    release.
+# 2. pack (a release only): installs, builds, lints and packs every package.
+# 3. stage (a release only): stages those tarballs on npm, then tags each package's version and
+#    creates its GitHub release. A staged version goes public only once a maintainer approves it
+#    with 2FA, on npmjs.com (Staged Packages) or with `npm stage approve <stage-id>`.
+
 jobs:
-  release:
-    name: Version or publish
+  version:
+    name: Version packages
     runs-on: ubuntu-latest
-    environment: npm
     permissions:
-      contents: write # push the version branch, tags and GitHub releases
+      contents: write # push the version branch
       pull-requests: write # open and update the "Version packages" pull request
-      id-token: write # npm trusted publishing and provenance
+    outputs:
+      release: ${{ steps.release.outputs.release }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      # Node 24 ships npm 11, which trusted publishing needs. No registry-url, so no .npmrc
-      # carries credentials into the install and build, and no dependency cache in a release job.
+      # No dependency cache, and no install scripts next to the token this job holds: Changesets
+      # needs neither.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts
+      # Before changesets/action, which leaves the checkout on its version branch with the pending
+      # changesets applied: the check has to read main's manifests, not the next versions. A
+      # version that is tagged was staged already: it stays off npm until it is approved, and
+      # pushes to main in the meantime must not stage it again.
+      - name: Does npm lack any package's version?
+        id: release
+        run: |
+          release=false
+          for manifest in packages/*/package.json; do
+            spec="$(node -p 'const p = require("./" + process.argv[1]); p.private ? "" : `${p.name}@${p.version}`' "$manifest")"
+            [ -z "$spec" ] && continue
+            if npm view "$spec" version >/dev/null 2>&1; then continue; fi
+            if git ls-remote --exit-code --tags origin "refs/tags/$spec" >/dev/null; then
+              echo "$spec is tagged but not on npm: waiting for its staged version's approval"
+              continue
+            fi
+            echo "$spec is not on npm"
+            release=true
+          done
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+      - name: Create or update the "Version packages" pull request
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          # No publish-script: staging is the stage job's, below.
+          version-script: npm run version-packages
+          commit-message: Version packages
+          pr-title: Version packages
+
+  pack:
+    name: Build and pack
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No dependency cache: a release builds from a clean install.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           package-manager-cache: false
       - run: npm ci
       - run: npm run build
-      # Publishing uses npm trusted publishing: npm exchanges the job's OIDC token (id-token:
-      # write above) for a short-lived credential and adds provenance, so no npm secret is
-      # involved. `changeset publish` skips versions that are already on npm.
-      - name: Create release pull request or publish
-        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+      - run: npm run lint:publish
+      # Each package's prepack script rebuilds it, so the tarballs always carry fresh dist/ output.
+      - name: Pack
+        run: |
+          mkdir release
+          for manifest in packages/*/package.json; do
+            if [ "$(node -p 'require("./" + process.argv[1]).private === true' "$manifest")" = true ]; then continue; fi
+            npm pack --workspace "$(dirname "$manifest")" --pack-destination release
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          version-script: npm run version-packages
-          publish-script: npx changeset publish
-          commit-message: Version packages
-          pr-title: Version packages
+          name: packages
+          path: release/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  stage:
+    name: Stage on npm
+    needs: pack
+    runs-on: ubuntu-latest
+    # The npm packages' trusted publisher names this workflow file and this environment, and only
+    # needs to allow staged publishes.
+    environment: npm
+    permissions:
+      contents: write # each version's tag and GitHub release
+      id-token: write # npm trusted publishing and provenance
+    steps:
+      # For the CHANGELOG.md files only: nothing from the checkout is installed or run.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: release
+      # No registry-url, so no .npmrc: npm exchanges the job's OIDC token for a short-lived
+      # credential instead. check-latest: a cached older Node 24 can bundle an npm too old to
+      # stage.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          check-latest: true
+          package-manager-cache: false
+      - name: Check npm's version
+        run: |
+          # Staged publishing needs npm 11.15.0 or later.
+          npm_version="$(npm --version)"
+          node -e '
+            const [a, b] = process.argv[1].split(".").map(Number);
+            if (a < 11 || (a === 11 && b < 15)) throw new Error(`npm ${process.argv[1]} cannot stage publishes (11.15.0 or later)`);
+          ' "$npm_version"
+      # Tarballs: no install, no lifecycle scripts. Provenance comes from publishConfig.provenance
+      # in each package. A version that is tagged was staged (or published) already and is
+      # skipped, so a run that failed partway can be re-run. Each stage ID goes in the job
+      # summary, for approving. This job cannot list stages (that needs a maintainer's login), so
+      # if a run staged a version but failed before tagging it, approve or reject that stage
+      # before re-running.
+      - name: Stage, tag and create GitHub releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for tarball in release/*.tgz; do
+            name="$(tar -xOzf "$tarball" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).name')"
+            version="$(tar -xOzf "$tarball" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).version')"
+            tag="$name@$version"
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+              echo "$tag is already tagged"
+              continue
+            fi
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version is already on npm"
+            else
+              # Both streams, wherever npm prints the stage ID; the log is shown even on failure.
+              status=0
+              npm stage publish "./$tarball" > stage.log 2>&1 || status=$?
+              cat stage.log
+              [ "$status" -eq 0 ] || exit "$status"
+              stage_id="$(sed -n 's/.*(staged with id \(.*\))$/\1/p' stage.log)"
+              echo "Staged $name@$version: approve it under Staged Packages on npmjs.com, or with \`npm stage approve ${stage_id:-<stage-id>}\`." >> "$GITHUB_STEP_SUMMARY"
+            fi
+            # The version's section of the package's CHANGELOG.md, or GitHub's generated notes.
+            dir="$(dirname "$(grep -l "\"name\": \"$name\"" packages/*/package.json)")"
+            awk -v v="$version" '$0 == "## " v { on = 1; next } on && /^## / { exit } on' "$dir/CHANGELOG.md" 2>/dev/null > notes.md || true
+            if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$tag" "${notes[@]}"
+          done
