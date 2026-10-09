@@ -43,6 +43,7 @@
     "prepack": "tsc -b --force"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   }
 }
