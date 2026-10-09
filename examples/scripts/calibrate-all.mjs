@@ -25,6 +25,11 @@ const args = process.argv.slice(2);
 const cloudFlag = args.indexOf('--cloud');
 const onlyCloud = cloudFlag >= 0 ? args.splice(cloudFlag, 2)[1] : null;
 const only = args;
+const known = new Set(Object.values(TASKS).flat());
+if (cloudFlag >= 0 && !known.has(onlyCloud)) {
+  console.error(`--cloud must be one of ${[...known].join(', ')}; got ${onlyCloud === undefined ? 'nothing' : `"${onlyCloud}"`}`);
+  process.exit(1);
+}
 
 let failed = false;
 for (const [name, clouds] of Object.entries(TASKS)) {
