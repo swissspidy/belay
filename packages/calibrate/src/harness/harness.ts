@@ -1,9 +1,9 @@
 /**
- * Runs inside the calibration browser page. `@belay/core` and `@belay/web` are resolved through
+ * Runs inside the calibration browser page. `@swissspidy/belay-core` and `@swissspidy/belay-web` are resolved through
  * an import map served by the calibration CLI, so the page runs exactly the runners apps ship.
  */
-import type { Judge, LocalRunner, TaskSchema } from '@belay/core';
-import * as web from '@belay/web';
+import type { Judge, LocalRunner, TaskSchema } from '@swissspidy/belay-core';
+import * as web from '@swissspidy/belay-web';
 
 interface HarnessSpec {
   task: string;

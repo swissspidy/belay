@@ -1,8 +1,28 @@
 {
-  "name": "@belay/core",
+  "name": "@swissspidy/belay-core",
   "version": "0.1.0",
   "description": "Confidence-based escalation from on-device to cloud AI: tasks, cascade logic, confidence, calibration types.",
   "license": "Apache-2.0",
+  "author": "Pascal Birchler",
+  "homepage": "https://github.com/swissspidy/belay/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swissspidy/belay.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/swissspidy/belay/issues"
+  },
+  "keywords": [
+    "ai",
+    "on-device",
+    "cascade",
+    "llm",
+    "classification",
+    "calibration",
+    "confidence",
+    "escalation"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -11,8 +31,14 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "build": "tsc -b"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

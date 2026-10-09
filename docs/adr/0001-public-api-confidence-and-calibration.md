@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-29
-- Scope: `@belay/core`, `@belay/web`, `@belay/calibrate` (file format only)
+- Scope: `@swissspidy/belay-core`, `@swissspidy/belay-web`, `@swissspidy/belay-calibrate` (file format only)
 
 ## Context
 
@@ -51,7 +51,7 @@ The explainer says the probabilities are calibrated ("RLCD and post-hoc calibrat
 from the distribution.
 
 **Consequence:** Belay builds on the question-schema shape. It treats every result field as
-optional at runtime, keeps all knowledge of the API inside `@belay/web`'s `classifierApi()` runner,
+optional at runtime, keeps all knowledge of the API inside `@swissspidy/belay-web`'s `classifierApi()` runner,
 and accepts an injected implementation (`classifierApi({ classifier })`) so a renamed or
 polyfilled API needs no core change.
 
@@ -60,8 +60,8 @@ polyfilled API needs no core change.
 ### Tasks
 
 ```ts
-import { task, fetchAdapter } from '@belay/core';
-import { classifierApi } from '@belay/web';
+import { task, fetchAdapter } from '@swissspidy/belay-core';
+import { classifierApi } from '@swissspidy/belay-web';
 
 const triage = task({
   name: 'ticket-triage',
@@ -77,7 +77,7 @@ const triage = task({
 const result = await triage.run(text, { signal });
 ```
 
-`task()` is a plain function (`import * as belay from '@belay/core'` gives the `belay.task(...)`
+`task()` is a plain function (`import * as belay from '@swissspidy/belay-core'` gives the `belay.task(...)`
 spelling from the brief). There is no global registry and no client object. A task is just a
 value, so tree-shaking works and tests need no setup.
 
@@ -92,7 +92,7 @@ value, so tree-shaking works and tests need no setup.
 
 The value type is inferred (`ValueOf<S>`), so `options: ['bug', 'billing'] as const` makes
 `result.value` typed as `'bug' | 'billing'`. `structured` takes a user-supplied `validate`
-function because `@belay/core` has zero runtime dependencies and therefore no JSON Schema
+function because `@swissspidy/belay-core` has zero runtime dependencies and therefore no JSON Schema
 validator. The `jsonSchema` is passed to the Prompt API (`responseConstraint`) and to the cloud.
 
 **Task methods:** `run(input, { signal, escalation, context })`, `availability()`,
@@ -245,7 +245,7 @@ The Prompt API has no calibrated probabilities, so confidence is built from two 
 1. **Schema validation (hard gate).** An output that fails `parseValue` / `validate` has
    confidence 0 and escalates with reason `invalid-output`. The judge is not called.
 2. **Classifier as judge.** The task's `judge({ input, value })` returns P(correct). The planned
-   `@belay/web` judge is a binary Classifier API question over the input and the serialized
+   `@swissspidy/belay-web` judge is a binary Classifier API question over the input and the serialized
    output (for example, "Is this output a correct and complete answer for the input?"). It uses
    the Classifier's calibrated `P(true)`, costs one forward pass (tens of ms) and needs no second
    LLM call.
@@ -364,7 +364,7 @@ bug that is worse to discover in production than at the first run.
 ## Consequences
 
 - Core is small, synchronous where it can be, and has zero runtime dependencies. All Chrome-API
-  knowledge lives in `@belay/web`.
+  knowledge lives in `@swissspidy/belay-web`.
 - The calibration file is self-describing enough to render the M2 HTML report on its own
   (the curve, the target, confusion) and to detect staleness and drift at runtime.
 - If the Classifier API changes shape again, only `toClassifierSchema()` and `readDecision()`

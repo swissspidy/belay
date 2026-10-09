@@ -32,7 +32,7 @@ is the confidence. It also runs [generation tasks](#generation-tasks-prompt-api)
 (JSON) output: an on-device LLM writes the answer, and a judge model scores it.
 
 **What it isn't:** a model, a hosted service, or a general LLM router. Belay is a small library
-(`@belay/core`, `@belay/web`) plus a calibration CLI (`@belay/calibrate`). You bring the local and
+(`@swissspidy/belay-core`, `@swissspidy/belay-web`) plus a calibration CLI (`@swissspidy/belay-calibrate`). You bring the local and
 cloud models; Belay decides which one answers, and proves the decision on your data.
 
 ## Results
@@ -58,9 +58,13 @@ extraction, no judge could tell Gemini Nano's right answers from its wrong ones 
 
 ## Quick look
 
+```sh
+npm install @swissspidy/belay-core @swissspidy/belay-web
+```
+
 ```ts
-import { task, fetchAdapter } from '@belay/core';
-import { classifierApi } from '@belay/web';
+import { task, fetchAdapter } from '@swissspidy/belay-core';
+import { classifierApi } from '@swissspidy/belay-web';
 
 const triage = task({
   name: 'ticket-triage',
@@ -90,9 +94,9 @@ task escalates, subject to your privacy policy.
 
 | Package              | What                                                                                   |
 | -------------------- | -------------------------------------------------------------------------------------- |
-| `@belay/core`        | Tasks, cascade, confidence combination, calibration file, cloud adapters. Zero runtime dependencies. |
-| `@belay/web`         | Local runners for built-in AI: `classifierApi()`, `promptApi()`, and `classifierJudge()`. |
-| `@belay/calibrate`   | `belay calibrate` CLI: runs your labeled data in a real Chrome, writes the calibration file and an HTML report. |
+| `@swissspidy/belay-core`        | Tasks, cascade, confidence combination, calibration file, cloud adapters. Zero runtime dependencies. |
+| `@swissspidy/belay-web`         | Local runners for built-in AI: `classifierApi()`, `promptApi()`, and `classifierJudge()`. |
+| `@swissspidy/belay-calibrate`   | `belay calibrate` CLI: runs your labeled data in a real Chrome, writes the calibration file and an HTML report. |
 
 ## Schemas
 
@@ -119,7 +123,7 @@ The reasoning is in the [ADR](docs/adr/0001-public-api-confidence-and-calibratio
 ## Generation tasks (Prompt API)
 
 ```ts
-import { promptApi, classifierJudge } from '@belay/web';
+import { promptApi, classifierJudge } from '@swissspidy/belay-web';
 
 const summarize = task({
   name: 'ticket-summary',
@@ -199,21 +203,21 @@ await triage.run(text, { escalation: 'never' }); // per call: can only make the 
 Calibrate a task on labeled examples, in a real Chrome:
 
 ```sh
-npm install --save-dev @belay/calibrate playwright-core
+npm install --save-dev @swissspidy/belay-calibrate playwright-core
 npx belay calibrate --task ticket-triage --data examples.jsonl --extension ./webai-extension
 ```
 
 ```js
 // belay.config.mjs
-import { defineConfig } from '@belay/calibrate';
-import { cloudAdapter } from '@belay/core';
+import { defineConfig } from '@swissspidy/belay-calibrate';
+import { cloudAdapter } from '@swissspidy/belay-core';
 import { triageSchema } from './src/tasks.js'; // the same schema object your app uses
 
 export default defineConfig({
   tasks: {
     'ticket-triage': {
       schema: triageSchema,
-      local: { runner: 'classifier-api' },           // runs in Chrome, through @belay/web
+      local: { runner: 'classifier-api' },           // runs in Chrome, through @swissspidy/belay-web
       cloud: cloudAdapter(async (req) => callYourModel(req)), // runs in Node
       target: 'cloud',                               // default: never less accurate than cloud only
       cost: {                                        // optional: cost and savings
@@ -227,7 +231,7 @@ export default defineConfig({
 });
 ```
 
-- **Where it runs:** the local runner runs inside Chrome through the same `@belay/web` code your
+- **Where it runs:** the local runner runs inside Chrome through the same `@swissspidy/belay-web` code your
   app ships, via Playwright with a persistent profile. The first run downloads the model with a
   real click, and later runs reuse it. The cloud runner runs in Node.
 - **Output:** `belay.calibration.json` and a self-contained `belay-report.html`. The report has the
@@ -278,7 +282,7 @@ local share over time and compare it with the calibration's `expected.localShare
 `savingsMeter()` counts what the cascade saves in production:
 
 ```ts
-import { savingsMeter } from '@belay/core';
+import { savingsMeter } from '@swissspidy/belay-core';
 
 const meter = savingsMeter({ prices, cloudPerRun: calibration.cost?.cloudPerRun, currency: 'USD' });
 const triage = task({ ..., onEvent: meter.onEvent });
@@ -314,6 +318,10 @@ node site/build.mjs   # the findings site, into _site/
 GitHub Actions workflows are audited with [zizmor](https://docs.zizmor.sh) on every push and pull
 request (`uvx zizmor .github/` runs it locally). Actions are pinned to commit SHAs, and Dependabot
 keeps them and the npm dependencies up to date.
+
+Pull requests that change a published package add a changeset (`npx changeset`). Releases are
+versioned and published to npm with [Changesets](https://github.com/changesets/changesets); see
+[RELEASING.md](RELEASING.md).
 
 ## License
 

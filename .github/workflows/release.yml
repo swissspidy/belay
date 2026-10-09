@@ -1,0 +1,50 @@
+name: Release
+
+# With changesets on main, opens or updates the "Version packages" pull request. Merging that
+# pull request publishes @swissspidy/belay-core, @swissspidy/belay-web and @swissspidy/belay-calibrate to npm, tags the release
+# and creates the GitHub releases. See RELEASING.md.
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+# Queue rather than cancel: interrupting a run halfway through publishing would leave some
+# packages on npm and others not.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version or publish
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write # push the version branch, tags and GitHub releases
+      pull-requests: write # open and update the "Version packages" pull request
+      id-token: write # npm trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Node 24 ships npm 11, which trusted publishing needs. No registry-url, so no .npmrc
+      # carries credentials into the install and build, and no dependency cache in a release job.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run build
+      # Publishing uses npm trusted publishing: npm exchanges the job's OIDC token (id-token:
+      # write above) for a short-lived credential and adds provenance, so no npm secret is
+      # involved. `changeset publish` skips versions that are already on npm.
+      - name: Create release pull request or publish
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          version-script: npm run version-packages
+          publish-script: npx changeset publish
+          commit-message: Version packages
+          pr-title: Version packages

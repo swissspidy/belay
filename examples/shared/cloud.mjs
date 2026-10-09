@@ -23,14 +23,14 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { TypeSafeClient } from '@typesafe-ai/sdk';
 import { readFileSync } from 'node:fs';
-import { cloudAdapter, normalizeOptions, usageParts } from '@belay/core';
+import { cloudAdapter, normalizeOptions, usageParts } from '@swissspidy/belay-core';
 
 /**
  * Standard API prices in USD per million tokens, from https://claude.com/pricing#api (checked
  * 2026-09-29; no batch discount, no US-only inference surcharge). Cache prices are for the
  * 5-minute TTL. Keyed by the model id the API reports, so a response that a refusal fallback
  * served is priced at the fallback model's rates.
- * @type {import('@belay/core').PriceTable}
+ * @type {import('@swissspidy/belay-core').PriceTable}
  */
 export const claudePrices = {
   'claude-fable-5-1': { input: 10, output: 50, cacheRead: 0.25, cacheWrite: 12.5 },
@@ -53,7 +53,7 @@ export const geminiPrices = {
 /**
  * USD per million tokens, from https://docs.typesafe.ai/models (checked 2026-09-29): Jev 1.13 is
  * $0.042 per million input tokens, and output tokens are free.
- * @type {import('@belay/core').PriceTable}
+ * @type {import('@swissspidy/belay-core').PriceTable}
  */
 export const jevPrices = {
   'jev-1.13.0': { input: 0.042, output: 0 },
@@ -91,7 +91,7 @@ export function claudeCloud({ model = 'claude-opus-5-5', effort = 'low' } = {}) 
  * Token usage per model. With a refusal fallback, `usage.iterations` lists every attempt and the
  * top-level `usage` covers only the last one, so each attempt is reported with its own model.
  * Every attempt is priced, which overstates the cost if a declined-before-output attempt is free.
- * @returns {import('@belay/core').CloudUsage[]}
+ * @returns {import('@swissspidy/belay-core').CloudUsage[]}
  */
 function claudeUsage(response, requestedModel) {
   const part = (u, model) => ({
@@ -149,7 +149,7 @@ export function geminiCloud({ model = 'gemini-3.8-flash', thinkingLevel = 'low' 
  * Jev through TypeSafe's System One API: a categorical or ordinal task becomes one Choice question
  * (option descriptions become its criteria), a binary task one Noul question. Pinned to a version,
  * as TypeSafe advises when thresholds are tuned against it.
- * @returns {import('@belay/core').CloudRunner}
+ * @returns {import('@swissspidy/belay-core').CloudRunner}
  */
 export function jevCloud({ model = 'jev-1.13.0' } = {}) {
   const apiKey = process.env.JEV_API_KEY ?? process.env.TYPESAFE_API_KEY;
@@ -182,9 +182,9 @@ export function jevCloud({ model = 'jev-1.13.0' } = {}) {
  * Two cloud runners in a row: `first` answers when its own confidence is at least `threshold`,
  * otherwise `second` answers. The usage of both calls is reported, so each is priced at its own
  * model's rates. Choose `threshold` on labeled data (`scripts/three-tier.mjs` fits one).
- * @param {import('@belay/core').CloudRunner} first  must report a confidence
- * @param {import('@belay/core').CloudRunner} second
- * @returns {import('@belay/core').CloudRunner}
+ * @param {import('@swissspidy/belay-core').CloudRunner} first  must report a confidence
+ * @param {import('@swissspidy/belay-core').CloudRunner} second
+ * @returns {import('@swissspidy/belay-core').CloudRunner}
  */
 export function cloudCascade(first, second, { threshold }) {
   return {

@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Availability, LocalOutput, TaskSchema } from '@belay/core';
+import type { Availability, LocalOutput, TaskSchema } from '@swissspidy/belay-core';
 import type { BrowserConfig, BrowserJudgeSpec, BrowserRunnerSpec } from './config.js';
 import type { LocalBackend } from './evaluate.js';
 
@@ -83,18 +83,18 @@ function harnessDir(): string {
 
 const HARNESS_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Belay calibration harness</title>
-<script type="importmap">{"imports":{"@belay/core":"/belay/core/index.js","@belay/web":"/belay/web/index.js"}}</script>
+<script type="importmap">{"imports":{"@swissspidy/belay-core":"/belay/core/index.js","@swissspidy/belay-web":"/belay/web/index.js"}}</script>
 </head><body>
 <p>Belay calibration harness. This page is driven by <code>belay calibrate</code>.</p>
 <button id="prepare" type="button">Download model</button>
 <script type="module" src="/harness/harness.js"></script>
 </body></html>`;
 
-/** Serves the harness page and the built @belay/core and @belay/web modules on 127.0.0.1 (a secure context). */
+/** Serves the harness page and the built @swissspidy/belay-core and @swissspidy/belay-web modules on 127.0.0.1 (a secure context). */
 async function startServer(): Promise<{ server: Server; origin: string }> {
   const roots: Record<string, string> = {
-    '/belay/core/': packageDir('@belay/core'),
-    '/belay/web/': packageDir('@belay/web'),
+    '/belay/core/': packageDir('@swissspidy/belay-core'),
+    '/belay/web/': packageDir('@swissspidy/belay-web'),
     '/harness/': harnessDir(),
   };
   const server = createServer(async (req, res) => {

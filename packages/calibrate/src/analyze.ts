@@ -1,4 +1,4 @@
-import type { CalibrationCurvePoint, CalibrationFile, CloudUsage, TargetMode } from '@belay/core';
+import type { CalibrationCurvePoint, CalibrationFile, CloudUsage, TargetMode } from '@swissspidy/belay-core';
 
 /** One labeled example after both runners have seen it. */
 export interface Sample {

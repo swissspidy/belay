@@ -1,5 +1,5 @@
-import { task } from '@belay/core';
-import { classifierJudge, promptApi } from '@belay/web';
+import { task } from '@swissspidy/belay-core';
+import { classifierJudge, promptApi } from '@swissspidy/belay-web';
 
 export const context = 'Requests spoken to a home voice assistant to add something to a calendar.';
 
@@ -52,7 +52,7 @@ export function sameEvent(value, expected) {
 /**
  * The app side. The Prompt API writes the extraction on device; a Classifier API judge scores it.
  *
- * @param {{ cloud: import('@belay/core').CloudRunner, calibration?: string | object }} options
+ * @param {{ cloud: import('@swissspidy/belay-core').CloudRunner, calibration?: string | object }} options
  */
 export function createExtraction({ cloud, calibration = '/belay.calibration.json' }) {
   return task({

@@ -6,7 +6,7 @@
  *
  *   node scripts/extraction-signals.mjs    (Jev judgements are cached; JEV_API_KEY fetches missing ones)
  */
-import { analyze, crossValidate, evaluate, loadDataset, OutputCache } from '@belay/calibrate';
+import { analyze, crossValidate, evaluate, loadDataset, OutputCache } from '@swissspidy/belay-calibrate';
 import { TypeSafeClient } from '@typesafe-ai/sdk';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

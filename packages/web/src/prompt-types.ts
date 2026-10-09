@@ -3,7 +3,7 @@
  * https://github.com/webmachinelearning/prompt-api (Sep 2026). Only the members Belay uses.
  */
 
-import type { Availability } from '@belay/core';
+import type { Availability } from '@swissspidy/belay-core';
 
 export interface LanguageModelMessage {
   role: 'system' | 'user' | 'assistant';

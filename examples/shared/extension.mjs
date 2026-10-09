@@ -24,7 +24,7 @@ export function selectVariant(variant) {
 
 /**
  * @param {{ variant?: string, profile?: string }} [options]
- * @returns {import('@belay/calibrate').BrowserConfig}
+ * @returns {import('@swissspidy/belay-calibrate').BrowserConfig}
  */
 export function webaiBrowser(options = {}) {
   const extension = process.env.WEBAI_EXTENSION;

@@ -1,4 +1,4 @@
-import type { CloudRunner, Judge, LocalRunner, PriceTable, TaskSchema, TokenPrices, ValueOf } from '@belay/core';
+import type { CloudRunner, Judge, LocalRunner, PriceTable, TaskSchema, TokenPrices, ValueOf } from '@swissspidy/belay-core';
 
 /**
  * A local runner executed inside the browser (a real Chrome, via Playwright). Options must be
@@ -9,7 +9,7 @@ export interface BrowserRunnerSpec {
   options?: Record<string, unknown>;
 }
 
-/** A judge executed inside the browser, for generation tasks (see @belay/web `classifierJudge`). */
+/** A judge executed inside the browser, for generation tasks (see @swissspidy/belay-web `classifierJudge`). */
 export interface BrowserJudgeSpec {
   judge: 'classifier-judge';
   options?: Record<string, unknown>;

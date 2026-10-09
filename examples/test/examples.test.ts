@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { optionLabels } from '@belay/core';
-import { loadDataset, type BelayConfig } from '@belay/calibrate';
+import { optionLabels } from '@swissspidy/belay-core';
+import { loadDataset, type BelayConfig } from '@swissspidy/belay-calibrate';
 
 const examples = [
   { dir: 'ticket-triage', task: 'ticket-triage' },

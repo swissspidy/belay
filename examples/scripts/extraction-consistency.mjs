@@ -7,7 +7,7 @@
  *
  * Resumable: cached runs are skipped. MAX_MINUTES stops it cleanly after that long.
  */
-import { browserBackend } from '@belay/calibrate';
+import { browserBackend } from '@swissspidy/belay-calibrate';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { webaiBrowser } from '../shared/extension.mjs';
