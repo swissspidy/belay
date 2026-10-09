@@ -36,7 +36,8 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "prepack": "tsc -b --force"
   },
   "publishConfig": {
     "access": "public"

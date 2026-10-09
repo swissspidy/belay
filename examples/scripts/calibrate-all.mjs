@@ -4,7 +4,7 @@
  * app loads; every other cloud writes belay.calibration.<cloud>.json and belay-report.<cloud>.html
  * for comparison. Local outputs come from each example's cache.
  *
- *   node scripts/calibrate-all.mjs [task ...]
+ *   node scripts/calibrate-all.mjs [--cloud <cloud>] [task ...]
  */
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
@@ -14,18 +14,28 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const bin = fileURLToPath(new URL('./bin.js', import.meta.resolve('@swissspidy/belay-calibrate')));
 /** The first cloud is the one the example uses. */
 const TASKS = {
-  'ticket-triage': ['claude', 'jev'],
-  'content-moderation': ['jev', 'claude'],
-  'intent-detection': ['jev-claude', 'claude', 'jev'],
+  'ticket-triage': ['claude', 'jev', 'gemini'],
+  'content-moderation': ['jev', 'claude', 'gemini'],
+  'intent-detection': ['jev-claude', 'claude', 'jev', 'gemini'],
   // Structured output: Jev answers choice and yes/no questions only.
-  'event-extraction': ['claude'],
+  'event-extraction': ['claude', 'gemini'],
 };
-const only = process.argv.slice(2);
+// `--cloud gemini` runs only that cloud's calibrations.
+const args = process.argv.slice(2);
+const cloudFlag = args.indexOf('--cloud');
+const onlyCloud = cloudFlag >= 0 ? args.splice(cloudFlag, 2)[1] : null;
+const only = args;
+const known = new Set(Object.values(TASKS).flat());
+if (cloudFlag >= 0 && !known.has(onlyCloud)) {
+  console.error(`--cloud must be one of ${[...known].join(', ')}; got ${onlyCloud === undefined ? 'nothing' : `"${onlyCloud}"`}`);
+  process.exit(1);
+}
 
 let failed = false;
 for (const [name, clouds] of Object.entries(TASKS)) {
   if (only.length && !only.includes(name)) continue;
   for (const [i, cloud] of clouds.entries()) {
+    if (onlyCloud && cloud !== onlyCloud) continue;
     const suffix = i === 0 ? '' : `.${cloud}`;
     console.log(`\n== ${name} × ${cloud}${i === 0 ? ' (used by the app)' : ''}`);
     const run = spawnSync(

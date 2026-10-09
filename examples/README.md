@@ -39,19 +39,23 @@ export WEBAI_EXTENSION=/path/to/web-ai.studio/extension/release
 # Event extraction also uses Gemini Nano through Chrome's Prompt API (see "Gemini Nano" below).
 export BELAY_FORCE_CPU=1          # no supported GPU: run it on the CPU (16 GB RAM, 4 cores)
 
-# Cloud model: Claude and/or Jev, if you have credentials…
+# Cloud model: Claude, Gemini and/or Jev, if you have credentials…
 export ANTHROPIC_API_KEY=…         # Claude
+export GEMINI_API_KEY=…            # Gemini (GOOGLE_API_KEY works too)
 export JEV_API_KEY=…               # TypeSafe AI's Jev (TYPESAFE_API_KEY works too)
 # …otherwise the reference labels (a perfect cloud, an upper bound; see below):
 export BELAY_CLOUD=reference
 
 npm run calibrate:triage --workspace examples       # or calibrate:moderation, :intent, :extraction
-npm run calibrate:all --workspace examples          # every task against Claude and Jev
+npm run calibrate:all --workspace examples          # every task against every cloud
+node scripts/calibrate-all.mjs --cloud gemini       # (in examples/) only one cloud
 ```
 
 Each example uses the cloud that suited it best: Claude for ticket triage and event extraction
-(Jev can't produce structured output), Jev for content moderation, and Jev → Claude (`jevThenClaude()`: Claude only where Jev's confidence is below 0.8)
-for intent detection. `BELAY_CLOUD=claude|jev|jev-claude|reference` overrides it; without
+(Jev can't produce structured output), Jev for content moderation, and Jev → Claude
+(`jevThenClaude()`: Claude only where Jev's confidence is below 0.8) for intent detection. Gemini
+3.8 Flash is compared on every task; it is about 9× cheaper than Claude Opus 5.5 here and, for
+extraction, within a point of its accuracy. `BELAY_CLOUD=claude|gemini|jev|jev-claude|reference` overrides it; without
 credentials for an example's cloud, the reference labels stand in.
 
 Each script runs `belay calibrate` inside the example's directory. That directory then holds
@@ -63,7 +67,11 @@ other combinations from the cached outputs, with cross-validated thresholds.
 The configs use `target: 'max'` (the most accurate threshold; check the report's held-out
 accuracy) and price every cloud call from its token usage with the tables in
 [`shared/cloud.mjs`](shared/cloud.mjs), copied from [claude.com/pricing](https://claude.com/pricing#api)
-and [docs.typesafe.ai/models](https://docs.typesafe.ai/models). Update them when prices change.
+[ai.google.dev/gemini-api/docs/pricing](https://ai.google.dev/gemini-api/docs/pricing) and
+[docs.typesafe.ai/models](https://docs.typesafe.ai/models). Update them when prices change.
+
+The results across all examples and clouds are on the [findings site](https://swissspidy.github.io/belay/),
+built from these calibration files by [`site/build.mjs`](../site/build.mjs).
 
 The first run downloads the models (about 680 MB)
 and caches every output in `.belay-cache/`. Later runs replay the cache and write identical files.
@@ -90,10 +98,19 @@ verified with Chrome 154 on a CPU-only Linux VM (details in
   download worked but `LanguageModel.create()` failed with "The device is unable to create a
   session to run the model", also with SwiftShader's software Vulkan. The CPU backend switch only
   applies to Gemini Nano. Gemma 4 is the obvious next local model to calibrate event extraction
-  with, on a machine with a GPU.
+  with, on a machine with a GPU. Put the `enableFeatures` above in `event-extraction/belay.config.mjs`,
+  and pass `--refresh local` with a copy of the cache (`--cache-dir`) and separate `--out` and
+  `--report` files: the cache key doesn't include Chrome's feature flags, so without `--refresh`
+  the calibration would replay Gemini Nano's outputs.
 
 ### Notes
 
+- **Laya is an open, Jev-style model.** [convaiinnovations/laya](https://huggingface.co/convaiinnovations/laya)
+  (Apache-2.0) takes the same typed choice / yes-no / score questions as Jev and returns
+  probabilities. Its `laya-serve` exposes Jev's `POST /v1/systemone` API, so it can be self-hosted
+  as a cloud tier too.
+- **Gemini declines some moderation inputs.** One of the 300 Civil Comments examples came back
+  with `PROHIBITED_CONTENT` and no answer; the calibration counts it as a cloud error.
 - **Chrome and proxies:** `belay calibrate` passes `HTTPS_PROXY` to Chrome, which otherwise ignores
   it. Behind a TLS-intercepting proxy, Chrome must also trust the proxy's CA. On Linux that means
   the NSS store: `certutil -A -d sql:$HOME/.pki/nssdb -n proxy -t "C,," -i proxy-ca.crt`.

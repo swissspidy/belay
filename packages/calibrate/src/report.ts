@@ -112,7 +112,7 @@ export function renderReport(input: ReportInput): string {
   <p class="callout" id="callout"></p>
   <section class="card">
     <h2>Accuracy and local share by threshold</h2>
-    <p class="sub">Runs with local confidence at or above the threshold keep the local answer; the rest go to the cloud. Hover for values.</p>
+    <p class="sub" id="curve-sub">Runs with local confidence at or above the threshold keep the local answer; the rest go to the cloud. Hover for values.</p>
     <div class="legend" id="curve-legend"></div>
     <div class="chart" id="curve-chart"></div>
   </section>
@@ -434,6 +434,15 @@ const SCRIPT = String.raw`
     el('text', { x: m.l + iw / 2, y: H - 2, 'text-anchor': 'middle' }, svg).textContent = 'local confidence';
   }
 
+  // With per-label thresholds, the curves still move one global threshold for every label, so the
+  // recommendation's accuracy and local share are not a point on them: say so, and mark only the
+  // global threshold.
+  const thresholdRef = (data.thresholds ? 'global ' : 'recommended ') + data.threshold;
+  if (data.thresholds) {
+    const perLabel = Object.entries(data.thresholds).map(([label, t]) => label + ' ' + t).join(', ');
+    $('curve-sub').textContent = 'These curves move one global threshold for every label. The recommendation also uses per-label thresholds (' + perLabel + '), so its accuracy and local share (the tiles above) are not a point on them. Hover for values.';
+  }
+
   function render() {
     lineChart($('curve-chart'), {
       label: 'Cascade accuracy and local share by threshold',
@@ -443,8 +452,8 @@ const SCRIPT = String.raw`
         { key: 'localShare', name: 'Local share', color: css('--series-2') },
       ],
       refs: [
-        { axis: 'y', value: data.target, label: (data.targetMode === 'cloud' ? 'cloud only ' : data.targetMode === 'max' ? 'best ' : 'target ') + pct(data.target, 1) },
-        { axis: 'x', value: data.threshold, label: 'recommended ' + data.threshold },
+        { axis: 'y', value: data.target, label: (data.targetMode === 'cloud' ? 'cloud only ' : data.targetMode === 'max' ? (data.thresholds ? 'best, per label ' : 'best ') : 'target ') + pct(data.target, 1) },
+        { axis: 'x', value: data.threshold, label: thresholdRef },
       ],
       tooltip: (p) => row(css('--series-1'), 'Accuracy', pct(p.accuracy)) + row(css('--series-2'), 'Local share', pct(p.localShare)) +
         row(null, 'Local accuracy', pct(p.localAccuracy)) + (p.costPer1k != null ? row(null, 'Cost / 1k', money(p.costPer1k)) : ''),
@@ -459,7 +468,7 @@ const SCRIPT = String.raw`
         label: 'Cloud cost per 1,000 runs by threshold',
         yMax, yTicks: ticks, yFormat: money,
         series: [{ key: 'costPer1k', name: 'Cost', color: css('--series-1') }],
-        refs: [{ axis: 'x', value: data.threshold, label: 'recommended ' + data.threshold }],
+        refs: [{ axis: 'x', value: data.threshold, label: thresholdRef }],
         tooltip: (p) => row(null, 'Cost / 1k', money(p.costPer1k)) + row(null, 'Accuracy', pct(p.accuracy)),
       });
     }

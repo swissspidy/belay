@@ -4,3 +4,4 @@ dist/
 coverage/
 **/.belay-cache/chrome-profile*/
 *.log
+_site/

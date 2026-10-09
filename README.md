@@ -1,17 +1,16 @@
 # Belay
 
 Belay answers AI tasks with a small model on the user's device, and calls a cloud model only for
-the inputs the small model is unsure about. You get the cloud model's accuracy (sometimes better)
-for a fraction of its cost, and most inputs never leave the device.
+the inputs the small model is unsure about. You keep the cloud model's accuracy (sometimes you
+beat it) for a fraction of its cost, and most inputs never leave the device.
 
-It is built for classification (labels, yes/no, ratings), where the local model's own
-probability is the confidence. It also runs [generation tasks](#generation-tasks-prompt-api) with
-structured (JSON) output: an on-device LLM writes the answer, and a judge model scores it.
+**[Read the findings →](https://swissspidy.github.io/belay/)** what it saved and when it was more
+accurate, on four real tasks against Claude, Gemini and Jev.
 
 **Who it's for:** web apps that run the same AI task on text many times a day: routing support
-tickets, moderating comments, detecting intents, tagging content, extracting fields. Each cloud call costs money and adds
-latency. Each on-device answer is free, private and fast, but on its own it isn't accurate enough
-to trust.
+tickets, moderating comments, detecting intents, extracting fields. Each cloud call costs money and
+adds latency. Each on-device answer is free, private and fast, but on its own it isn't accurate
+enough to trust.
 
 **How it works:**
 
@@ -24,32 +23,38 @@ to trust.
 3. **Calibrate the threshold on your data.** `belay calibrate` runs your labeled examples through
    both models in a real browser. It picks the threshold that is at least as accurate as the cloud
    alone (or the most accurate one), measures what the cloud calls cost, and writes a calibration
-   file and an HTML report. The report shows accuracy, savings, a cross-validated check, and the
-   mistakes to fix.
+   file and an HTML report with a cross-validated check and the mistakes to fix.
 4. **Track savings in production.** Every run emits telemetry, and `savingsMeter()` adds up spend
    and savings from it.
 
-**What it did on real data:** three classification tasks on public datasets with 300 labeled examples each, the Laya
-model on device, and the cloud model each example escalates to. Accuracy is cross-validated; cloud
-costs are per million runs at the recommended threshold, priced from measured token usage.
-Details [below](#a-real-calibration).
-
-| Task | Cloud alone | With Belay | On device |
-| --- | --- | --- | --- |
-| Ticket triage | Claude: 94.3%, $2,005 | **97.3%, $1,086** | 47% |
-| Content moderation | Jev: 83.7%, $14.55 | **86.0%, $3.18** | 78% |
-| Intent detection | Claude: 99.3%, $2,301 | **99.3%, $65** (via Jev → Claude) | 32% |
+It is built for classification (labels, yes/no, ratings), where the local model's own probability
+is the confidence. It also runs [generation tasks](#generation-tasks-prompt-api) with structured
+(JSON) output: an on-device LLM writes the answer, and a judge model scores it.
 
 **What it isn't:** a model, a hosted service, or a general LLM router. Belay is a small library
 (`@swissspidy/belay-core`, `@swissspidy/belay-web`) plus a calibration CLI (`@swissspidy/belay-calibrate`). You bring the local and
 cloud models; Belay decides which one answers, and proves the decision on your data.
 
-> **Status:** Milestones 1–5 are done: the core cascade, the Classifier API and Prompt API
-> runners, the classifier-as-judge, the `belay calibrate` CLI, [three examples](examples) with
-> real calibrations against Claude and Jev, and measured costs and savings. Design decisions are
-> in ADRs [0001](docs/adr/0001-public-api-confidence-and-calibration.md),
-> [0002](docs/adr/0002-calibration-in-a-real-browser.md) and
-> [0003](docs/adr/0003-targets-relative-to-the-cloud-and-measured-cost.md).
+## Results
+
+The [examples](examples) calibrate four tasks on public datasets (300 labeled examples each, 240 for
+extraction). Accuracy is held out (five-fold cross-validation); costs are per million runs, priced
+from measured token usage at list prices.
+
+| Task | Cloud model | Cloud alone | With Belay | On device |
+| --- | --- | --- | --- | --- |
+| [Ticket triage](https://swissspidy.github.io/belay/reports/ticket-triage/belay-report.html) | Claude Opus 5.5 | 94.3%, $2,005 | **97.3%, $967** | 53% |
+| [Content moderation](https://swissspidy.github.io/belay/reports/content-moderation/belay-report.html) | Jev 1.13 | 83.7%, $14.55 | **86.0%, $3.18** | 78% |
+| [Intent detection](https://swissspidy.github.io/belay/reports/intent-detection/belay-report.html) | Jev → Claude | 99.7%, $71.42 | 99.3%, $64.00 | 37% |
+| [Event extraction](https://swissspidy.github.io/belay/reports/event-extraction/belay-report.html) | Claude Opus 5.5 | 68.3%, $4,031 | 67.1%, $3,590 | 11% |
+
+The [findings](https://swissspidy.github.io/belay/) compare every task against Claude Opus 5.5,
+Gemini 3.8 Flash and Jev 1.13, and explain the results. In short: the cascade beat every cloud
+model on ticket triage and moderation, because the local model was right where the cloud was wrong
+on the runs it kept; it only saved money on intents, where the local model had no edge; and for
+extraction, no judge could tell Gemini Nano's right answers from its wrong ones well enough.
+
+[![Calibration report for ticket triage](docs/images/ticket-triage-report.png)](https://swissspidy.github.io/belay/reports/ticket-triage/belay-report.html)
 
 ## Quick look
 
@@ -85,109 +90,6 @@ const result = await triage.run(ticketText, { signal });
 **The rule:** the local answer is accepted if and only if `confidence >= threshold`. Otherwise the
 task escalates, subject to your privacy policy.
 
-## A real calibration
-
-[![Calibration report for ticket triage](docs/images/ticket-triage-report.png)](examples/ticket-triage/belay-report.html)
-
-[`examples/ticket-triage`](examples/ticket-triage) routes customer messages to one of five teams.
-The data is 300 labeled messages from the public Bitext support dataset. The local model is Laya
-(the WebAI Studio extension's Classifier API polyfill) running in headless Chromium through
-`belay calibrate`. Every confidence in the report is a real model output, and all outputs are
-committed in `.belay-cache/`, so re-running replays them and reproduces the same calibration.
-
-Each task is calibrated against two cloud models: Claude Opus 5.5 (`claude-opus-5-5`, effort
-`low`) and Jev 1.13 (`jev-1.13.0`, [TypeSafe AI](https://typesafe.ai)'s classification model,
-which answers typed questions with probabilities instead of generating text). Every cloud call is
-priced from the token usage it reported, at the list prices from
-[claude.com/pricing](https://claude.com/pricing#api) ($4 / $20 per million input / output tokens)
-and [docs.typesafe.ai/models](https://docs.typesafe.ai/models) ($0.042 per million input tokens,
-output free). The target is `'max'`: the most accurate threshold.
-
-| Task | Cloud | Local only | Cloud only | Cascade | Held out¹ | Local | Cloud cost per 1M runs | Saved |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| [ticket triage](examples/ticket-triage/belay-report.html) (5 teams) | **Claude**² | 93.0% | 94.3% | **97.7%** | 97.3% | 47% | $1,086 (vs $2,005) | 46% |
-| | [Jev](examples/ticket-triage/belay-report.jev.html) | | 92.3% | **95.7%** | 95.0% | 47% | $9.68 (vs $18.30) | 47% |
-| [content moderation](examples/content-moderation/belay-report.html) (binary) | **Jev**² | 70.7% | 83.7% | **86.7%** | 86.0% | 78% | $3.18 (vs $14.55) | 78% |
-| | [Claude](examples/content-moderation/belay-report.claude.html) | | 76.0% | **76.7%** | 76.7% | 83% | $281 (vs $1,582) | 82% |
-| [intent detection](examples/intent-detection/belay-report.html) (8 intents) | **Jev → Claude**²³ | 88.0% | 99.7% | 99.7% | 99.3% | 32% | $65.06 (vs $71.42) | 9% |
-| | [Claude](examples/intent-detection/belay-report.claude.html) | | 99.3% | 99.3% | 99.0% | 32% | $1,561 (vs $2,301) | 32% |
-| | [Jev](examples/intent-detection/belay-report.jev.html) | | 99.0% | 99.0% | 98.7% | 32% | $13.51 (vs $19.87) | 32% |
-
-¹ Five-fold cross-validation: thresholds fitted on four fifths of the examples, scored on the
-fifth. The cascade column is fitted and scored on the same 300 examples, which flatters it.
-² The cloud each example uses (its `belay.calibration.json`), chosen from the comparisons below.
-³ `jevThenClaude()`: Jev answers when its confidence is at least 0.8, Claude otherwise (6 of 300
-runs). As accurate as Claude alone for 3% of its cost, before Laya saves anything.
-
-What the reports showed:
-
-- **The cascade can be cheaper *and* more accurate than the cloud alone.** It gains accuracy when
-  the local model is right where the cloud is wrong on the runs it keeps. In ticket triage, the
-  141 runs Laya answered at confidence ≥ 0.984 included 10 that Claude got wrong and none that
-  Claude got right and Laya didn't. The gain held up on held-out folds (+3.0 points over Claude,
-  +2.7 over Jev). For intent detection Laya knows nothing the cloud doesn't, so the cascade can
-  only match the cloud; it still answers a third of the runs on device.
-- **`target: 'cloud'` trades none of the accuracy for savings.** It takes the lowest threshold
-  that is still at least as accurate as the cloud alone. For ticket triage with Claude that is
-  0.437: 94.3%, 94% of runs local, and 92% of the cloud bill saved.
-- **Jev is about a hundred times cheaper than Claude on these tasks,** around $0.02 per 1,000
-  classifications against $1.60–$2.30 for Claude, and it agreed with the moderation labels more
-  often (83.7% vs 76.0%). Claude called 87 of the 300 moderation examples toxic; the labels say
-  150. Civil Comments counts a comment as toxic when half its raters did, which includes sharp but
-  civil criticism ("Trump is far too self-absorbed and ignorant…"), and Claude reads the task's
-  question, "rude … enough to make someone leave the discussion", as a stricter bar.
-- **The report told us how to fix the task.** The first ticket-triage calibration had 88.0% local
-  accuracy. Its "confident local mistakes" table was mostly customer *claims* routed to
-  `account`. Adding "claims against the company" to the `feedback` option's description raised
-  local accuracy to 93.0%. (The change was chosen by looking at these same 300 examples, so treat
-  that gain as optimistic.)
-- **A third tier adds little; picking the right second tier matters more.** Jev reports its own
-  confidence, so [`scripts/three-tier.mjs`](examples/scripts/three-tier.mjs) simulates Laya → Jev
-  → Claude from the cached outputs, with both thresholds cross-validated. Per 1M runs, held out:
-  - Ticket triage: Laya → Claude is the most accurate (97.3%, $967). Laya → Jev gets 95.0% for
-    $8.28. Three tiers get 95.3% for $99: Jev's confidence doesn't pick out the runs where Claude
-    would do better.
-  - Moderation: Laya → Jev is best (85.3%, $7.34), since Jev agrees with these labels more.
-  - Intent detection: Jev → Claude matches Claude alone (99.3%) for $53 instead of $2,301. Jev
-    answers 98.7% of runs and hands the rest to Claude. Run for real (the table above), it sent 6
-    of 300 runs to Claude, since Jev's confidence varies a little between calls near 0.8.
-
-  So each example now uses the cloud that suited it best: Claude for ticket triage (accuracy),
-  Jev for moderation, and Jev → Claude for intents.
-
-  With 300 examples, one point is three examples, so small differences between rows are noise.
-- **Generation needs a judge that can tell right from wrong, and Laya isn't one yet.**
-  [`examples/event-extraction`](examples/event-extraction/belay-report.html) extracts a calendar
-  event (5 fields) from 240 voice requests with Gemini Nano through Chrome's Prompt API, judged
-  by Laya through the Classifier API, with Claude as the cloud. Gemini Nano got 50.8% of the
-  extractions fully right, Claude 68.3% (the annotations are still somewhat noisy). But Laya's
-  P(correct) sat between 0.1 and 0.8 whether the extraction was right or wrong, so no threshold
-  could trust the local answer: the cascade kept about 1% of runs on device and saved 1%.
-  Calibration is what catches this before shipping.
-  [`scripts/extraction-signals.mjs`](examples/scripts/extraction-signals.mjs) tried other signals
-  on the same outputs:
-  - A **verbatim check** (every extracted value appears in the request) is useless here: 95% of
-    Nano's extractions pass it. Nano copies faithfully; its mistakes are *which* words form the
-    event (81 of 118 wrong extractions get `event_name` wrong) and span boundaries.
-  - **Jev as the judge** separates better (its most trusted third is 68% right, against 46% for
-    Laya's) and keeps 12% of runs on device at about Claude's accuracy (67.5% held out vs 68.3%).
-  - **Self-consistency** (three extra Nano runs per request, [`scripts/extraction-consistency.mjs`](examples/scripts/extraction-consistency.mjs))
-    separates about as well, and a majority vote of the four runs lifts Nano itself from 50.8% to
-    52.5%. But Nano's mistakes are systematic: on the 143 requests where all four runs agree,
-    Nano is right 88 times and Claude 103 (Claude alone right 19 times, Nano alone 4). Keeping
-    those local would save 60% at about 6 points of accuracy, so a target of "at least cloud
-    accuracy" escalates everything. Agreement × Jev keeps 22% local at 67.1% held out.
-
-  Structured generation is where a cascade is hardest: the local model and the judge both have
-  to be good, and noisy labels cap what any judge can show.
-- **The local model is an open, Jev-style model too.** Laya
-  ([convaiinnovations/laya](https://huggingface.co/convaiinnovations/laya), Apache-2.0) takes the
-  same typed choice / yes-no / score questions as Jev and returns calibrated probabilities. Its
-  `laya-serve` exposes Jev's `POST /v1/systemone` API, so it can also be self-hosted on a server.
-- **The API's `confidence` field is not the label probability.** For the same decision, Laya
-  reported `confidence: 0.964` next to `probability: 0.993` for the chosen label. Belay pins the
-  signal to the probability (ADR 0001), and calibration fixes the threshold for it.
-
 ## Packages
 
 | Package              | What                                                                                   |
@@ -202,7 +104,7 @@ What the reports showed:
 { type: 'binary', prompt: 'Is this comment abusive?' }                  // value: boolean
 { type: 'categorical', options: ['bug', { label: 'billing', description: 'Invoices, refunds' }] }
 { type: 'ordinal', options: ['1', '2', '3', '4', '5'], prompt: 'How urgent is it?' }
-{ type: 'structured', jsonSchema, validate }                            // generation tasks (M3)
+{ type: 'structured', jsonSchema, validate }                            // generation tasks
 ```
 
 Both runners' outputs are validated against the schema, so `result.value` is always one of your
@@ -275,7 +177,7 @@ The request includes a ready-made `instruction`, a `jsonSchema` for structured o
 (redacted) `input`, and the local attempt. Keep provider API keys on your server. Reporting token
 usage is optional; it lets calibration and `savingsMeter()` measure what the cloud costs.
 [`examples/shared/cloud.mjs`](examples/shared/cloud.mjs) has runners for Claude (including
-refusal fallbacks, priced per model) and for Jev.
+refusal fallbacks, priced per model), Gemini and Jev.
 
 ## Privacy
 
@@ -394,15 +296,15 @@ Only runs kept local because the local answer was confident count as saved, each
 mean measured cost of a cloud call. Runs answered locally because escalation was blocked
 (privacy policy, consent, cloud error) are counted separately as `blocked`.
 
-## Roadmap
+## Status
 
-1. ✅ Core + Classifier runner + cloud adapter; escalates exactly when confidence < threshold.
-2. ✅ Calibration CLI (Playwright + real Chrome, WebAI Studio polyfill), HTML report, `belay.calibration.json`.
-3. ✅ Prompt API runner with structured output and classifier-as-judge confidence.
-4. ✅ Examples (ticket triage, content moderation, intent detection) and real calibration reports.
-5. ✅ Targets relative to the cloud, measured cost and savings, held-out accuracy, Jev as a cloud model.
+Early. The API may change before 1.0. Design decisions are recorded in ADRs
+[0001](docs/adr/0001-public-api-confidence-and-calibration.md) (API, confidence, calibration file),
+[0002](docs/adr/0002-calibration-in-a-real-browser.md) (calibration in a real browser) and
+[0003](docs/adr/0003-targets-relative-to-the-cloud-and-measured-cost.md) (targets, measured cost,
+held-out accuracy).
 
-Non-goals for now: routing between cloud models in the library (a cloud runner can do it, like
+Not in scope for now: routing between cloud models in the library (a cloud runner can do it, like
 the examples' `cloudCascade()`), training or fine-tuning, server-side use.
 
 ## Development
@@ -410,6 +312,7 @@ the examples' `cloudCascade()`), training or fine-tuning, server-side use.
 ```sh
 npm install
 npm run check   # typecheck, build, test
+node site/build.mjs   # the findings site, into _site/
 ```
 
 GitHub Actions workflows are audited with [zizmor](https://docs.zizmor.sh) on every push and pull
