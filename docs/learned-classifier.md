@@ -557,8 +557,12 @@ const local = learnedClassifier({ embedder, teacherAccuracy: calibration.expecte
 In the simulations (cold start; noisy teacher = wrong as often as the calibrated cloud model, at
 random), it raised the local share on ticket triage from 54.7% to 77.5% at a threshold of 0.95
 with no loss of accuracy on the device (overall accuracy 97.3% → 98.9%), and on content moderation
-from 1.3% to 10.2% at 0.9 (33.1% with a seed, from 2.7%; overall 81.9% → 84.6%). Answers the
-classifier keeps are then *more* often right than the cloud's.
+from 1.3% to 10.2% at 0.9 (22.2% with a seed, from 2.7%; overall 81.6% → 82.5%, and 83.4% with the
+seed). The answers the classifier keeps are then *more* often right than the cloud's. All the
+numbers are in [ADR 0006](adr/0006-a-cloud-that-is-often-wrong.md).
+
+With `teacherAccuracy` set, the confidence is a probability of being right, so derive a threshold
+from costs with `costAwareThreshold({ …, calibratedAgainst: 'labels' })`.
 
 It is only as good as that independence assumption. Where the cloud errs mostly on ambiguous
 inputs, and is better than its average on the clear ones the classifier is sure of, the corrected
@@ -566,7 +570,7 @@ confidence comes out too high. On the 300 moderation examples, Jev was right 92%
 the half a leave-one-out kNN was surest of (83.7% overall), so the correction estimated 93% for
 that half where the kNN was right 83% of the time. With a simulated teacher whose mistakes
 concentrate on borderline comments, the device's answers were 80.7% right at a threshold of 0.9
-(91.0% with a seed). On ticket triage the kNN made none of Claude's or Jev's real mistakes, and
+(89.8% with a seed). On ticket triage the kNN made none of Claude's or Jev's real mistakes, and
 the correction was exact. So:
 
 - Leave it unset when the cloud is right more often than your threshold; it changes little there.
