@@ -80,7 +80,7 @@ const result = await triage.run(ticketText, { signal });
 //   confidence: 0.93,
 //   source: 'local',             // or 'cloud'
 //   latencyMs: 31,
-//   escalationReason: null,      // or 'low-confidence' | 'local-unavailable' | 'local-error' | 'local-timeout' | 'invalid-output'
+//   escalationReason: null,      // or 'low-confidence' | 'local-unavailable' | 'local-error' | 'local-timeout' | 'invalid-output' | 'exploration'
 //   escalationBlocked: null,     // or 'policy' | 'consent-denied' | 'cloud-error'
 //   threshold: 0.8,
 //   local: { value: 'billing', confidence: 0.93, latencyMs: 31, probabilities: [...] },
@@ -96,6 +96,7 @@ task escalates, subject to your privacy policy.
 | -------------------- | -------------------------------------------------------------------------------------- |
 | `@swissspidy/belay-core`        | Tasks, cascade, confidence combination, calibration file, cloud adapters. Zero runtime dependencies. |
 | `@swissspidy/belay-web`         | Local runners for built-in AI: `classifierApi()`, `promptApi()`, and `classifierJudge()`. |
+| `@swissspidy/belay-learn`       | `learnedClassifier()`: a local runner that learns from the cloud's answers (on-device embeddings and a small trained head). |
 | `@swissspidy/belay-calibrate`   | `belay calibrate` CLI: runs your labeled data in a real Chrome, writes the calibration file and an HTML report. |
 
 ## Schemas
@@ -114,6 +115,8 @@ options.
 
 - **Classifier tasks**: the calibrated probability of the returned (top) label, as reported by the
   Classifier API. For binary tasks this is `max(P(true), P(false))`.
+- **Learned classifier** (`@swissspidy/belay-learn`): the head's score, mapped to P(correct) by
+  Platt scaling on its own recent record.
 - **Generation tasks**: schema validation is a hard gate (an invalid output has confidence 0).
   After that, a judge (a Classifier API question such as "is this output correct?") supplies
   P(correct). When there are several signals, the lowest one wins.
@@ -138,6 +141,44 @@ const summarize = task({
 Each run prompts a fresh clone of a base session, so runs don't share history. An output that
 fails `validate` escalates with `invalid-output` and the judge never sees it. Otherwise the judge's
 calibrated P(true) is the confidence.
+
+## Learning from escalations
+
+Every escalation pays for a cloud answer. `@swissspidy/belay-learn` keeps it: its local runner
+embeds each input with a small model in the page and classifies it with a head trained on the
+cloud's earlier answers and your users' corrections. It starts by escalating everything and needs
+the cloud less the longer it runs.
+
+```ts
+import { learnedClassifier, transformersEmbedder, indexedDbStore } from '@swissspidy/belay-learn';
+
+const triage = task({
+  name: 'ticket-triage',
+  schema,
+  local: learnedClassifier({ embedder: transformersEmbedder(), store: indexedDbStore() }),
+  cloud: fetchAdapter({ url: '/api/belay' }),
+  threshold: 0.9,
+  explore: 0.05, // keep checking: 5% of confident runs go to the cloud too, and it learns from them
+});
+
+await triage.feedback(text, 'billing'); // a user's correction
+```
+
+Its confidence is calibrated on its own record on inputs it had not seen yet, so `threshold: 0.9`
+still means "at least 90% likely right" as it learns. On a stream of 1,500 support messages,
+starting from nothing, it answered 87% of them on the device at 99.5% accuracy. On content
+moderation, where embeddings can't tell toxic comments apart well, it kept most comments in the
+cloud.
+[Try it in your browser](https://swissspidy.github.io/belay/learn/), and see the
+[package README](packages/learn/README.md) and [ADR 0004](docs/adr/0004-learning-from-escalations.md).
+
+Two core features work with any local runner:
+
+- **`explore`** sends a share of confident runs to the cloud anyway (escalation reason
+  `exploration`). On those runs the event's `label` and `localLabel` show whether the local
+  answer agreed, so you can watch for drift. `savingsMeter()` counts them as `explored`.
+- **`task.feedback(input, value)`** passes a correction to the local runner's `learn()`. It
+  resolves to `false` for runners that can't learn, such as the built-in APIs.
 
 ## Model downloads
 
@@ -274,9 +315,10 @@ rejected. See the [format](docs/adr/0001-public-api-confidence-and-calibration.m
 task({ ..., onEvent: (e) => { if (e.type === 'run') metrics.record(e); } });
 ```
 
-Each run emits one event with `source`, `label`, `confidence`, `localConfidence`, `threshold`,
-`escalationReason`, `escalationBlocked`, the total, local and cloud latencies, and the cloud call's
-token usage (`cloudUsage`) when its runner reports it. Events never contain the input text. Track
+Each run emits one event with `source`, `label`, `confidence`, `localConfidence`, the local
+attempt's label (`localLabel`), `threshold`, `escalationReason`, `escalationBlocked`, the total,
+local and cloud latencies, and the cloud call's token usage (`cloudUsage`) when its runner reports
+it. Events never contain the input text. Track
 local share over time and compare it with the calibration's `expected.localShare` to detect drift.
 
 `savingsMeter()` counts what the cascade saves in production:
@@ -302,10 +344,12 @@ Early. The API may change before 1.0. Design decisions are recorded in ADRs
 [0001](docs/adr/0001-public-api-confidence-and-calibration.md) (API, confidence, calibration file),
 [0002](docs/adr/0002-calibration-in-a-real-browser.md) (calibration in a real browser) and
 [0003](docs/adr/0003-targets-relative-to-the-cloud-and-measured-cost.md) (targets, measured cost,
-held-out accuracy).
+held-out accuracy) and [0004](docs/adr/0004-learning-from-escalations.md) (learning from
+escalations, exploration).
 
 Not in scope for now: routing between cloud models in the library (a cloud runner can do it, like
-the examples' `cloudCascade()`), training or fine-tuning, server-side use.
+the examples' `cloudCascade()`), fine-tuning the on-device model itself (`@swissspidy/belay-learn`
+trains a small head on its embeddings), server-side use.
 
 ## Development
 

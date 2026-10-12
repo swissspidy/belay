@@ -18,7 +18,7 @@ The more the cloud answers, the less it needs to.
 - **On the device.** Examples are stored as embeddings, in memory or IndexedDB, never as text.
   The model downloads once (about 34 MB) and is then read from the browser cache.
 
-On a stream of 1,500 support messages, it answered 85% of them on its own with 99.6% accuracy,
+On a stream of 1,500 support messages, it answered 87% of them on its own with 99.5% accuracy,
 starting from nothing; see the [simulation](https://github.com/swissspidy/belay/tree/main/examples#learned-classifier)
 and the [demo](https://swissspidy.github.io/belay/learn/).
 
@@ -100,7 +100,7 @@ another schema is rejected. `local.exportSeed()` turns what a classifier learned
 | `knn` | `{ k: 7, temperature: 0.1 }` | |
 | `softmax` | `{ minExamples: 50, epochs: 150, warmEpochs: 40, retrainDelayMs: 200 }` | retrained in the background after new examples |
 | `minExamples`, `minPerLabel` | 10, 3 | cold start: confidence 0 below these |
-| `calibration` | `{ minPairs: 30, window: 150 }` | Platt scaling on the most recent scored predictions |
+| `calibration` | `{ minPairs: 30, window: 300, halfLife: 50 }` | Platt scaling on the most recent scored predictions, the newest weighted most |
 | `feedbackWeight` | 3 | |
 | `minCloudConfidence` | 0 | ignore cloud answers whose reported confidence is lower |
 | `maxExamples` | 5,000 | the oldest cloud answers are dropped first |
