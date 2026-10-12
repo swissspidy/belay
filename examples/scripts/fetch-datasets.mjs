@@ -249,10 +249,14 @@ if (want('stream')) {
   await write(new URL('../content-moderation/stream.jsonl', import.meta.url), shuffled(interleave(moderation), 'moderation-stream'));
 }
 
-/** A deterministic shuffle (hash order), so a stream is not round-robin by label. */
+/**
+ * A deterministic shuffle (hash order), so a stream is not round-robin by label. Its own seed:
+ * `pick()` already sorted each label's rows by `${seed}:${text}`, and sorting by that again would
+ * put the labels with the lowest hashes first.
+ */
 function shuffled(examples, seed) {
   return examples
-    .map((e) => ({ e, h: fnv1a(`${seed}:${e.input}`) }))
+    .map((e) => ({ e, h: fnv1a(`${seed}:order:${e.input}`) }))
     .sort((a, b) => a.h - b.h)
     .map((x) => x.e);
 }
