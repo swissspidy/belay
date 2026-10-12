@@ -157,7 +157,8 @@ export function indexedDbStore(options: IndexedDbStoreOptions = {}): ExampleStor
 export async function persistStorage(): Promise<{ persisted: boolean; usage?: number; quota?: number }> {
   const storage = (globalThis as { navigator?: { storage?: StorageManager } }).navigator?.storage;
   if (!storage?.persist) return { persisted: false };
-  const persisted = (await storage.persisted?.()) || (await storage.persist());
+  // A refused or failing request leaves storage best-effort; it is never an error for the app.
+  const persisted = (await storage.persisted?.().catch(() => false)) || (await storage.persist().catch(() => false));
   const estimate = await storage.estimate?.().catch(() => undefined);
   return {
     persisted,

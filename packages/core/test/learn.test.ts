@@ -286,5 +286,7 @@ describe('costAwareThreshold', () => {
     expect(() => costAwareThreshold({ errorCost: 0, cloudCost: 1 })).toThrow(/errorCost/);
     expect(() => costAwareThreshold({ errorCost: 1 })).toThrow(/cloudCost/);
     expect(() => costAwareThreshold({ errorCost: 1, cloudCost: 1, cloudAccuracy: 2 })).toThrow(/cloudAccuracy/);
+    expect(() => costAwareThreshold({ errorCost: Infinity, cloudCost: Infinity })).toThrow(/errorCost/);
+    expect(() => costAwareThreshold({ errorCost: 1, cloudCost: Infinity })).toThrow(/cloudCost/);
   });
 });

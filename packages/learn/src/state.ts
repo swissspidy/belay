@@ -22,8 +22,11 @@ export interface LearnedState {
   pairs: { knn: CalibrationPair[]; softmax: CalibrationPair[] };
 }
 
-const isPair = (p: unknown): p is CalibrationPair =>
-  !!p && typeof p === 'object' && typeof (p as CalibrationPair).score === 'number' && typeof (p as CalibrationPair).correct === 'boolean';
+const isPair = (p: unknown): p is CalibrationPair => {
+  if (!p || typeof p !== 'object') return false;
+  const { score, correct, weight } = p as CalibrationPair;
+  return Number.isFinite(score) && typeof correct === 'boolean' && (weight === undefined || (Number.isFinite(weight) && weight > 0));
+};
 
 /** Checks a parsed snapshot's shape. Throws `BelayError('invalid-task')`. */
 export function parseLearnedState(value: unknown): LearnedState {

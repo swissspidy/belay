@@ -180,6 +180,7 @@ export async function simulateCommand(argv: string[]): Promise<number> {
   const schema = taskConfig.schema as TaskSchema;
   const dataset = await loadDataset(values.data, schema);
   const seed = values.seed ? parseSeed(JSON.parse(await readFile(values.seed, 'utf8'))) : undefined;
+  if (seed && seed.task !== task) throw new Error(`--seed: ${values.seed} is a seed for task "${seed.task}", not "${task}"`);
   const embedder = embedderOf(taskConfig.learn);
   await ready(embedder, log);
 

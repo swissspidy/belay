@@ -159,7 +159,9 @@ interface State {
   embeddings: Map<string, Float32Array>;
   pending: { id: string; input: string; label: number; source: 'cloud' | 'feedback' }[];
   /** The distance gate's threshold, and the example count it was computed at. */
-  gate: { threshold: number | null; at: number; samples: number };
+  gate: { threshold: number | null; at: number; size: number; samples: number };
+  /** Examples added or replaced, for the gate's refresh (the count stays put once it is full). */
+  changes: number;
   gated: number;
   version: number;
   /** Incremented by reset(): learning that started before it must not land after it. */
@@ -306,7 +308,8 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
           predictions: new Map(),
           embeddings: new Map(),
           pending: [],
-          gate: { threshold: null, at: -1, samples: 0 },
+          gate: { threshold: null, at: -1, size: 0, samples: 0 },
+          changes: 0,
           gated: 0,
           version: 0,
           generation: 0,
@@ -440,6 +443,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     const example: Example = { id, label, embedding, weight: source === 'feedback' ? feedbackWeight : 1, source, createdAt: Date.now() };
     s.learned.delete(id);
     s.learned.set(id, example);
+    s.changes++;
     const stored: StoredExample = { id, label: s.labels[label]!, embedding, source, createdAt: example.createdAt };
     void write(() => store.put(s.scope, [stored]));
     if (s.learned.size > maxExamples) {
@@ -514,19 +518,20 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
   /**
    * The distance gate's threshold right now, or null while it is off: the `gateQuantile` of the
    * leave-one-out score of up to GATE_SAMPLE stored examples (Sun et al.: keep ~95% of
-   * in-distribution data), recomputed once the example count moved by GATE_REFRESH.
+   * in-distribution data), recomputed once examples amounting to GATE_REFRESH of them were added
+   * or replaced since.
    */
   function gateThreshold(s: State): number | null {
     if (gateOption === false) return null;
     if (typeof gateOption === 'number') return gateOption;
     const n = size(s);
     if (n < Math.max(2, gateMinSamples)) return null;
-    if (s.gate.at < 0 || Math.abs(n - s.gate.at) >= Math.max(5, s.gate.at * GATE_REFRESH)) {
+    if (s.gate.at < 0 || s.changes - s.gate.at >= Math.max(5, s.gate.size * GATE_REFRESH)) {
       const examples = allExamples(s);
       const step = Math.max(1, Math.ceil(examples.length / GATE_SAMPLE));
       const scores: number[] = [];
       for (let i = 0; i < examples.length; i += step) scores.push(gateScore(examples, examples[i]!.embedding, i));
-      s.gate = { threshold: quantile(scores, gateQuantile), at: n, samples: scores.length };
+      s.gate = { threshold: quantile(scores, gateQuantile), at: s.changes, size: n, samples: scores.length };
     }
     return s.gate.threshold;
   }
@@ -643,7 +648,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       s.softmax = null;
       s.predictions.clear();
       s.pending = [];
-      s.gate = { threshold: null, at: -1, samples: 0 };
+      s.gate = { threshold: null, at: -1, size: 0, samples: 0 };
       s.gated = 0;
       s.dirty = false;
       s.version++;
@@ -717,10 +722,9 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
         if (existing?.source === 'feedback' && e.source === 'cloud') continue;
         byId.set(e.id, { id: e.id, label: e.label, source: e.source, createdAt: e.createdAt, embedding: decodeInt8(e.embedding) });
       }
-      const meta: StoredMeta = {
-        version: 1,
-        pairs: current.meta?.pairs.knn.length ? current.meta.pairs : snapshot.pairs,
-      };
+      // Both records count: the snapshot's first, this browser's own (newer here) last.
+      const mergePairs = (head: 'knn' | 'softmax') => [...snapshot.pairs[head], ...(current.meta?.pairs[head] ?? [])].slice(-MAX_PAIRS);
+      const meta: StoredMeta = { version: 1, pairs: { knn: mergePairs('knn'), softmax: mergePairs('softmax') } };
       await write(async () => {
         if (importOptions.replace) await store.clear(scope);
         await store.put(scope, [...byId.values()]);

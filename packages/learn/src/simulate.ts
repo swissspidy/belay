@@ -1,6 +1,7 @@
 import { cloudAdapter, labelOf, parseValue, task } from '@swissspidy/belay-core';
 import type { ExploreOptions, TaskSchema } from '@swissspidy/belay-core';
 import { learnedClassifier, type LearnedClassifierOptions, type LearnedStats } from './classifier.js';
+import { memoryStore } from './store.js';
 import type { Embedder } from './embedder.js';
 import type { SeedFile } from './seed.js';
 
@@ -23,7 +24,8 @@ export interface SimulateOptions<S extends TaskSchema> {
   /** Seeds the exploration draws, for reproducible runs. Defaults to 7. */
   randomSeed?: number;
   seed?: SeedFile;
-  classifier?: Omit<LearnedClassifierOptions, 'embedder' | 'seed'>;
+  /** Classifier options. Each simulation learns into its own `memoryStore()`, never a `store` given here. */
+  classifier?: Omit<LearnedClassifierOptions, 'embedder' | 'seed' | 'store'>;
   /** Inputs per point of the learning curve. Defaults to 100. */
   window?: number;
   onProgress?: (done: number, total: number) => void;
@@ -81,6 +83,8 @@ export async function simulateLearning<S extends TaskSchema>(options: SimulateOp
   const local = learnedClassifier({
     embedder: options.embedder,
     ...options.classifier,
+    // A fresh store: a simulation must neither start from nor write to an app's learned state.
+    store: memoryStore(),
     // The loop flushes after every input, so retraining needs no debounce.
     softmax: { retrainDelayMs: 0, ...options.classifier?.softmax },
     ...(options.seed ? { seed: options.seed } : {}),
@@ -99,7 +103,7 @@ export async function simulateLearning<S extends TaskSchema>(options: SimulateOp
   const rows: { local: boolean; explored: boolean; correct: boolean }[] = [];
   for (const [i, example] of stream.entries()) {
     options.signal?.throwIfAborted();
-    const result = await t.run(example.input);
+    const result = await t.run(example.input, options.signal ? { signal: options.signal } : {});
     await local.flush();
     rows.push({
       local: result.source === 'local',

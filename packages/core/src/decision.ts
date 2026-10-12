@@ -28,9 +28,9 @@ export function costAwareThreshold(options: CostAwareThresholdOptions): number {
   const { errorCost, calibration } = options;
   const cloudCost = options.cloudCost ?? calibration?.cost?.cloudPerRun;
   const cloudAccuracy = options.cloudAccuracy ?? calibration?.expected.cloudAccuracy ?? 1;
-  if (!(errorCost > 0)) throw new BelayError('invalid-task', 'costAwareThreshold: errorCost must be > 0');
-  if (cloudCost === undefined || !(cloudCost >= 0)) {
-    throw new BelayError('invalid-task', 'costAwareThreshold: cloudCost must be ≥ 0 (or pass a calibration file with cost.cloudPerRun)');
+  if (!(errorCost > 0 && Number.isFinite(errorCost))) throw new BelayError('invalid-task', 'costAwareThreshold: errorCost must be a finite number > 0');
+  if (cloudCost === undefined || !(cloudCost >= 0 && Number.isFinite(cloudCost))) {
+    throw new BelayError('invalid-task', 'costAwareThreshold: cloudCost must be a finite number ≥ 0 (or pass a calibration file with cost.cloudPerRun)');
   }
   if (!(cloudAccuracy >= 0 && cloudAccuracy <= 1)) throw new BelayError('invalid-task', 'costAwareThreshold: cloudAccuracy must be in [0, 1]');
   return Math.min(1, Math.max(0, cloudAccuracy - cloudCost / errorCost));

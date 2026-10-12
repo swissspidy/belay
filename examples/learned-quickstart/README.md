@@ -14,7 +14,7 @@ the backend endpoint its cloud runner calls. It shows the whole loop in about 20
 
 ```sh
 npm install && npm run build                     # once, from the repository root
-node examples/learned-quickstart/server.mjs      # then open http://localhost:8787
+node examples/learned-quickstart/server.mjs      # then open http://127.0.0.1:8787
 ```
 
 - **With Anthropic credentials** (`ANTHROPIC_API_KEY`, or `QUICKSTART_CLOUD=claude` after

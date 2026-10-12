@@ -88,6 +88,25 @@ describe('distance gate', () => {
     expect((await fixed.local.stats())!.gate.threshold).toBe(0.99);
   });
 
+  it('refreshes its threshold when examples are replaced, not only added', async () => {
+    const local = learnedClassifier({ embedder: fakeEmbedder(TOPICS), head: 'knn', maxExamples: 40 });
+    const ctx = { task: 'triage', schema: triageSchema };
+    const teach = async (texts: string[]) => {
+      for (const input of texts) await local.learn!({ input, value: input.split(' ')[0], source: 'cloud' }, ctx);
+      await local.flush();
+    };
+    await teach(inputs(40));
+    const before = (await local.stats())!.gate;
+    expect(before.threshold).not.toBeNull();
+    // Full: each new answer evicts an old one, so the count stays at 40.
+    await teach(inputs(40, 1000));
+    const after = (await local.stats())!;
+    expect(after.examples).toBe(40);
+    await local.run('billing refund 5', ctx);
+    // Recomputed on the new examples: a gate fitted once would keep the old threshold.
+    expect((await local.stats())!.gate.threshold).not.toBe(before.threshold);
+  });
+
   it('stays off during the cold start', async () => {
     const { local } = await trained({}, 12);
     expect((await local.stats())!.gate.threshold).toBeNull();
@@ -151,12 +170,25 @@ describe('exportState / importState', () => {
     expect(after.examples.find((e) => e.id === snapshot.examples[0]!.id)).toMatchObject({ label: 'other', source: 'feedback' });
   });
 
+  it('keeps the calibration record of both sides when merging', async () => {
+    const a = await trained({}, 60);
+    const b = await trained({}, 40);
+    const fromA = await a.local.exportState();
+    const before = (await b.local.exportState()).pairs.knn.length;
+    await b.local.importState(fromA);
+    const merged = await b.local.exportState();
+    expect(merged.pairs.knn.length).toBe(Math.min(1000, before + fromA.pairs.knn.length));
+  });
+
   it('rejects snapshots from another embedder and malformed ones', async () => {
     const { local } = await trained({}, 20);
     const snapshot = await local.exportState();
     await expect(local.importState({ ...snapshot, embedder: 'other' })).rejects.toThrow(/embedder/);
     expect(() => parseLearnedState({ ...snapshot, examples: [{ id: 'a' }] })).toThrow(/snapshot/);
     expect(() => parseLearnedState(null)).toThrow(/snapshot/);
+    const badWeight = { ...snapshot, pairs: { knn: [{ score: 0.5, correct: true, weight: 'x' }], softmax: [] } };
+    expect(() => parseLearnedState(badWeight)).toThrow(/snapshot/);
+    expect(() => parseLearnedState({ ...badWeight, pairs: { knn: [{ score: 0.5, correct: true, weight: -1 }], softmax: [] } })).toThrow(/snapshot/);
   });
 
   it('fails clearly for a task it has not seen', async () => {
@@ -171,6 +203,16 @@ describe('persistStorage', () => {
     try {
       expect(await persistStorage()).toEqual({ persisted: true, usage: 10, quota: 100 });
       expect(storage.persist).toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('reports false when the browser refuses or fails', async () => {
+    const storage = { persisted: vi.fn(async () => Promise.reject(new Error('denied'))), persist: vi.fn(async () => Promise.reject(new Error('denied'))) };
+    vi.stubGlobal('navigator', { storage });
+    try {
+      expect(await persistStorage()).toEqual({ persisted: false });
     } finally {
       vi.unstubAllGlobals();
     }

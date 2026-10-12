@@ -57,7 +57,7 @@ export interface LearnConfig {
   /** `transformersEmbedder()` options, or an `Embedder`. Defaults to `transformersEmbedder()`. */
   embedder?: Embedder | TransformersEmbedderOptions;
   /** `learnedClassifier()` options, for `belay simulate`. */
-  classifier?: Omit<LearnedClassifierOptions, 'embedder' | 'seed'>;
+  classifier?: Omit<LearnedClassifierOptions, 'embedder' | 'seed' | 'store'>;
   /** `belay simulate` defaults; the CLI flags override them. */
   threshold?: number;
   explore?: number | ExploreOptions;

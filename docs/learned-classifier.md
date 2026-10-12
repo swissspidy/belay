@@ -29,7 +29,7 @@ complete app in one HTML page and a 100-line server:
 ```sh
 git clone https://github.com/swissspidy/belay && cd belay
 npm install && npm run build
-node examples/learned-quickstart/server.mjs      # open http://localhost:8787
+node examples/learned-quickstart/server.mjs      # open http://127.0.0.1:8787
 ```
 
 With `ANTHROPIC_API_KEY` set, escalations go to Claude through the server. Without it, *you* are

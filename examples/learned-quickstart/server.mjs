@@ -6,7 +6,7 @@
  *   npm install && npm run build          # once, from the repository root
  *   node examples/learned-quickstart/server.mjs
  *
- * Then open http://localhost:8787. With Anthropic credentials (ANTHROPIC_API_KEY, or
+ * Then open http://127.0.0.1:8787. With Anthropic credentials (ANTHROPIC_API_KEY, or
  * QUICKSTART_CLOUD=claude after `ant auth login`), escalations go to Claude. Without them, the
  * page asks you instead: you are the cloud, and the classifier learns from your answers.
  */
@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 const here = fileURLToPath(new URL('.', import.meta.url));
 const root = join(here, '..', '..');
 const port = Number(process.env.PORT ?? 8787);
+const host = process.env.HOST ?? '127.0.0.1'; // localhost only: the server spends your API credentials
 const useClaude = process.env.QUICKSTART_CLOUD === 'claude' || (!process.env.QUICKSTART_CLOUD && !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN));
 
 // The cloud side: the same Claude runner the examples calibrate with (structured output, refusal
@@ -71,7 +72,7 @@ createServer(async (req, res) => {
     res.writeHead(missing ? 500 : 502, { 'content-type': 'text/plain' });
     res.end(missing ? 'Build the packages first: npm run build (from the repository root)' : String(err.message ?? err));
   }
-}).listen(port, () => {
-  console.log(`Learned-classifier quickstart on http://localhost:${port}`);
+}).listen(port, host, () => {
+  console.log(`Learned-classifier quickstart on http://${host}:${port}`);
   console.log(cloud ? `Escalations go to ${cloud.id}.` : 'No Anthropic credentials: you answer the escalations yourself (set ANTHROPIC_API_KEY to use Claude).');
 });
