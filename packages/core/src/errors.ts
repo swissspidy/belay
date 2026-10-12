@@ -7,7 +7,9 @@ export type BelayErrorCode =
   /** The task definition is invalid. */
   | 'invalid-task'
   /** The calibration file is malformed or does not belong to this task. */
-  | 'invalid-calibration';
+  | 'invalid-calibration'
+  /** A value passed to `task.feedback()` does not match the schema. */
+  | 'invalid-feedback';
 
 export class BelayError extends Error {
   override readonly name = 'BelayError';

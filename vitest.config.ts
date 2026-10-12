@@ -5,6 +5,7 @@ export default defineConfig({
     alias: {
       '@swissspidy/belay-core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
       '@swissspidy/belay-web': new URL('./packages/web/src/index.ts', import.meta.url).pathname,
+      '@swissspidy/belay-learn': new URL('./packages/learn/src/index.ts', import.meta.url).pathname,
       '@swissspidy/belay-calibrate': new URL('./packages/calibrate/src/index.ts', import.meta.url).pathname,
     },
   },
