@@ -1,4 +1,5 @@
-import type { CloudRunner, Judge, LocalRunner, PriceTable, TaskSchema, TokenPrices, ValueOf } from '@swissspidy/belay-core';
+import type { CloudRunner, ExploreOptions, Judge, LocalRunner, PriceTable, TaskSchema, TokenPrices, ValueOf } from '@swissspidy/belay-core';
+import type { Embedder, LearnedClassifierOptions, TransformersEmbedderOptions } from '@swissspidy/belay-learn';
 
 /**
  * A local runner executed inside the browser (a real Chrome, via Playwright). Options must be
@@ -44,6 +45,22 @@ export interface CalibrationTaskConfig<S extends TaskSchema = TaskSchema> {
   perLabel?: boolean;
   /** Model names recorded in the calibration file and report (informational). */
   models?: { local?: string; cloud?: string };
+  /** Settings for `belay seed` and `belay simulate` (`@swissspidy/belay-learn`). */
+  learn?: LearnConfig;
+}
+
+/**
+ * How `belay seed` and `belay simulate` build the learned classifier. Use the same embedder
+ * options as your app, or the seed's embeddings won't match the page's.
+ */
+export interface LearnConfig {
+  /** `transformersEmbedder()` options, or an `Embedder`. Defaults to `transformersEmbedder()`. */
+  embedder?: Embedder | TransformersEmbedderOptions;
+  /** `learnedClassifier()` options, for `belay simulate`. */
+  classifier?: Omit<LearnedClassifierOptions, 'embedder' | 'seed'>;
+  /** `belay simulate` defaults; the CLI flags override them. */
+  threshold?: number;
+  explore?: number | ExploreOptions;
 }
 
 /**
