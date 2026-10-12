@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Belay learned classifier</title>
+<meta name="description" content="A support-ticket classifier that learns from a cloud model's answers, in your browser: watch the share of messages it answers on its own grow while its accuracy holds.">
+<style>
+:root {
+  color-scheme: light;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ef;
+  --line: #e4e2dc;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #6f6e69;
+  --link: #1c5cab;
+  --local: #1baf7a;
+  --cloud: #2a78d6;
+  --explore: #8a5cd1;
+  --wrong: #c8432b;
+  --accent: #0b0b0b;
+  --on-accent: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: #1a1a19;
+    --surface-2: #242422;
+    --line: #383835;
+    --text: #ffffff;
+    --text-2: #c3c2b7;
+    --text-3: #9d9c93;
+    --link: #86b6ef;
+    --local: #199e70;
+    --cloud: #3987e5;
+    --explore: #9d74de;
+    --wrong: #e0664e;
+    --accent: #ffffff;
+    --on-accent: #0b0b0b;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #1a1a19;
+  --surface-2: #242422;
+  --line: #383835;
+  --text: #ffffff;
+  --text-2: #c3c2b7;
+  --text-3: #9d9c93;
+  --link: #86b6ef;
+  --local: #199e70;
+  --cloud: #3987e5;
+  --explore: #9d74de;
+  --wrong: #e0664e;
+  --accent: #ffffff;
+  --on-accent: #0b0b0b;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main, header, footer { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 56px; }
+.eyebrow { color: var(--text-3); font-size: 14px; letter-spacing: .02em; margin: 0 0 8px; }
+.eyebrow a { color: inherit; }
+h1 { font-size: clamp(30px, 5vw, 42px); line-height: 1.12; margin: 0 0 16px; letter-spacing: -.01em; }
+h2 { font-size: 24px; line-height: 1.25; margin: 48px 0 12px; }
+.lede { font-size: 19px; color: var(--text-2); margin: 0 0 20px; max-width: 760px; }
+a { color: var(--link); text-underline-offset: 2px; }
+code { font: 0.88em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--surface-2); border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
+pre code { background: none; padding: 0; font-size: 14px; }
+.muted { color: var(--text-3); }
+.small { font-size: 14px; }
+p { max-width: 760px; }
+
+.panel { background: var(--surface-2); border-radius: 12px; padding: 18px; margin: 24px 0 0; }
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 20px; align-items: end; }
+.control label, .control .label { display: block; font-size: 13px; color: var(--text-2); margin: 0 0 4px; }
+.control output { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+select, input[type="range"], textarea { width: 100%; }
+select, textarea { font: inherit; font-size: 15px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+textarea { resize: vertical; min-height: 64px; }
+input[type="range"] { accent-color: var(--text); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--text-2); }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; align-items: center; }
+button { font: inherit; font-size: 15px; border-radius: 8px; padding: 7px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.status { font-size: 14px; color: var(--text-2); }
+progress { width: 160px; height: 8px; accent-color: var(--text); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 12px; margin: 20px 0 0; }
+.tile { background: var(--surface-2); border-radius: 10px; padding: 14px 16px; }
+.tile .label { font-size: 13px; color: var(--text-2); margin: 0 0 2px; }
+.tile .value { font-size: 28px; font-weight: 600; line-height: 1.15; margin: 0 0 4px; font-variant-numeric: tabular-nums; }
+.tile .note { font-size: 13px; color: var(--text-2); margin: 0; }
+
+.chart { margin: 20px 0 0; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font: 12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: var(--text-3); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px; color: var(--text-2); margin: 0 0 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+
+.feed { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 8px; }
+.feed li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 15px; }
+.feed .text { overflow-wrap: anywhere; }
+.feed .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 13px; color: var(--text-2); }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; }
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.badge.local { color: var(--local); }
+.badge.cloud { color: var(--cloud); }
+.badge.explore { color: var(--explore); }
+.answer { font-weight: 600; white-space: nowrap; }
+.wrong { color: var(--wrong); font-weight: 600; }
+.feed button { font-size: 13px; padding: 2px 10px; }
+
+.probs { display: grid; gap: 4px; margin: 12px 0 0; max-width: 520px; }
+.prob { display: grid; grid-template-columns: 90px 1fr 48px; gap: 8px; align-items: center; font-size: 14px; }
+.bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--local); }
+.teach { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; align-items: center; font-size: 14px; color: var(--text-2); }
+footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 1px solid var(--line); font-size: 14px; color: var(--text-3); }
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  .tile .value { font-size: 24px; }
+  .prob { grid-template-columns: 74px 1fr 44px; }
+}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "@swissspidy/belay-core": "./lib/core/index.js",
+    "@swissspidy/belay-learn": "./lib/learn/index.js",
+    "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0"
+  }
+}
+</script>
+</head>
+<body>
+<header>
+  <p class="eyebrow"><a href="../">Belay</a> · learned classifier · demo</p>
+  <h1>A classifier that learns from the cloud, in your browser</h1>
+  <p class="lede">
+    Support messages arrive one by one. A small embedding model in this tab answers each one when it
+    is confident enough; otherwise the cloud model answers, and the local classifier learns from that
+    answer. Watch the share it handles on its own grow while its accuracy holds.
+  </p>
+</header>
+
+<main>
+  <div class="panel">
+    <div class="controls">
+      <div class="control">
+        <label for="teacher">Cloud model (simulated)</label>
+        <select id="teacher">
+          <option value="1">Always right</option>
+          <option value="0.9433">Wrong 5.7% of the time, like Claude Opus 5.5 here</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="threshold">Threshold <output id="threshold-out">0.90</output></label>
+        <input id="threshold" type="range" min="0.7" max="0.99" step="0.01" value="0.9">
+      </div>
+      <div class="control">
+        <label for="explore">Explore <output id="explore-out">5%</output></label>
+        <input id="explore" type="range" min="0" max="0.3" step="0.01" value="0.05">
+      </div>
+      <div class="control">
+        <label for="speed">Speed</label>
+        <select id="speed">
+          <option value="600">2 messages a second</option>
+          <option value="120" selected>8 a second</option>
+          <option value="0">As fast as it can</option>
+        </select>
+      </div>
+      <div class="control">
+        <label class="check"><input id="seeded" type="checkbox"> Start from a seed of 300 labeled messages</label>
+        <label class="check"><input id="persist" type="checkbox"> Keep what it learns after a reload</label>
+      </div>
+    </div>
+    <div class="buttons">
+      <button id="load" class="primary">Load the model (34 MB)</button>
+      <button id="start" disabled>Start</button>
+      <button id="reset" disabled>Reset</button>
+      <span class="status" id="status" role="status" aria-live="polite">The embedding model downloads once and is cached by your browser.</span>
+      <progress id="progress" max="1" value="0" hidden></progress>
+    </div>
+  </div>
+
+  <div class="tiles" id="tiles" aria-live="off"></div>
+
+  <div class="chart">
+    <h2>Over time</h2>
+    <div class="legend" aria-hidden="true">
+      <span><i class="key" style="background: var(--local)"></i>Answered on device</span>
+      <span><i class="key" style="background: var(--text)"></i>Accuracy (against the dataset's labels)</span>
+    </div>
+    <svg id="chart" viewBox="0 0 860 240" role="img" aria-label="Share answered on device and accuracy, over the last 50 messages, as messages arrive"></svg>
+    <p class="small muted">Each point covers the 50 messages before it.</p>
+  </div>
+
+  <h2>Messages</h2>
+  <p class="small muted">The newest first. When the device answered wrong, teach it the right label: a correction counts three times as much as a cloud answer.</p>
+  <ul class="feed" id="feed"></ul>
+
+  <h2>Try your own</h2>
+  <p class="small muted">Classified on this device only: nothing you type here is sent anywhere. Pick the right team to teach it.</p>
+  <div class="panel">
+    <label for="own" class="small muted">A customer message</label>
+    <textarea id="own" placeholder="I was charged twice for my last order"></textarea>
+    <div class="buttons"><button id="classify" disabled>Classify on device</button><span class="status" id="own-status"></span></div>
+    <div id="own-result"></div>
+  </div>
+
+  <h2>How it works</h2>
+  <p>
+    Each message is embedded with <a href="https://huggingface.co/Xenova/bge-small-en-v1.5">bge-small-en-v1.5</a>
+    through <a href="https://huggingface.co/docs/transformers.js">transformers.js</a>. A small classifier on the
+    embeddings (nearest neighbors first, a softmax layer once it has enough examples) predicts the team.
+    Its score becomes a confidence by Platt scaling, fitted on how it did on messages it had not seen yet,
+    so the threshold keeps meaning "accept when at least this likely right". Below the threshold the
+    message goes to the cloud, and the cloud's answer becomes a training example. <em>Explore</em> also
+    sends a share of confident messages to the cloud, to keep checking the local answers.
+  </p>
+  <p>
+    The cloud here is simulated with the dataset's labels (1,500 messages from the
+    <a href="https://huggingface.co/datasets/bitext/Bitext-customer-support-llm-chatbot-training-dataset">Bitext customer support dataset</a>,
+    CDLA-Sharing-1.0), and each call is priced at $0.0020, what Claude Opus 5.5 cost per message in
+    <a href="../reports/ticket-triage/belay-report.html">the ticket-triage calibration</a>. Only embeddings are
+    stored, never the text.
+  </p>
+  <pre><code>import { task, fetchAdapter } from '@swissspidy/belay-core';
+import { learnedClassifier, transformersEmbedder, indexedDbStore } from '@swissspidy/belay-learn';
+
+const triage = task({
+  name: 'ticket-triage',
+  schema: { type: 'categorical', options: ['account', 'billing', 'order', 'shipping', 'feedback'] },
+  local: learnedClassifier({ embedder: transformersEmbedder(), store: indexedDbStore() }),
+  cloud: fetchAdapter({ url: '/api/belay' }),
+  threshold: 0.9,
+  explore: 0.05,
+});</code></pre>
+  <p class="noscript small muted"><noscript>This demo needs JavaScript and a browser with ES modules and import maps.</noscript></p>
+</main>
+
+<footer>
+  <p>Belay is open source (Apache-2.0): <a href="https://github.com/swissspidy/belay">github.com/swissspidy/belay</a>. The learned classifier is <code>@swissspidy/belay-learn</code>.</p>
+</footer>
+
+<script type="module">
+import { cloudAdapter, savingsMeter, task } from '@swissspidy/belay-core';
+import { indexedDbStore, learnedClassifier, memoryStore, transformersEmbedder } from '@swissspidy/belay-learn';
+
+const SCHEMA = {
+  type: 'categorical',
+  prompt: 'Which team should handle this customer message?',
+  options: [
+    { label: 'account', description: 'Creating, editing, recovering or deleting a customer account; passwords and sign-in' },
+    { label: 'billing', description: 'Invoices, payments, payment methods and refunds' },
+    { label: 'order', description: 'Placing, changing, checking or cancelling an order' },
+    { label: 'shipping', description: 'Delivery options, delivery times, shipping addresses and tracking a parcel' },
+    { label: 'feedback', description: 'Complaints, claims against the company, reviews and feedback about the store or its service' },
+  ],
+};
+const LABELS = SCHEMA.options.map((o) => o.label);
+const CLOUD_PER_RUN = 0.0020054;
+const CLOUD_LATENCY_MS = 350;
+const WINDOW = 50;
+
+const $ = (id) => document.getElementById(id);
+const pct = (x) => (x === null || Number.isNaN(x) ? '–' : `${Math.round(x * 100)}%`);
+const money = (x) => `$${x.toFixed(x < 1 ? 3 : 2)}`;
+
+const embedder = transformersEmbedder({ model: 'Xenova/bge-small-en-v1.5' });
+let stream = [];
+let seed = null;
+let local = null;
+let triage = null;
+let meter = null;
+let rows = [];
+let cursor = 0;
+let running = false;
+let modelReady = false;
+let noise = mulberry32(11);
+
+function mulberry32(seedValue) {
+  return () => {
+    seedValue = (seedValue + 0x6d2b79f5) | 0;
+    let t = seedValue;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const truth = new Map();
+const cloud = cloudAdapter(async ({ input }, { signal }) => {
+  await new Promise((r) => setTimeout(r, Number($('speed').value) ? CLOUD_LATENCY_MS : 0));
+  signal?.throwIfAborted();
+  const label = truth.get(input);
+  if (label === undefined) throw new Error('the simulated cloud only knows the demo messages');
+  const accuracy = Number($('teacher').value);
+  if (noise() >= accuracy) {
+    const others = LABELS.filter((l) => l !== label);
+    return others[Math.floor(noise() * others.length)];
+  }
+  return label;
+});
+
+function makeRunner() {
+  local?.destroy?.();
+  local = learnedClassifier({
+    embedder,
+    store: $('persist').checked ? indexedDbStore({ name: 'belay-learn-demo' }) : memoryStore(),
+    ...($('seeded').checked && seed ? { seed } : {}),
+  });
+  makeTask();
+}
+
+function makeTask() {
+  meter ??= savingsMeter({ cloudPerRun: CLOUD_PER_RUN, currency: 'USD' });
+  triage = task({
+    name: 'ticket-triage',
+    schema: SCHEMA,
+    local,
+    cloud,
+    threshold: Number($('threshold').value),
+    explore: Number($('explore').value),
+    onEvent: meter.onEvent,
+  });
+}
+
+function setStatus(text) {
+  $('status').textContent = text;
+}
+
+async function loadData() {
+  const [streamText, seedJson] = await Promise.all([
+    fetch('./stream.jsonl').then((r) => r.text()),
+    fetch('./belay-seed.json').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+  ]);
+  stream = streamText.split('\n').filter(Boolean).map((line) => JSON.parse(line));
+  for (const e of stream) truth.set(e.input, e.label);
+  seed = seedJson;
+  if (!seed) $('seeded').disabled = true;
+}
+
+$('load').addEventListener('click', async () => {
+  $('load').disabled = true;
+  $('progress').hidden = false;
+  setStatus('Downloading the embedding model…');
+  try {
+    await embedder.prepare({ onProgress: (p) => ($('progress').value = p) });
+    modelReady = true;
+    $('progress').hidden = true;
+    $('load').textContent = 'Model loaded';
+    $('start').disabled = false;
+    $('reset').disabled = false;
+    $('classify').disabled = false;
+    makeRunner();
+    await triage.prepare(); // loads what an IndexedDB store kept from an earlier visit
+    const stats = await local.stats('ticket-triage');
+    const kept = stats ? stats.examples - stats.seedExamples : 0;
+    setStatus(`Ready: ${stream.length.toLocaleString()} messages queued.${kept ? ` It remembers ${kept.toLocaleString()} examples from your last visit.` : ''}`);
+    render();
+  } catch (err) {
+    $('load').disabled = false;
+    $('progress').hidden = true;
+    setStatus(`Could not load the model: ${err.message}`);
+  }
+});
+
+$('start').addEventListener('click', () => {
+  running = !running;
+  $('start').textContent = running ? 'Pause' : cursor ? 'Resume' : 'Start';
+  if (running) loop();
+});
+
+$('reset').addEventListener('click', async () => {
+  running = false;
+  $('start').textContent = 'Start';
+  await local?.flush();
+  await local?.reset();
+  meter = null;
+  rows = [];
+  cursor = 0;
+  noise = mulberry32(11);
+  $('feed').replaceChildren();
+  makeRunner();
+  await triage.prepare();
+  render();
+  setStatus('Reset: it has forgotten what it learned.');
+});
+
+for (const id of ['threshold', 'explore']) {
+  $(id).addEventListener('input', () => {
+    $('threshold-out').textContent = Number($('threshold').value).toFixed(2);
+    $('explore-out').textContent = pct(Number($('explore').value));
+    if (local) makeTask();
+  });
+}
+// The two options are remembered, so a reload with "keep what it learns" reopens its examples.
+for (const id of ['seeded', 'persist']) {
+  try {
+    $(id).checked = localStorage.getItem(`belay-learn-demo:${id}`) === '1';
+  } catch {}
+  $(id).addEventListener('change', () => {
+    try {
+      localStorage.setItem(`belay-learn-demo:${id}`, $(id).checked ? '1' : '0');
+    } catch {}
+    if (local) setStatus('Applied to the next reset.');
+  });
+}
+
+async function loop() {
+  while (running && cursor < stream.length) {
+    const example = stream[cursor++];
+    const result = await triage.run(example.input);
+    rows.push({
+      input: example.input,
+      label: example.label,
+      value: result.value,
+      source: result.source,
+      explored: result.escalationReason === 'exploration',
+      confidence: result.local?.confidence ?? null,
+      correct: result.value === example.label,
+    });
+    addFeed(rows.at(-1));
+    render();
+    const delay = Number($('speed').value);
+    await new Promise((r) => setTimeout(r, delay));
+  }
+  if (cursor >= stream.length) {
+    running = false;
+    $('start').disabled = true;
+    $('start').textContent = 'Done';
+    setStatus('All messages done. Reset to run them again.');
+  }
+}
+
+function addFeed(row) {
+  const li = document.createElement('li');
+  const text = document.createElement('span');
+  text.className = 'text';
+  text.textContent = row.input;
+  const answer = document.createElement('span');
+  answer.className = 'answer';
+  answer.textContent = row.value;
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const badge = document.createElement('span');
+  badge.className = `badge ${row.explored ? 'explore' : row.source}`;
+  badge.textContent = row.explored ? 'cloud (explored)' : row.source === 'local' ? 'on device' : 'cloud';
+  meta.append(badge);
+  if (row.confidence !== null) meta.append(Object.assign(document.createElement('span'), { textContent: `local confidence ${row.confidence.toFixed(2)}` }));
+  if (!row.correct) {
+    meta.append(Object.assign(document.createElement('span'), { className: 'wrong', textContent: `wrong: it is ${row.label}` }));
+    if (row.source === 'local') {
+      const fix = document.createElement('button');
+      fix.textContent = `Teach: ${row.label}`;
+      fix.addEventListener('click', async () => {
+        await triage.feedback(row.input, row.label);
+        fix.disabled = true;
+        fix.textContent = 'Taught';
+        render();
+      });
+      meta.append(fix);
+    }
+  }
+  li.append(text, answer, meta);
+  $('feed').prepend(li);
+  while ($('feed').children.length > 12) $('feed').lastElementChild.remove();
+}
+
+let pendingRender = false;
+function render() {
+  if (pendingRender) return;
+  pendingRender = true;
+  requestAnimationFrame(async () => {
+    pendingRender = false;
+    const stats = local ? await local.stats('ticket-triage') : null;
+    const recent = rows.slice(-WINDOW);
+    const kept = recent.filter((r) => r.source === 'local');
+    const summary = meter?.summary() ?? { runs: 0, cloud: 0, cloudSpend: 0, explored: 0 };
+    const allCloud = rows.length * CLOUD_PER_RUN;
+    const tiles = [
+      ['Messages', rows.length.toLocaleString(), `of ${stream.length.toLocaleString()}`],
+      ['On device', pct(recent.length ? kept.length / recent.length : null), `last ${WINDOW} messages`],
+      ['Accuracy on device', pct(kept.length ? kept.filter((r) => r.correct).length / kept.length : null), `last ${WINDOW}, ${kept.length} answered on device`],
+      ['Accuracy overall', pct(recent.length ? recent.filter((r) => r.correct).length / recent.length : null), `last ${WINDOW} messages`],
+      ['Cloud spend', money(summary.cloudSpend ?? 0), `${summary.cloud} calls (${summary.explored} explored) vs ${money(allCloud)} all-cloud`],
+      ['Learned', stats ? stats.examples.toLocaleString() : '0', stats ? `${stats.seedExamples ? `${stats.seedExamples} from the seed, ` : ''}${stats.head === 'knn' ? 'nearest neighbors' : 'softmax'} head` : 'examples'],
+    ];
+    $('tiles').replaceChildren(
+      ...tiles.map(([label, value, note]) => {
+        const div = document.createElement('div');
+        div.className = 'tile';
+        div.innerHTML = '<p class="label"></p><p class="value"></p><p class="note"></p>';
+        div.children[0].textContent = label;
+        div.children[1].textContent = value;
+        div.children[2].textContent = note;
+        return div;
+      }),
+    );
+    drawChart();
+  });
+}
+
+function drawChart() {
+  const svg = $('chart');
+  const W = 860, H = 240, L = 40, R = 8, T = 8, B = 28;
+  const n = Math.max(stream.length, 1);
+  const x = (i) => L + (i / n) * (W - L - R);
+  const y = (v) => T + (1 - v) * (H - T - B);
+  const share = [];
+  const acc = [];
+  for (let i = WINDOW; i <= rows.length; i += 5) {
+    const part = rows.slice(i - WINDOW, i);
+    share.push([x(i), y(part.filter((r) => r.source === 'local').length / WINDOW)]);
+    acc.push([x(i), y(part.filter((r) => r.correct).length / WINDOW)]);
+  }
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (name, attrs, text) => {
+    const e = document.createElementNS(ns, name);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const parts = [];
+  for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+    parts.push(el('line', { class: 'grid', x1: L, x2: W - R, y1: y(v), y2: y(v) }));
+    parts.push(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end' }, `${v * 100}%`));
+  }
+  for (let i = 0; i <= n; i += 250) parts.push(el('text', { x: x(i), y: H - 8, 'text-anchor': 'middle' }, i.toLocaleString()));
+  const line = (points, color) =>
+    el('polyline', { points: points.map((p) => p.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round' });
+  if (share.length > 1) {
+    parts.push(line(share, 'var(--local)'));
+    parts.push(line(acc, 'var(--text)'));
+  }
+  svg.replaceChildren(...parts);
+}
+
+$('classify').addEventListener('click', async () => {
+  const text = $('own').value.trim();
+  if (!text) return;
+  const out = $('own-result');
+  out.replaceChildren();
+  try {
+    const result = await local.run(text, { task: 'ticket-triage', schema: SCHEMA });
+    $('own-status').textContent = `${result.value}, confidence ${result.confidence.toFixed(2)}${result.confidence < Number($('threshold').value) ? ' (below the threshold: the app would ask the cloud)' : ''}`;
+    const probs = document.createElement('div');
+    probs.className = 'probs';
+    for (const p of [...result.probabilities].sort((a, b) => b.probability - a.probability)) {
+      const row = document.createElement('div');
+      row.className = 'prob';
+      row.innerHTML = '<span></span><span class="bar"><span></span></span><span></span>';
+      row.children[0].textContent = p.label;
+      row.children[1].firstElementChild.style.width = `${p.probability * 100}%`;
+      row.children[2].textContent = pct(p.probability);
+      probs.append(row);
+    }
+    out.append(probs);
+  } catch (err) {
+    $('own-status').textContent = err.name === 'LocalUnavailableError' ? 'It has not learned anything yet: start the stream first, or teach it below.' : err.message;
+  }
+  const teach = document.createElement('div');
+  teach.className = 'teach';
+  teach.append('The right team: ');
+  for (const label of LABELS) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.addEventListener('click', async () => {
+      await triage.feedback(text, label);
+      teach.replaceChildren(`Taught: ${label}.`);
+      render();
+    });
+    teach.append(b);
+  }
+  out.append(teach);
+});
+
+if (!('gpu' in navigator)) $('status').textContent += ' This browser has no WebGPU, so the model runs on WebAssembly (slower, still fine).';
+await loadData();
+render();
+// After the first visit the model is in the browser cache: load it without a click.
+if ((await embedder.availability()) === 'available') $('load').click();
+</script>
+</body>
+</html>

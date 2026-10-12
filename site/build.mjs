@@ -3,6 +3,10 @@
  * calibration inlined, and a copy of each calibration report. The numbers on the page come from
  * the calibration files, so re-running a calibration and rebuilding updates them.
  *
+ * It also builds the learned-classifier demo into `_site/learn/`, with the built
+ * `@swissspidy/belay-core` and `@swissspidy/belay-learn` (run `npm run build` first), the
+ * ticket-triage stream and its seed file.
+ *
  *   node site/build.mjs [outDir]
  */
 import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
@@ -72,6 +76,24 @@ for (const [task, meta] of Object.entries(TASKS)) {
 
 const order = Object.keys(CLOUDS);
 results.sort((a, b) => Object.keys(TASKS).indexOf(a.task) - Object.keys(TASKS).indexOf(b.task) || order.indexOf(a.cloud) - order.indexOf(b.cloud));
+
+// ---- The learned-classifier demo --------------------------------------------------------------
+const learn = join(out, 'learn');
+for (const pkg of ['core', 'learn']) {
+  const dist = join(root, 'packages', pkg, 'dist');
+  let files;
+  try {
+    files = (await readdir(dist)).filter((f) => f.endsWith('.js'));
+  } catch {
+    throw new Error(`packages/${pkg}/dist is missing: run \`npm run build\` first`);
+  }
+  await mkdir(join(learn, 'lib', pkg), { recursive: true });
+  for (const f of files) await copyFile(join(dist, f), join(learn, 'lib', pkg, f));
+}
+await copyFile(join(root, 'site', 'learn', 'index.html'), join(learn, 'index.html'));
+await copyFile(join(examples, 'ticket-triage', 'stream.jsonl'), join(learn, 'stream.jsonl'));
+await copyFile(join(examples, 'ticket-triage', 'belay-seed.json'), join(learn, 'belay-seed.json'));
+console.log(`Wrote ${learn}/`);
 
 const template = await readFile(join(root, 'site', 'index.html'), 'utf8');
 const json = JSON.stringify(results).replace(/</g, '\\u003c');
