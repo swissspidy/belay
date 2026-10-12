@@ -11,7 +11,7 @@ import type {
   RunnerContext,
   TaskSchema,
 } from '@swissspidy/belay-core';
-import { applyPlatt, fitPlatt, MAX_PAIR_WEIGHT, type CalibrationPair, type PlattScaling } from './calibrator.js';
+import { applyPlatt, correctForTeacher, fitPlatt, MAX_PAIR_WEIGHT, type CalibrationPair, type PlattScaling } from './calibrator.js';
 import type { Embedder } from './embedder.js';
 import { knnPredict, nearestSimilarity, quantile, softmaxPredict, softmaxTrain, type HeadExample, type SoftmaxModel } from './head.js';
 import { loadSeed, type SeedFile } from './seed.js';
@@ -77,6 +77,20 @@ export interface LearnedClassifierOptions {
   distanceGate?: false | number | { k?: number; quantile?: number; minSamples?: number };
   /** Weight of a `task.feedback()` correction relative to a cloud answer. Defaults to 3. */
   feedbackWeight?: number;
+  /**
+   * How often the cloud's answers are right, e.g. `expected.cloudAccuracy` from the task's
+   * calibration file. The confidence is fitted on whether the classifier agreed with the cloud, so
+   * without this (the default) it is the chance of agreeing with the cloud, which cannot exceed
+   * the cloud's own accuracy: with a cloud that is right 84% of the time, a threshold of 0.9 keeps
+   * nothing on the device, however good the classifier. With it, the confidence estimates the
+   * chance of being right (see `correctForTeacher()`), assuming the cloud's mistakes are
+   * independent of the classifier's. Where they are not, e.g. where the cloud errs mostly on
+   * ambiguous inputs and is better than average on the clear ones the classifier is sure of, the
+   * confidence comes out too high. Leave it unset with a cloud that is right more often than the
+   * threshold; set the threshold at or above `teacherAccuracy` to only keep answers that are
+   * likelier right than the cloud's.
+   */
+  teacherAccuracy?: number;
   /** Ignore cloud answers whose reported confidence is below this. Defaults to 0 (learn from all). */
   minCloudConfidence?: number;
   /** Keep at most this many learned examples; the oldest cloud answers go first. Defaults to 5,000. */
@@ -235,6 +249,10 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
   const feedbackWeight = options.feedbackWeight ?? 3;
   const minCloudConfidence = options.minCloudConfidence ?? 0;
   const maxExamples = options.maxExamples ?? 5000;
+  const teacherAccuracy = options.teacherAccuracy;
+  if (teacherAccuracy !== undefined && !(teacherAccuracy > 0 && teacherAccuracy <= 1)) {
+    throw new BelayError('invalid-task', 'teacherAccuracy must be in (0, 1]');
+  }
   const gateOption = options.distanceGate ?? {};
   const gateQuantile = typeof gateOption === 'object' ? (gateOption.quantile ?? 0.05) : 0;
   const gateMinSamples = typeof gateOption === 'object' ? (gateOption.minSamples ?? 30) : 0;
@@ -625,7 +643,8 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       const gateAt = await gateThreshold(s);
       const gated = ready && gateAt !== null && nearest < gateAt;
       if (gated) s.gated++;
-      const confidence = ready && !gated ? applyPlatt(scaling, top.score) : 0;
+      const agreement = ready && !gated ? applyPlatt(scaling, top.score) : 0;
+      const confidence = teacherAccuracy === undefined ? agreement : correctForTeacher(agreement, teacherAccuracy, s.labels.length);
       // What a cloud answer would teach: low margin between the top two labels, or heads that disagree.
       let second = 0;
       for (let i = 0; i < p.length; i++) if (i !== top.label && p[i]! > second) second = p[i]!;

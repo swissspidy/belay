@@ -169,6 +169,14 @@ against the dataset's labels:
 | Intent detection (1,467) | mixed | 99.7% right | – | 85.3% | 98.6% | 98.6% | 87.3% | 98.9% |
 | Intent detection (1,467) | mixed | 99.7% right | 300 | 84.6% | 99.7% | 99.6% | 82.3% | 100.0% |
 
+With the noisy teacher, the confidence measures agreement with a cloud that is itself wrong
+16.3% (moderation) or 5.7% (triage) of the time, so it can't reach the threshold. Passing the
+cloud's accuracy as `teacherAccuracy` corrects for that: on moderation, 10.2% on device (33.1%
+seeded) at 93.1% (94.3%) accuracy, and 82.5% (84.6%) overall; on triage at a threshold of 0.95,
+77.5% on device instead of 54.7%. It assumes the cloud's mistakes are independent of the
+classifier's; see [a cloud that is often
+wrong](../docs/learned-classifier.md#a-cloud-that-is-often-wrong) for when they are not.
+
 The ablation for [ADR 0005](../docs/adr/0005-choosing-what-to-ask-and-keeping-what-it-learns.md)
 reruns the cold start with each way of choosing spot checks, with and without the distance gate
 (the rows with uniform spot checks and the gate are the ones above). The rows without the gate and

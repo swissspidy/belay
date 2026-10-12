@@ -35,6 +35,19 @@ export function applyPlatt(scaling: PlattScaling, score: number): number {
   return sigmoid(scaling.a * logit(score) + scaling.b);
 }
 
+/**
+ * Maps P(agrees with a teacher that is right with probability `a`) to P(correct), for a task with
+ * `labels` labels. If the teacher's mistakes are independent of the classifier's and spread evenly
+ * over the other labels, agreement is `p·a + (1 − p)·e` with `e = (1 − a) / (labels − 1)`, so
+ * `p = (agreement − e) / (a − e)`, clamped to [0, 1]. The identity for a perfect teacher, and for
+ * one no better than chance (whose agreement says nothing about being right).
+ */
+export function correctForTeacher(agreement: number, a: number, labels: number): number {
+  const e = (1 - a) / Math.max(1, labels - 1);
+  if (a >= 1 || a <= e) return agreement;
+  return Math.min(1, Math.max(0, (agreement - e) / (a - e)));
+}
+
 export interface PlattOptions {
   /** L2 penalty pulling `(a, b)` towards the identity. Defaults to 0.01. */
   prior?: number;

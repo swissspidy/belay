@@ -8,7 +8,7 @@ export { buildSeed, loadSeed, parseSeed, SEED_VERSION } from './seed.js';
 export { parseLearnedState, STATE_VERSION } from './state.js';
 export type { LearnedState } from './state.js';
 export type { BuildSeedOptions, SeedFile } from './seed.js';
-export { applyPlatt, fitPlatt } from './calibrator.js';
+export { applyPlatt, correctForTeacher, fitPlatt } from './calibrator.js';
 export type { CalibrationPair, PlattScaling } from './calibrator.js';
 export { knnPredict, nearestSimilarity, quantile, softmaxPredict, softmaxTrain } from './head.js';
 export type { HeadExample, SoftmaxModel, SoftmaxTrainOptions } from './head.js';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyPlatt, decodeInt8, dot, encodeInt8, fitPlatt, knnPredict, normalize, softmaxPredict, softmaxTrain, type HeadExample } from '../src/index.js';
+import { applyPlatt, correctForTeacher, decodeInt8, dot, encodeInt8, fitPlatt, knnPredict, normalize, softmaxPredict, softmaxTrain, type HeadExample } from '../src/index.js';
 import { rng } from './helpers.js';
 
 function clusters(n: number, labels: number, dimensions: number, noise: number, seed: number): HeadExample[] {
@@ -126,5 +126,22 @@ describe('fitPlatt', () => {
     const random = rng(9);
     const pairs = Array.from({ length: 150 }, () => ({ score: 0.95 + random() * 0.05, correct: random() < 0.6 }));
     expect(applyPlatt(fitPlatt(pairs), 0.99)).toBeLessThan(0.75);
+  });
+});
+
+describe('correctForTeacher', () => {
+  it('inverts agreement with a teacher whose mistakes are independent and uniform', () => {
+    // A classifier right with p = 0.95 and a binary teacher right with a = 0.8 agree with
+    // probability p·a + (1 − p)(1 − a).
+    expect(correctForTeacher(0.95 * 0.8 + 0.05 * 0.2, 0.8, 2)).toBeCloseTo(0.95, 10);
+    // Five labels: the teacher's mistakes match a wrong answer a quarter of the time.
+    expect(correctForTeacher(0.9 * 0.7 + 0.1 * (0.3 / 4), 0.7, 5)).toBeCloseTo(0.9, 10);
+  });
+
+  it('is the identity for a perfect teacher or one no better than chance, and clamps to [0, 1]', () => {
+    expect(correctForTeacher(0.83, 1, 4)).toBe(0.83);
+    expect(correctForTeacher(0.83, 0.5, 2)).toBe(0.83);
+    expect(correctForTeacher(0.99, 0.8, 2)).toBe(1);
+    expect(correctForTeacher(0.1, 0.8, 2)).toBe(0);
   });
 });

@@ -75,6 +75,35 @@ describe('learnedClassifier with task()', () => {
     expect(results.filter((r) => r.source === 'local').length).toBeLessThan(10);
   });
 
+  it('with teacherAccuracy, answers on the device although the cloud is right less often than the threshold', async () => {
+    // A cloud that is right 80% of the time, wrong uniformly otherwise: agreeing with it is
+    // capped at about 0.8, below the threshold of 0.9.
+    const run = async (teacherAccuracy?: number) => {
+      const random = rng(9);
+      const embedder = fakeEmbedder(TOPICS);
+      const local = learnedClassifier({ embedder, head: 'knn', ...(teacherAccuracy ? { teacherAccuracy } : {}) });
+      const cloud = {
+        id: 'noisy',
+        run: async (request: { input: string }) => {
+          const topic = request.input.split(' ')[0]!;
+          return { value: random() < 0.8 ? topic : TOPICS.filter((t) => t !== topic)[Math.floor(random() * 3)] };
+        },
+      };
+      const t = task({ name: 'triage', schema: triageSchema, local, cloud, threshold: 0.9 });
+      const results = await stream(t, local, inputs(300));
+      return results.map((r, i) => ({ ...r, truth: TOPICS[i % 4] })).slice(-100).filter((r) => r.source === 'local');
+    };
+    expect((await run()).length).toBeLessThan(10);
+    const kept = await run(0.8);
+    expect(kept.length).toBeGreaterThan(50);
+    expect(kept.filter((r) => r.value === r.truth).length / kept.length).toBeGreaterThan(0.9);
+  });
+
+  it('rejects a teacherAccuracy outside (0, 1]', () => {
+    expect(() => learnedClassifier({ embedder: fakeEmbedder(TOPICS), teacherAccuracy: 0 })).toThrow(/teacherAccuracy/);
+    expect(() => learnedClassifier({ embedder: fakeEmbedder(TOPICS), teacherAccuracy: 1.2 })).toThrow(/teacherAccuracy/);
+  });
+
   it('explores confident runs and keeps learning from them', async () => {
     const { t, local, cloud } = setup({}, { explore: { rate: 0.2, random: rng(5) } });
     const results = await stream(t, local, inputs(200));

@@ -528,6 +528,7 @@ checks instead.
 | `calibration.halfLife` | 50 | steadier confidence on stable inputs | react to drift faster |
 | `knn.k` | 7 | smooth over noisy labels | follow rare cases more closely |
 | `head` | `'auto'` | | pin `'knn'` for the lowest CPU use |
+| `teacherAccuracy` | unset | | see [a cloud that is often wrong](#a-cloud-that-is-often-wrong) |
 | `minCloudConfidence` | 0 | skip cloud answers the cloud itself was unsure of (needs an adapter that reports confidence) | |
 | `maxExamples` | 5,000 | | cap memory and IndexedDB use |
 
@@ -535,11 +536,44 @@ The threshold is a target probability, not a number fitted to a dataset. `belay 
 thresholds for fixed local runners; for a learned classifier, [`belay
 simulate`](#try-it-on-your-data-first) shows what a threshold does on your data.
 
-The classifier can only be as right as the labels it learns from. Its confidence measures
-agreement with the cloud's answers and users' corrections, so with a noisy cloud it stays more
-cautious. In the simulation, against a teacher right 83.7% of the time, it kept almost every
-comment in the cloud. Systematic cloud mistakes are learned as if they were right; corrections
-are the way to fix them.
+### A cloud that is often wrong
+
+The confidence is fitted on whether the classifier agreed with the cloud's answers (and users'
+corrections), so by default it is the chance of *agreeing with the cloud*. That can never exceed
+the cloud's own accuracy: against a teacher right 83.7% of the time, a threshold of 0.9 kept 1.3%
+of comments on the device, however good the classifier got. Systematic cloud mistakes are learned
+as if they were right; corrections are the way to fix them.
+
+`teacherAccuracy` tells the classifier how often the cloud is right, e.g. `expected.cloudAccuracy`
+from the task's `belay.calibration.json`. The confidence then estimates the chance of *being
+right*, `(agreement − e) / (teacherAccuracy − e)` with `e = (1 − teacherAccuracy) / (labels − 1)`,
+which is exact when the cloud's mistakes are independent of the classifier's and spread evenly
+over the other labels:
+
+```ts
+const local = learnedClassifier({ embedder, teacherAccuracy: calibration.expected.cloudAccuracy });
+```
+
+In the simulations (cold start; noisy teacher = wrong as often as the calibrated cloud model, at
+random), it raised the local share on ticket triage from 54.7% to 77.5% at a threshold of 0.95
+with no loss of accuracy on the device (overall accuracy 97.3% → 98.9%), and on content moderation
+from 1.3% to 10.2% at 0.9 (33.1% with a seed, from 2.7%; overall 81.9% → 84.6%). Answers the
+classifier keeps are then *more* often right than the cloud's.
+
+It is only as good as that independence assumption. Where the cloud errs mostly on ambiguous
+inputs, and is better than its average on the clear ones the classifier is sure of, the corrected
+confidence comes out too high. On the 300 moderation examples, Jev was right 92% of the time on
+the half a leave-one-out kNN was surest of (83.7% overall), so the correction estimated 93% for
+that half where the kNN was right 83% of the time. With a simulated teacher whose mistakes
+concentrate on borderline comments, the device's answers were 80.7% right at a threshold of 0.9
+(91.0% with a seed). On ticket triage the kNN made none of Claude's or Jev's real mistakes, and
+the correction was exact. So:
+
+- Leave it unset when the cloud is right more often than your threshold; it changes little there.
+- Set the threshold at or above `teacherAccuracy` to keep only answers likelier right than the
+  cloud's ([Chow's rule](#choosing-the-threshold)); a lower one trades accuracy for local share.
+- On subjective tasks (moderation, sentiment), watch the device's accuracy with users' corrections
+  or a labeled sample before relying on it.
 
 ## Watching it in production
 
