@@ -109,6 +109,18 @@ describe('fitPlatt', () => {
     }
   });
 
+  it('with a half-life, follows a head that starts going wrong', () => {
+    // 200 right answers, then 30 wrong ones at the same score: drift.
+    const pairs = [
+      ...Array.from({ length: 200 }, () => ({ score: 0.95, correct: true })),
+      ...Array.from({ length: 30 }, () => ({ score: 0.95, correct: false })),
+    ];
+    const flat = applyPlatt(fitPlatt(pairs), 0.95);
+    const recent = applyPlatt(fitPlatt(pairs, { halfLife: 20 }), 0.95);
+    expect(flat).toBeGreaterThan(0.8);
+    expect(recent).toBeLessThan(0.5);
+  });
+
   it('maps an overconfident head down', () => {
     // Scores near 1, right only 60% of the time (what content moderation looks like).
     const random = rng(9);

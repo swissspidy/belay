@@ -54,8 +54,13 @@ export interface LearnedClassifierOptions {
   calibration?: {
     /** Defaults to 30. */
     minPairs?: number;
-    /** Fit on the most recent pairs only, since the head improves as it learns. Defaults to 150. */
+    /** Fit on the most recent pairs only, since the head improves as it learns. Defaults to 300. */
     window?: number;
+    /**
+     * Within the window, a pair's weight halves every `halfLife` newer pairs, so the confidence
+     * follows a head that improves, or one that starts going wrong. Defaults to 50.
+     */
+    halfLife?: number;
   };
   /** Weight of a `task.feedback()` correction relative to a cloud answer. Defaults to 3. */
   feedbackWeight?: number;
@@ -184,7 +189,8 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
   const minExamples = options.minExamples ?? 10;
   const minPerLabel = options.minPerLabel ?? 3;
   const minPairs = options.calibration?.minPairs ?? 30;
-  const window = options.calibration?.window ?? 150;
+  const window = options.calibration?.window ?? 300;
+  const halfLife = options.calibration?.halfLife ?? 50;
   const feedbackWeight = options.feedbackWeight ?? 3;
   const minCloudConfidence = options.minCloudConfidence ?? 0;
   const maxExamples = options.maxExamples ?? 5000;
@@ -287,7 +293,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
 
   function refit(s: State, head: HeadKind): void {
     const recent = s.pairs[head].slice(-window);
-    s.scaling[head] = recent.length >= minPairs ? fitPlatt(recent) : null;
+    s.scaling[head] = recent.length >= minPairs ? fitPlatt(recent, { halfLife }) : null;
   }
 
   function recentAccuracy(s: State, head: HeadKind): number | null {
