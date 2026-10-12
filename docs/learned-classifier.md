@@ -150,15 +150,15 @@ It suits tasks where:
 It is a poor fit when:
 
 - the label depends on tone, subtle wording or world knowledge. Embeddings separate toxic from
-  civil comments at about 70%; on that task the classifier answered about a third of comments
+  civil comments at about 70%; on that task the classifier answered about a quarter of comments
   and left the rest to the cloud;
 - the task generates text (use `promptApi()` and a judge instead);
 - each user sees only a handful of inputs. It learns per device, so they never reach the cold
   start's 10 examples. Ship a seed instead.
 
 In the [simulation](../examples/README.md#learned-classifier), starting from nothing at threshold
-0.9, it answered 87% of 1,500 ticket-triage messages on the device at 99.5% accuracy, and 87% of
-1,467 voice-assistant intents at 97.5%.
+0.9, it answered 86% of 1,500 ticket-triage messages on the device at 99.7% accuracy, and 85% of
+1,467 voice-assistant intents at 98.6%.
 
 ## How to add it to your app
 
@@ -431,7 +431,10 @@ drift. Two strategies:
   runs carry a larger `explorationWeight` (rate / probability), which the calibration uses so
   that its estimate stays unbiased.
 
-STRATEGY_RESULT
+On this repository's three streams, `informative` was not consistently better than `uniform`
+([ablation](../examples/README.md#learned-classifier)): it helped on some (intents: 97.5% → 98.4%
+accurate on the device) and cost local share on others. Keep `uniform` unless `belay simulate`
+shows that `informative` helps on your data.
 
 **The distance gate.** Separately from exploration, an input far from everything the classifier
 has stored goes to the cloud even if its neighbors agree. The gate scores an input by its
@@ -440,7 +443,10 @@ similarity to the 5th nearest stored example, and passes it when that is at leas
 examples; `stats().gate` shows its threshold and how many inputs it sent to the cloud.
 `distanceGate: false` turns it off.
 
-GATE_RESULT
+In the simulations it cost 0.1–2.8 points of local share and removed many of the device's
+confident mistakes where there were some (intents: from 2.2% of all inputs to 1.2%). It catches
+inputs unlike anything stored; a change of label among *similar* inputs is caught by the spot
+checks instead.
 
 ## Tuning
 

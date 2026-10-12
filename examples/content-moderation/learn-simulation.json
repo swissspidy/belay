@@ -17,46 +17,46 @@
       "order": "shift",
       "all": {
         "runs": 1000,
-        "localShare": 0.789,
-        "localAccuracy": 0.9949302915082383,
-        "accuracy": 0.996,
-        "cloudCalls": 211,
+        "localShare": 0.761,
+        "localAccuracy": 0.9894875164257556,
+        "accuracy": 0.992,
+        "cloudCalls": 239,
         "explored": 36
       },
       "last": {
         "runs": 300,
-        "localShare": 0.93,
-        "localAccuracy": 0.992831541218638,
-        "accuracy": 0.9933333333333333,
-        "cloudCalls": 21,
+        "localShare": 0.8733333333333333,
+        "localAccuracy": 0.9961832061068703,
+        "accuracy": 0.9966666666666667,
+        "cloudCalls": 38,
         "explored": 11
       },
       "curve": [
         {
           "from": 1,
           "runs": 100,
-          "localShare": 0.65,
+          "localShare": 0.63,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 35,
+          "cloudCalls": 37,
           "explored": 4
         },
         {
           "from": 101,
           "runs": 100,
-          "localShare": 0.94,
+          "localShare": 0.93,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 6,
+          "cloudCalls": 7,
           "explored": 6
         },
         {
           "from": 201,
           "runs": 100,
-          "localShare": 0.99,
+          "localShare": 0.97,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 1,
+          "cloudCalls": 3,
           "explored": 1
         },
         {
@@ -80,55 +80,60 @@
         {
           "from": 501,
           "runs": 100,
-          "localShare": 0.21,
-          "localAccuracy": 0.9047619047619048,
-          "accuracy": 0.98,
-          "cloudCalls": 79,
+          "localShare": 0.2,
+          "localAccuracy": 0.65,
+          "accuracy": 0.93,
+          "cloudCalls": 80,
           "explored": 3
         },
         {
           "from": 601,
           "runs": 100,
-          "localShare": 0.4,
+          "localShare": 0.35,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 60,
+          "cloudCalls": 65,
           "explored": 2
         },
         {
           "from": 701,
           "runs": 100,
-          "localShare": 0.89,
+          "localShare": 0.78,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 11,
+          "cloudCalls": 22,
           "explored": 1
         },
         {
           "from": 801,
           "runs": 100,
-          "localShare": 0.94,
-          "localAccuracy": 0.9787234042553191,
-          "accuracy": 0.98,
-          "cloudCalls": 6,
-          "explored": 6
+          "localShare": 0.92,
+          "localAccuracy": 0.9891304347826086,
+          "accuracy": 0.99,
+          "cloudCalls": 8,
+          "explored": 3
         },
         {
           "from": 901,
           "runs": 100,
-          "localShare": 0.96,
+          "localShare": 0.92,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 4,
-          "explored": 4
+          "cloudCalls": 8,
+          "explored": 7
         }
       ],
       "final": {
-        "examples": 211,
+        "examples": 239,
         "head": "knn",
         "heads": {
-          "knn": 0.8714285714285714,
-          "softmax": 0.7018633540372671
+          "knn": 0.865546218487395,
+          "softmax": 0.7354497354497355
+        },
+        "gate": {
+          "threshold": 0.5065659677296518,
+          "samples": 225,
+          "gated": 8
         }
       }
     },
@@ -139,19 +144,19 @@
       "order": "mixed",
       "all": {
         "runs": 1000,
-        "localShare": 0.274,
-        "localAccuracy": 0.9598540145985401,
-        "accuracy": 0.989,
-        "cloudCalls": 726,
-        "explored": 12
+        "localShare": 0.252,
+        "localAccuracy": 0.9603174603174603,
+        "accuracy": 0.99,
+        "cloudCalls": 748,
+        "explored": 11
       },
       "last": {
         "runs": 300,
-        "localShare": 0.38,
-        "localAccuracy": 0.9473684210526315,
-        "accuracy": 0.98,
-        "cloudCalls": 186,
-        "explored": 2
+        "localShare": 0.3933333333333333,
+        "localAccuracy": 0.9322033898305084,
+        "accuracy": 0.9733333333333334,
+        "cloudCalls": 182,
+        "explored": 1
       },
       "curve": [
         {
@@ -166,91 +171,96 @@
         {
           "from": 101,
           "runs": 100,
-          "localShare": 0.23,
+          "localShare": 0.22,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 77,
+          "cloudCalls": 78,
           "explored": 1
         },
         {
           "from": 201,
           "runs": 100,
-          "localShare": 0.23,
-          "localAccuracy": 0.9565217391304348,
+          "localShare": 0.24,
+          "localAccuracy": 0.9583333333333334,
           "accuracy": 0.99,
-          "cloudCalls": 77,
+          "cloudCalls": 76,
           "explored": 2
         },
         {
           "from": 301,
           "runs": 100,
-          "localShare": 0.13,
+          "localShare": 0.1,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 87,
+          "cloudCalls": 90,
           "explored": 1
         },
         {
           "from": 401,
           "runs": 100,
-          "localShare": 0.29,
+          "localShare": 0.31,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 71,
-          "explored": 3
+          "cloudCalls": 69,
+          "explored": 1
         },
         {
           "from": 501,
           "runs": 100,
-          "localShare": 0.33,
-          "localAccuracy": 0.9090909090909091,
-          "accuracy": 0.97,
-          "cloudCalls": 67,
-          "explored": 1
+          "localShare": 0.14,
+          "localAccuracy": 0.9285714285714286,
+          "accuracy": 0.99,
+          "cloudCalls": 86,
+          "explored": 3
         },
         {
           "from": 601,
           "runs": 100,
-          "localShare": 0.39,
-          "localAccuracy": 0.9743589743589743,
-          "accuracy": 0.99,
-          "cloudCalls": 61,
+          "localShare": 0.33,
+          "localAccuracy": 1,
+          "accuracy": 1,
+          "cloudCalls": 67,
           "explored": 2
         },
         {
           "from": 701,
           "runs": 100,
-          "localShare": 0.39,
-          "localAccuracy": 0.9230769230769231,
-          "accuracy": 0.97,
-          "cloudCalls": 61,
+          "localShare": 0.3,
+          "localAccuracy": 0.9333333333333333,
+          "accuracy": 0.98,
+          "cloudCalls": 70,
           "explored": 0
         },
         {
           "from": 801,
           "runs": 100,
-          "localShare": 0.32,
-          "localAccuracy": 0.9375,
-          "accuracy": 0.98,
-          "cloudCalls": 68,
+          "localShare": 0.42,
+          "localAccuracy": 0.8809523809523809,
+          "accuracy": 0.95,
+          "cloudCalls": 58,
           "explored": 0
         },
         {
           "from": 901,
           "runs": 100,
-          "localShare": 0.43,
-          "localAccuracy": 0.9767441860465116,
+          "localShare": 0.46,
+          "localAccuracy": 0.9782608695652174,
           "accuracy": 0.99,
-          "cloudCalls": 57,
-          "explored": 2
+          "cloudCalls": 54,
+          "explored": 1
         }
       ],
       "final": {
-        "examples": 726,
+        "examples": 748,
         "head": "softmax",
         "heads": {
-          "knn": 0.62,
-          "softmax": 0.73
+          "knn": 0.6433333333333333,
+          "softmax": 0.7433333333333333
+        },
+        "gate": {
+          "threshold": 0.5278194551661326,
+          "samples": 240,
+          "gated": 35
         }
       }
     },
@@ -261,37 +271,37 @@
       "order": "mixed",
       "all": {
         "runs": 1000,
-        "localShare": 0.309,
-        "localAccuracy": 0.9741100323624595,
-        "accuracy": 0.992,
-        "cloudCalls": 691,
+        "localShare": 0.3,
+        "localAccuracy": 0.9666666666666667,
+        "accuracy": 0.99,
+        "cloudCalls": 700,
         "explored": 14
       },
       "last": {
         "runs": 300,
-        "localShare": 0.38333333333333336,
-        "localAccuracy": 0.9565217391304348,
+        "localShare": 0.35,
+        "localAccuracy": 0.9523809523809523,
         "accuracy": 0.9833333333333333,
-        "cloudCalls": 185,
+        "cloudCalls": 195,
         "explored": 4
       },
       "curve": [
         {
           "from": 1,
           "runs": 100,
-          "localShare": 0.18,
+          "localShare": 0.15,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 82,
+          "cloudCalls": 85,
           "explored": 1
         },
         {
           "from": 101,
           "runs": 100,
-          "localShare": 0.37,
-          "localAccuracy": 0.972972972972973,
-          "accuracy": 0.99,
-          "cloudCalls": 63,
+          "localShare": 0.39,
+          "localAccuracy": 0.9487179487179487,
+          "accuracy": 0.98,
+          "cloudCalls": 61,
           "explored": 2
         },
         {
@@ -306,19 +316,19 @@
         {
           "from": 301,
           "runs": 100,
-          "localShare": 0.18,
-          "localAccuracy": 1,
-          "accuracy": 1,
-          "cloudCalls": 82,
+          "localShare": 0.22,
+          "localAccuracy": 0.9545454545454546,
+          "accuracy": 0.99,
+          "cloudCalls": 78,
           "explored": 1
         },
         {
           "from": 401,
           "runs": 100,
-          "localShare": 0.32,
+          "localShare": 0.31,
           "localAccuracy": 1,
           "accuracy": 1,
-          "cloudCalls": 68,
+          "cloudCalls": 69,
           "explored": 2
         },
         {
@@ -333,46 +343,51 @@
         {
           "from": 601,
           "runs": 100,
-          "localShare": 0.38,
-          "localAccuracy": 0.9736842105263158,
+          "localShare": 0.37,
+          "localAccuracy": 0.972972972972973,
           "accuracy": 0.99,
-          "cloudCalls": 62,
+          "cloudCalls": 63,
           "explored": 0
         },
         {
           "from": 701,
           "runs": 100,
-          "localShare": 0.37,
-          "localAccuracy": 0.9459459459459459,
+          "localShare": 0.33,
+          "localAccuracy": 0.9393939393939394,
           "accuracy": 0.98,
-          "cloudCalls": 63,
+          "cloudCalls": 67,
           "explored": 0
         },
         {
           "from": 801,
           "runs": 100,
-          "localShare": 0.33,
-          "localAccuracy": 0.9393939393939394,
+          "localShare": 0.35,
+          "localAccuracy": 0.9428571428571428,
           "accuracy": 0.98,
-          "cloudCalls": 67,
+          "cloudCalls": 65,
           "explored": 1
         },
         {
           "from": 901,
           "runs": 100,
-          "localShare": 0.45,
-          "localAccuracy": 0.9777777777777777,
+          "localShare": 0.37,
+          "localAccuracy": 0.972972972972973,
           "accuracy": 0.99,
-          "cloudCalls": 55,
+          "cloudCalls": 63,
           "explored": 3
         }
       ],
       "final": {
-        "examples": 991,
+        "examples": 1000,
         "head": "softmax",
         "heads": {
-          "knn": 0.6,
-          "softmax": 0.7366666666666667
+          "knn": 0.6133333333333333,
+          "softmax": 0.74
+        },
+        "gate": {
+          "threshold": 0.5356591911247313,
+          "samples": 238,
+          "gated": 46
         }
       }
     },
@@ -383,18 +398,18 @@
       "order": "mixed",
       "all": {
         "runs": 1000,
-        "localShare": 0.014,
-        "localAccuracy": 0.8571428571428571,
+        "localShare": 0.013,
+        "localAccuracy": 0.8461538461538461,
         "accuracy": 0.816,
-        "cloudCalls": 986,
+        "cloudCalls": 987,
         "explored": 1
       },
       "last": {
         "runs": 300,
-        "localShare": 0.04666666666666667,
-        "localAccuracy": 0.8571428571428571,
+        "localShare": 0.043333333333333335,
+        "localAccuracy": 0.8461538461538461,
         "accuracy": 0.8666666666666667,
-        "cloudCalls": 286,
+        "cloudCalls": 287,
         "explored": 1
       },
       "curve": [
@@ -482,19 +497,24 @@
         {
           "from": 901,
           "runs": 100,
-          "localShare": 0.14,
-          "localAccuracy": 0.8571428571428571,
+          "localShare": 0.13,
+          "localAccuracy": 0.8461538461538461,
           "accuracy": 0.84,
-          "cloudCalls": 86,
+          "cloudCalls": 87,
           "explored": 0
         }
       ],
       "final": {
-        "examples": 986,
+        "examples": 987,
         "head": "softmax",
         "heads": {
           "knn": 0.65,
           "softmax": 0.6833333333333333
+        },
+        "gate": {
+          "threshold": 0.538313849883463,
+          "samples": 239,
+          "gated": 44
         }
       }
     },
@@ -505,18 +525,18 @@
       "order": "mixed",
       "all": {
         "runs": 1000,
-        "localShare": 0.028,
+        "localShare": 0.027,
         "localAccuracy": 1,
         "accuracy": 0.819,
-        "cloudCalls": 972,
+        "cloudCalls": 973,
         "explored": 1
       },
       "last": {
         "runs": 300,
-        "localShare": 0.09,
+        "localShare": 0.08666666666666667,
         "localAccuracy": 1,
         "accuracy": 0.8766666666666667,
-        "cloudCalls": 273,
+        "cloudCalls": 274,
         "explored": 0
       },
       "curve": [
@@ -604,21 +624,304 @@
         {
           "from": 901,
           "runs": 100,
-          "localShare": 0.19,
+          "localShare": 0.18,
           "localAccuracy": 1,
           "accuracy": 0.86,
-          "cloudCalls": 81,
+          "cloudCalls": 82,
           "explored": 0
         }
       ],
       "final": {
-        "examples": 1272,
+        "examples": 1273,
         "head": "softmax",
         "heads": {
-          "knn": 0.6433333333333333,
-          "softmax": 0.68
+          "knn": 0.6366666666666667,
+          "softmax": 0.6866666666666666
+        },
+        "gate": {
+          "threshold": 0.5492204520264917,
+          "samples": 253,
+          "gated": 56
         }
       }
+    }
+  ],
+  "ablation": [
+    {
+      "teacher": "reference",
+      "order": "mixed",
+      "strategy": "uniform",
+      "gate": false,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.274,
+        "localAccuracy": 0.9598540145985401,
+        "accuracy": 0.989,
+        "cloudCalls": 726,
+        "explored": 12
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.38,
+        "localAccuracy": 0.9473684210526315,
+        "accuracy": 0.98,
+        "cloudCalls": 186,
+        "explored": 2
+      },
+      "gated": 0
+    },
+    {
+      "teacher": "reference",
+      "order": "mixed",
+      "strategy": "uniform",
+      "gate": true,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.252,
+        "localAccuracy": 0.9603174603174603,
+        "accuracy": 0.99,
+        "cloudCalls": 748,
+        "explored": 11
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.3933333333333333,
+        "localAccuracy": 0.9322033898305084,
+        "accuracy": 0.9733333333333334,
+        "cloudCalls": 182,
+        "explored": 1
+      },
+      "gated": 35
+    },
+    {
+      "teacher": "reference",
+      "order": "mixed",
+      "strategy": "informative",
+      "gate": false,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.268,
+        "localAccuracy": 0.9589552238805971,
+        "accuracy": 0.989,
+        "cloudCalls": 732,
+        "explored": 15
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.37666666666666665,
+        "localAccuracy": 0.9469026548672567,
+        "accuracy": 0.98,
+        "cloudCalls": 187,
+        "explored": 3
+      },
+      "gated": 0
+    },
+    {
+      "teacher": "reference",
+      "order": "mixed",
+      "strategy": "informative",
+      "gate": true,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.25,
+        "localAccuracy": 0.96,
+        "accuracy": 0.99,
+        "cloudCalls": 750,
+        "explored": 10
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.36333333333333334,
+        "localAccuracy": 0.944954128440367,
+        "accuracy": 0.98,
+        "cloudCalls": 191,
+        "explored": 2
+      },
+      "gated": 36
+    },
+    {
+      "teacher": "noisy",
+      "order": "mixed",
+      "strategy": "uniform",
+      "gate": false,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.014,
+        "localAccuracy": 0.8571428571428571,
+        "accuracy": 0.816,
+        "cloudCalls": 986,
+        "explored": 1
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.04666666666666667,
+        "localAccuracy": 0.8571428571428571,
+        "accuracy": 0.8666666666666667,
+        "cloudCalls": 286,
+        "explored": 1
+      },
+      "gated": 0
+    },
+    {
+      "teacher": "noisy",
+      "order": "mixed",
+      "strategy": "uniform",
+      "gate": true,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.013,
+        "localAccuracy": 0.8461538461538461,
+        "accuracy": 0.816,
+        "cloudCalls": 987,
+        "explored": 1
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.043333333333333335,
+        "localAccuracy": 0.8461538461538461,
+        "accuracy": 0.8666666666666667,
+        "cloudCalls": 287,
+        "explored": 1
+      },
+      "gated": 44
+    },
+    {
+      "teacher": "noisy",
+      "order": "mixed",
+      "strategy": "informative",
+      "gate": false,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.014,
+        "localAccuracy": 0.9285714285714286,
+        "accuracy": 0.817,
+        "cloudCalls": 986,
+        "explored": 2
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.04666666666666667,
+        "localAccuracy": 0.9285714285714286,
+        "accuracy": 0.87,
+        "cloudCalls": 286,
+        "explored": 2
+      },
+      "gated": 0
+    },
+    {
+      "teacher": "noisy",
+      "order": "mixed",
+      "strategy": "informative",
+      "gate": true,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.013,
+        "localAccuracy": 0.9230769230769231,
+        "accuracy": 0.817,
+        "cloudCalls": 987,
+        "explored": 2
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.043333333333333335,
+        "localAccuracy": 0.9230769230769231,
+        "accuracy": 0.87,
+        "cloudCalls": 287,
+        "explored": 2
+      },
+      "gated": 44
+    },
+    {
+      "teacher": "reference",
+      "order": "shift",
+      "strategy": "uniform",
+      "gate": false,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.789,
+        "localAccuracy": 0.9949302915082383,
+        "accuracy": 0.996,
+        "cloudCalls": 211,
+        "explored": 36
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.93,
+        "localAccuracy": 0.992831541218638,
+        "accuracy": 0.9933333333333333,
+        "cloudCalls": 21,
+        "explored": 11
+      },
+      "gated": 0
+    },
+    {
+      "teacher": "reference",
+      "order": "shift",
+      "strategy": "uniform",
+      "gate": true,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.761,
+        "localAccuracy": 0.9894875164257556,
+        "accuracy": 0.992,
+        "cloudCalls": 239,
+        "explored": 36
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.8733333333333333,
+        "localAccuracy": 0.9961832061068703,
+        "accuracy": 0.9966666666666667,
+        "cloudCalls": 38,
+        "explored": 11
+      },
+      "gated": 8
+    },
+    {
+      "teacher": "reference",
+      "order": "shift",
+      "strategy": "informative",
+      "gate": false,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.775,
+        "localAccuracy": 0.9974193548387097,
+        "accuracy": 0.998,
+        "cloudCalls": 225,
+        "explored": 51
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.89,
+        "localAccuracy": 1,
+        "accuracy": 1,
+        "cloudCalls": 33,
+        "explored": 24
+      },
+      "gated": 0
+    },
+    {
+      "teacher": "reference",
+      "order": "shift",
+      "strategy": "informative",
+      "gate": true,
+      "all": {
+        "runs": 1000,
+        "localShare": 0.748,
+        "localAccuracy": 0.9906417112299465,
+        "accuracy": 0.993,
+        "cloudCalls": 252,
+        "explored": 51
+      },
+      "last": {
+        "runs": 300,
+        "localShare": 0.83,
+        "localAccuracy": 1,
+        "accuracy": 1,
+        "cloudCalls": 51,
+        "explored": 26
+      },
+      "gated": 8
     }
   ]
 }

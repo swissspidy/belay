@@ -18,7 +18,7 @@ The more the cloud answers, the less it needs to.
 - **On the device.** Examples are stored as embeddings, in memory or IndexedDB, never as text.
   The model downloads once (about 34 MB) and is then read from the browser cache.
 
-On a stream of 1,500 support messages, it answered 87% of them on its own with 99.5% accuracy,
+On a stream of 1,500 support messages, it answered 86% of them on its own with 99.7% accuracy,
 starting from nothing; see the [simulation](https://github.com/swissspidy/belay/tree/main/examples#learned-classifier)
 and the [demo](https://swissspidy.github.io/belay/learn/).
 

@@ -53,7 +53,12 @@ underestimate the local accuracy. So:
   calibration pair it records for that run (clipped to [0.05, 20]); dashboards weigh agreement by
   it. A run explored with probability `rate` has weight 1, so `uniform` is unchanged.
 
-The default stays `uniform`. RESULT_STRATEGY
+In the ablation (cold start, 1,000–1,500 inputs per task, below) it made no consistent
+difference. Without the gate it raised the device's accuracy on intents from 97.5% to 98.4% for
+0.6 points of local share, and the local share on ticket triage with a noisy teacher from 78.2% to
+81.3%; with the gate on, it cost 0.2–5.1 points of local share for at most 0.7 points of accuracy.
+The default stays `uniform`, whose agreement rate needs no weights, and `informative` is an
+option to try with `belay simulate` on one's own data.
 
 ### 2. A distance gate
 
@@ -78,7 +83,18 @@ A first version scored each input on arrival against the examples before it. Tha
 skewed low by the early, sparse examples and gated almost nothing later on; the leave-one-out
 quantile over the current examples tracks the store as it grows.
 
-RESULT_GATE
+In the ablation the gate cost 0.1–2.8 points of local share and sent 8–44 inputs per stream to
+the cloud. Where the device made confident mistakes it removed many of them: on intents, the
+device's accuracy rose from 97.5% to 98.6% (its mistakes fell from 2.2% to 1.2% of all inputs) and
+overall accuracy from 97.8% to 98.8%; on ticket triage from 99.5% to 99.7%. On content moderation
+it changed nothing. On the label-sorted moderation stream it did not help: it gated only 8
+inputs, and on-device accuracy went from 99.5% to 98.9%, because the toxic comments arrived
+close to civil ones in embedding space, not far from everything. A distance gate catches inputs
+unlike anything stored, not a change of label among similar inputs; the calibration's recency
+weighting handles that (ADR 0004). On by default because it trades a few cloud calls for fewer
+confident mistakes, which is what a threshold of 0.9 asks for. A seed changes the trade: on
+intents the seeded run kept 79.9% on device (86.4% without the gate) at 99.9%, presumably because
+the seed's examples are less like the stream's inputs than the stream's are like each other.
 
 ### 3. A cost-aware threshold, as a helper
 
@@ -138,7 +154,48 @@ defer, Mozannar & Sontag 2020) would need the error cost at run time, which apps
 
 ## Results
 
-RESULT_TABLE
+`examples/scripts/learn-simulate.mjs` streams each task's held-out inputs through
+`simulateLearning()` at threshold 0.9 and `explore: 0.05`, from a cold start, with each spot-check
+strategy, with and without the gate. Teachers: the dataset's labels ("always right"), or those
+labels flipped as often as the task's calibrated cloud model was wrong. The rows with uniform spot
+checks and no gate reproduce ADR 0004's results exactly, so the refactor onto
+`simulateLearning()` changed nothing else.
+
+| Task | Teacher | Spot checks | Gate | On device | Accuracy on device | Accuracy | Gated |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Ticket triage | always right | uniform | – | 87.1% | 99.5% | 99.6% | |
+| Ticket triage | always right | uniform | ✓ | 85.9% | 99.7% | 99.7% | 20 |
+| Ticket triage | always right | informative | – | 86.7% | 99.8% | 99.9% | |
+| Ticket triage | always right | informative | ✓ | 85.6% | 99.8% | 99.8% | 25 |
+| Ticket triage | 94.3% right | uniform | – | 78.2% | 100.0% | 99.0% | |
+| Ticket triage | 94.3% right | uniform | ✓ | 77.3% | 99.9% | 98.9% | 38 |
+| Ticket triage | 94.3% right | informative | – | 81.3% | 99.9% | 99.0% | |
+| Ticket triage | 94.3% right | informative | ✓ | 72.7% | 100.0% | 98.4% | 42 |
+| Content moderation | always right | uniform | – | 27.4% | 96.0% | 98.9% | |
+| Content moderation | always right | uniform | ✓ | 25.2% | 96.0% | 99.0% | 35 |
+| Content moderation | always right | informative | – | 26.8% | 95.9% | 98.9% | |
+| Content moderation | always right | informative | ✓ | 25.0% | 96.0% | 99.0% | 36 |
+| Content moderation, by label | always right | uniform | – | 78.9% | 99.5% | 99.6% | |
+| Content moderation, by label | always right | uniform | ✓ | 76.1% | 98.9% | 99.2% | 8 |
+| Content moderation, by label | always right | informative | – | 77.5% | 99.7% | 99.8% | |
+| Content moderation, by label | always right | informative | ✓ | 74.8% | 99.1% | 99.3% | 8 |
+| Intent detection | always right | uniform | – | 87.5% | 97.5% | 97.8% | |
+| Intent detection | always right | uniform | ✓ | 84.8% | 98.6% | 98.8% | 23 |
+| Intent detection | always right | informative | – | 86.9% | 98.4% | 98.6% | |
+| Intent detection | always right | informative | ✓ | 82.3% | 99.3% | 99.4% | 22 |
+| Intent detection | 99.7% right | uniform | – | 87.5% | 97.5% | 97.7% | |
+| Intent detection | 99.7% right | uniform | ✓ | 85.3% | 98.6% | 98.6% | 22 |
+| Intent detection | 99.7% right | informative | – | 86.4% | 98.4% | 98.5% | |
+| Intent detection | 99.7% right | informative | ✓ | 80.2% | 99.3% | 99.3% | 22 |
+
+- **The gate** trades 0.1–2.8 points of local share for fewer confident mistakes where there were
+  some (intents: 2.2% → 1.2% of all inputs answered wrongly on the device), and does not help
+  when the labels change among similar inputs (the sorted moderation stream).
+- **Informative spot checks** are not consistently better than uniform ones at a 5% rate on
+  these streams. With at most about 60 explored runs per stream, which runs are explored likely
+  matters less than the escalations below the threshold, which already are the uncertain ones.
+- **The gate and informative spot checks together** cost the most local share (ticket triage
+  with a noisy teacher: 72.7%, against 77.3% with the gate alone).
 
 ## Prior art
 

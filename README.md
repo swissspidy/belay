@@ -166,7 +166,7 @@ await triage.feedback(text, 'billing'); // a user's correction
 
 Its confidence is calibrated on its own record on inputs it had not seen yet, so `threshold: 0.9`
 still means "at least 90% likely right" as it learns. On a stream of 1,500 support messages,
-starting from nothing, it answered 87% of them on the device at 99.5% accuracy. On content
+starting from nothing, it answered 86% of them on the device at 99.7% accuracy. On content
 moderation, where embeddings can't tell toxic comments apart well, it kept most comments in the
 cloud.
 [Try it in your browser](https://swissspidy.github.io/belay/learn/), run the
