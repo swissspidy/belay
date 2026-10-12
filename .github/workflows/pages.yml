@@ -1,7 +1,8 @@
 name: Pages
 
-# Builds the findings site (site/) with the committed calibration results and reports, and deploys
-# it to GitHub Pages from main. Pull requests only build it.
+# Builds the findings site (site/) with the committed calibration results and reports, and the
+# learned-classifier demo (site/learn/), and deploys it to GitHub Pages from main. Pull requests
+# only build it.
 on:
   push:
     branches: [main]
@@ -28,6 +29,9 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      # The learned-classifier demo serves the built packages.
+      - run: npm ci
+      - run: npm run build
       - run: node site/build.mjs _site
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

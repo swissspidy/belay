@@ -1,0 +1,1467 @@
+{"id":"1","input":"alexa i want to check julia's available dates so would you send her mail and ask about it","label":"email_sendemail"}
+{"id":"2","input":"open c. n. n. app","label":"news_query"}
+{"id":"3","input":"please feed that i have meeting at five p. m.","label":"calendar_set"}
+{"id":"4","input":"office lights off","label":"iot_hue_lightoff"}
+{"id":"5","input":"don't let me forget rover's vet appointment on the twenty fifth","label":"calendar_set"}
+{"id":"6","input":"check weather","label":"weather_query"}
+{"id":"7","input":"turn the light off","label":"iot_hue_lightoff"}
+{"id":"8","input":"find jazz music on my playlist","label":"play_music"}
+{"id":"9","input":"set alarm for six am tomorrow","label":"alarm_set"}
+{"id":"10","input":"on twenty third march i have to go to meet my aunt","label":"calendar_set"}
+{"id":"11","input":"order a large pan pizza with ham and mushrooms from pizza hut","label":"takeaway_order"}
+{"id":"12","input":"would you play some music please","label":"play_music"}
+{"id":"13","input":"will this morning stay sunny","label":"weather_query"}
+{"id":"14","input":"get me some food","label":"takeaway_order"}
+{"id":"15","input":"notify me an hour before my two p. m. appointment at the car dealership","label":"calendar_set"}
+{"id":"16","input":"what is the forecast for today","label":"weather_query"}
+{"id":"17","input":"tell me if the following is true about the weather","label":"weather_query"}
+{"id":"18","input":"turn on my first scheduled alarm","label":"alarm_set"}
+{"id":"19","input":"i want to listen to electric slide","label":"play_music"}
+{"id":"20","input":"favorite music","label":"play_music"}
+{"id":"21","input":"weather","label":"weather_query"}
+{"id":"22","input":"weather for tomorrow","label":"weather_query"}
+{"id":"23","input":"will you set alarm clock one day before for all gym class on my calendar","label":"alarm_set"}
+{"id":"24","input":"what is donald trump's new policy on immigration","label":"news_query"}
+{"id":"25","input":"set alarm for noon tomorrow","label":"alarm_set"}
+{"id":"26","input":"all emails received between ten p. m. to nine am is to be replied to","label":"email_sendemail"}
+{"id":"27","input":"top news on international women's day","label":"news_query"}
+{"id":"28","input":"show me the latest news about the elections","label":"news_query"}
+{"id":"29","input":"play irene from tobymac","label":"play_music"}
+{"id":"30","input":"update me on the standing rock protest","label":"news_query"}
+{"id":"31","input":"is it going to warm up soon","label":"weather_query"}
+{"id":"32","input":"play all songs by martina mcbride","label":"play_music"}
+{"id":"33","input":"tell me the weather in shanghai","label":"weather_query"}
+{"id":"34","input":"call peking garden","label":"takeaway_order"}
+{"id":"35","input":"show me nearby take-out restaurants","label":"takeaway_order"}
+{"id":"36","input":"set the alarm for five o'clock in the morning","label":"alarm_set"}
+{"id":"37","input":"i am in need of some pizza what's the closest place that delivers","label":"takeaway_order"}
+{"id":"38","input":"is it raining in barcelona","label":"weather_query"}
+{"id":"39","input":"what is happening in the world news","label":"news_query"}
+{"id":"40","input":"please brief me about this week's weather","label":"weather_query"}
+{"id":"41","input":"could you please help me to order some sushi from deliveroo","label":"takeaway_order"}
+{"id":"42","input":"lets get something on the calendar for tuesday","label":"calendar_set"}
+{"id":"43","input":"can you please order me some mcdonalds","label":"takeaway_order"}
+{"id":"44","input":"turn house lights off","label":"iot_hue_lightoff"}
+{"id":"45","input":"place an order for a pepperoni pizza at papa johns","label":"takeaway_order"}
+{"id":"46","input":"let me know about the news of india pakistan match","label":"news_query"}
+{"id":"47","input":"notify me on march eleventh the day of my appointment","label":"calendar_set"}
+{"id":"48","input":"can you play some jazz","label":"play_music"}
+{"id":"49","input":"what are the news headlines","label":"news_query"}
+{"id":"50","input":"put a reminder in my calendar about meeting with client at ten am on tuesday","label":"calendar_set"}
+{"id":"51","input":"is it raining","label":"weather_query"}
+{"id":"52","input":"search and play workout playlist","label":"play_music"}
+{"id":"53","input":"can you play me some skramz","label":"play_music"}
+{"id":"54","input":"i'd like to send an email to the new receptionist's email","label":"email_sendemail"}
+{"id":"55","input":"is it gonna snow","label":"weather_query"}
+{"id":"56","input":"order food from applebees","label":"takeaway_order"}
+{"id":"57","input":"what will the weather be like on saturday","label":"weather_query"}
+{"id":"58","input":"by switch off","label":"iot_hue_lightoff"}
+{"id":"59","input":"please remind me","label":"calendar_set"}
+{"id":"60","input":"check for hot news in times of india","label":"news_query"}
+{"id":"61","input":"please set an alarm at seven am tomorrow morning","label":"alarm_set"}
+{"id":"62","input":"answer email","label":"email_sendemail"}
+{"id":"63","input":"is summer going on","label":"weather_query"}
+{"id":"64","input":"i want to order some takeaway food","label":"takeaway_order"}
+{"id":"65","input":"set an alarm for the dance classes two hours before the classes start","label":"alarm_set"}
+{"id":"66","input":"switch off","label":"iot_hue_lightoff"}
+{"id":"67","input":"is it cold out","label":"weather_query"}
+{"id":"68","input":"turn off the bedroom lamp","label":"iot_hue_lightoff"}
+{"id":"69","input":"what is the weather like in new brighton pa","label":"weather_query"}
+{"id":"70","input":"reply to the email received from jennifer","label":"email_sendemail"}
+{"id":"71","input":"play mocking bird by eminem","label":"play_music"}
+{"id":"72","input":"is it going to be cold in the next few days","label":"weather_query"}
+{"id":"73","input":"any fast food meal offers","label":"takeaway_order"}
+{"id":"74","input":"set alarm at five thirty am","label":"alarm_set"}
+{"id":"75","input":"please arrange to wake me up at three am alarm","label":"alarm_set"}
+{"id":"76","input":"please schedule meeting with ri at ten am on april first","label":"calendar_set"}
+{"id":"77","input":"what is the best pizza near me that delivers","label":"takeaway_order"}
+{"id":"78","input":"read me a news article about jeff sessions","label":"news_query"}
+{"id":"79","input":"what is happening in the news","label":"news_query"}
+{"id":"80","input":"order some fried chicken from church's chicken via grubhub","label":"takeaway_order"}
+{"id":"81","input":"please add a four p. m. appointment for every tuesday","label":"calendar_set"}
+{"id":"82","input":"i need a reminder alarm at one","label":"alarm_set"}
+{"id":"83","input":"hi google please send mail to mom i am coming home on this weekend","label":"email_sendemail"}
+{"id":"84","input":"tell me the weather in utah","label":"weather_query"}
+{"id":"85","input":"email family with details of the party","label":"email_sendemail"}
+{"id":"86","input":"is it cold weather there","label":"weather_query"}
+{"id":"87","input":"wake me up at seven am","label":"alarm_set"}
+{"id":"88","input":"turn all lights off during the day","label":"iot_hue_lightoff"}
+{"id":"89","input":"find me a good pop song","label":"play_music"}
+{"id":"90","input":"drop me with latest news","label":"news_query"}
+{"id":"91","input":"tell me when my moms birthday is","label":"calendar_set"}
+{"id":"92","input":"send me a wake up alert at seven am tomorrow morning","label":"alarm_set"}
+{"id":"93","input":"price","label":"takeaway_order"}
+{"id":"94","input":"set the event to recur on the first monday of the month","label":"calendar_set"}
+{"id":"95","input":"what is the five days forecast looking like in new york city","label":"weather_query"}
+{"id":"96","input":"if there is any free space please set a reminder for me to call my sister about a college fund between my meetings this evening","label":"calendar_set"}
+{"id":"97","input":"make me a wake up alarm for eight forty five am","label":"alarm_set"}
+{"id":"98","input":"what's the news from source","label":"news_query"}
+{"id":"99","input":"i need a six am wake up call","label":"alarm_set"}
+{"id":"100","input":"email work team this week's schedule","label":"email_sendemail"}
+{"id":"101","input":"what is the weather like in seattle","label":"weather_query"}
+{"id":"102","input":"set a two day notification before maria's birthday please","label":"calendar_set"}
+{"id":"103","input":"reply back to emily","label":"email_sendemail"}
+{"id":"104","input":"show me what's happening","label":"news_query"}
+{"id":"105","input":"please turn off all the lights in my house","label":"iot_hue_lightoff"}
+{"id":"106","input":"remind me at the fifteenth of every month","label":"calendar_set"}
+{"id":"107","input":"alarm set for time","label":"alarm_set"}
+{"id":"108","input":"get set need me music track","label":"play_music"}
+{"id":"109","input":"can you give me the latest sports news","label":"news_query"}
+{"id":"110","input":"write this message to the coworker group","label":"email_sendemail"}
+{"id":"111","input":"new event lunch outback","label":"calendar_set"}
+{"id":"112","input":"please tell me the latest on the houston texans draft picks","label":"news_query"}
+{"id":"113","input":"has the weather changed for wednesday at all","label":"weather_query"}
+{"id":"114","input":"i would like to pickup a veggie sub with a cookie from subway","label":"takeaway_order"}
+{"id":"115","input":"set my alarm for six am","label":"alarm_set"}
+{"id":"116","input":"please call china wok and order number seven","label":"takeaway_order"}
+{"id":"117","input":"play this playlist","label":"play_music"}
+{"id":"118","input":"wake me at seven am","label":"alarm_set"}
+{"id":"119","input":"turn off one light on porch","label":"iot_hue_lightoff"}
+{"id":"120","input":"can you notify the event in my calendar","label":"calendar_set"}
+{"id":"121","input":"i don't want to carry an umbrella will we have rain today","label":"weather_query"}
+{"id":"122","input":"switch off bedroom light","label":"iot_hue_lightoff"}
+{"id":"123","input":"i need to add an event on may fifth two thousand and seventeen location goshen for danny's graduation party","label":"calendar_set"}
+{"id":"124","input":"set an alarm for seven am","label":"alarm_set"}
+{"id":"125","input":"please send the following email to uncle john yes i will be there","label":"email_sendemail"}
+{"id":"126","input":"tell me the current weather in new york city","label":"weather_query"}
+{"id":"127","input":"after this song please play this song","label":"play_music"}
+{"id":"128","input":"turn the lights off to my room","label":"iot_hue_lightoff"}
+{"id":"129","input":"set alarm for nine am","label":"alarm_set"}
+{"id":"130","input":"please switch off the light","label":"iot_hue_lightoff"}
+{"id":"131","input":"set the alarm tone","label":"alarm_set"}
+{"id":"132","input":"pull up outlook i need to send a email","label":"email_sendemail"}
+{"id":"133","input":"set a timer at five am seven days a week","label":"alarm_set"}
+{"id":"134","input":"can i order out","label":"takeaway_order"}
+{"id":"135","input":"turn room lights off now","label":"iot_hue_lightoff"}
+{"id":"136","input":"turn lights off in living room","label":"iot_hue_lightoff"}
+{"id":"137","input":"contact pizza hut and order a large pizza with ham and mushrooms","label":"takeaway_order"}
+{"id":"138","input":"play all my favorite songs","label":"play_music"}
+{"id":"139","input":"set alarm for saturday morning soccer practice at eight am","label":"alarm_set"}
+{"id":"140","input":"who delivers near here","label":"takeaway_order"}
+{"id":"141","input":"is outside raining","label":"weather_query"}
+{"id":"142","input":"please wake me up at seven thirty am","label":"alarm_set"}
+{"id":"143","input":"can i go without coat now","label":"weather_query"}
+{"id":"144","input":"alert me if any topic relating to politics comes up","label":"news_query"}
+{"id":"145","input":"is it raining right now","label":"weather_query"}
+{"id":"146","input":"create an alarm for five p. m.","label":"alarm_set"}
+{"id":"147","input":"email my mom","label":"email_sendemail"}
+{"id":"148","input":"turn off the office lights","label":"iot_hue_lightoff"}
+{"id":"149","input":"can you drop a beat for me","label":"play_music"}
+{"id":"150","input":"by remote sensor","label":"iot_hue_lightoff"}
+{"id":"151","input":"add birthday to every year","label":"calendar_set"}
+{"id":"152","input":"send a copy of the bills to mecky by email","label":"email_sendemail"}
+{"id":"153","input":"play playlist postal service","label":"play_music"}
+{"id":"154","input":"add events","label":"calendar_set"}
+{"id":"155","input":"i would like to order takeaway","label":"takeaway_order"}
+{"id":"156","input":"will the highest temperature be more than seventy degrees tomorrow","label":"weather_query"}
+{"id":"157","input":"set an alarm for tomorrow monday at eight am","label":"alarm_set"}
+{"id":"158","input":"start playing jazz music","label":"play_music"}
+{"id":"159","input":"u. s. a. today headlines","label":"news_query"}
+{"id":"160","input":"send answer to george","label":"email_sendemail"}
+{"id":"161","input":"is it going to rain this week","label":"weather_query"}
+{"id":"162","input":"any low priced delicacies","label":"takeaway_order"}
+{"id":"163","input":"i need this event on a repeating cycle on my calendar","label":"calendar_set"}
+{"id":"164","input":"google set my alarm to go off in an hour","label":"alarm_set"}
+{"id":"165","input":"please turn off the lights in the kitchen","label":"iot_hue_lightoff"}
+{"id":"166","input":"hi i want to order fried chick with white sauce","label":"takeaway_order"}
+{"id":"167","input":"add a party tonight in my remainder","label":"calendar_set"}
+{"id":"168","input":"shift the light off","label":"iot_hue_lightoff"}
+{"id":"169","input":"can i order takeaway dinner from byron's","label":"takeaway_order"}
+{"id":"170","input":"i need to set an alarm for next friday at noon","label":"alarm_set"}
+{"id":"171","input":"add event in calendar and mention others","label":"calendar_set"}
+{"id":"172","input":"i want to listen arijit singh song once again","label":"play_music"}
+{"id":"173","input":"order a medium pizza with pepperoni and bacon on it","label":"takeaway_order"}
+{"id":"174","input":"please create a new alarm","label":"alarm_set"}
+{"id":"175","input":"stop the music","label":"play_music"}
+{"id":"176","input":"play the new record of malika","label":"play_music"}
+{"id":"177","input":"forward email address to my new email","label":"email_sendemail"}
+{"id":"178","input":"order mcdonalds","label":"takeaway_order"}
+{"id":"179","input":"olly please read me today's news","label":"news_query"}
+{"id":"180","input":"shoot an email to chris about work tomorrow","label":"email_sendemail"}
+{"id":"181","input":"i have to wear a jacket in the morning","label":"weather_query"}
+{"id":"182","input":"play top twenty five hits","label":"play_music"}
+{"id":"183","input":"i want to hear song","label":"play_music"}
+{"id":"184","input":"please turn off the kitchen","label":"iot_hue_lightoff"}
+{"id":"185","input":"play jazz","label":"play_music"}
+{"id":"186","input":"get us spaghetti from pizza hut","label":"takeaway_order"}
+{"id":"187","input":"please play some jazz","label":"play_music"}
+{"id":"188","input":"olly do you have any local news","label":"news_query"}
+{"id":"189","input":"can you add this event with karl","label":"calendar_set"}
+{"id":"190","input":"should i wear sunblock today","label":"weather_query"}
+{"id":"191","input":"please set alarm for today","label":"alarm_set"}
+{"id":"192","input":"i wanna get up at six am","label":"alarm_set"}
+{"id":"193","input":"please play music from my playlist","label":"play_music"}
+{"id":"194","input":"play new gaga playlist","label":"play_music"}
+{"id":"195","input":"set an alarm on wednesday noon so i can register for early adopters program","label":"alarm_set"}
+{"id":"196","input":"set the time","label":"alarm_set"}
+{"id":"197","input":"please turn off the light","label":"iot_hue_lightoff"}
+{"id":"198","input":"what are the latest updates with regard to trump's ties to russia","label":"news_query"}
+{"id":"199","input":"read me the headlines from detroit news","label":"news_query"}
+{"id":"200","input":"turn off the lamp in the living room","label":"iot_hue_lightoff"}
+{"id":"201","input":"alexa can you play my favorite music","label":"play_music"}
+{"id":"202","input":"sandle","label":"iot_hue_lightoff"}
+{"id":"203","input":"send email to naty","label":"email_sendemail"}
+{"id":"204","input":"what is today's climate here","label":"weather_query"}
+{"id":"205","input":"how will be the weather today in the evening","label":"weather_query"}
+{"id":"206","input":"respond to jack quickly","label":"email_sendemail"}
+{"id":"207","input":"read me the newest article on the new solar system","label":"news_query"}
+{"id":"208","input":"open alarm and create an alert for ten am","label":"alarm_set"}
+{"id":"209","input":"hey i'd like you to order burger","label":"takeaway_order"}
+{"id":"210","input":"what is the breaking news for the day","label":"news_query"}
+{"id":"211","input":"write email to family member and read it back","label":"email_sendemail"}
+{"id":"212","input":"through outlook","label":"email_sendemail"}
+{"id":"213","input":"send email to manoj vyas","label":"email_sendemail"}
+{"id":"214","input":"play thinking out loud now","label":"play_music"}
+{"id":"215","input":"manage a meeting for today morning","label":"calendar_set"}
+{"id":"216","input":"i want to start my email out like this","label":"email_sendemail"}
+{"id":"217","input":"order me the fish risotto from the golden fork","label":"takeaway_order"}
+{"id":"218","input":"play jazz music now","label":"play_music"}
+{"id":"219","input":"reply to name","label":"email_sendemail"}
+{"id":"220","input":"tell chris i will be late through email","label":"email_sendemail"}
+{"id":"221","input":"turn off the lights please","label":"iot_hue_lightoff"}
+{"id":"222","input":"play the electronic playlist","label":"play_music"}
+{"id":"223","input":"add mike's birthday on march third to my calendar","label":"calendar_set"}
+{"id":"224","input":"please set event on tuesday","label":"calendar_set"}
+{"id":"225","input":"start my folk song list right after this song","label":"play_music"}
+{"id":"226","input":"what's the latest on the train","label":"news_query"}
+{"id":"227","input":"what is latest gossip of holywood going on","label":"news_query"}
+{"id":"228","input":"please send a business email about the time of the meeting change to lauren","label":"email_sendemail"}
+{"id":"229","input":"please send the email to a. b. c. at gmail dot com instead of xyz at gmail dot com","label":"email_sendemail"}
+{"id":"230","input":"play me some from the","label":"play_music"}
+{"id":"231","input":"tell me c. n. n.'s latest headlines","label":"news_query"}
+{"id":"232","input":"please start the playlist huey lewis and the news","label":"play_music"}
+{"id":"233","input":"turn off bedroom lights in ten seconds","label":"iot_hue_lightoff"}
+{"id":"234","input":"email family","label":"email_sendemail"}
+{"id":"235","input":"send this reply to received email","label":"email_sendemail"}
+{"id":"236","input":"call china wok","label":"takeaway_order"}
+{"id":"237","input":"want to play music","label":"play_music"}
+{"id":"238","input":"open songs by prince","label":"play_music"}
+{"id":"239","input":"play metallica","label":"play_music"}
+{"id":"240","input":"what are the probability that it will rain today","label":"weather_query"}
+{"id":"241","input":"will i need to wear a coat today","label":"weather_query"}
+{"id":"242","input":"fill my calendar with a meeting with garvin and trilly for december fifth at five hundred and thirty p. m.","label":"calendar_set"}
+{"id":"243","input":"is there a article on polar bears","label":"news_query"}
+{"id":"244","input":"set an alarm for me at eight am","label":"alarm_set"}
+{"id":"245","input":"please shut the lights","label":"iot_hue_lightoff"}
+{"id":"246","input":"wake me up at five thirty","label":"alarm_set"}
+{"id":"247","input":"play purple haze","label":"play_music"}
+{"id":"248","input":"what is the weather like outside","label":"weather_query"}
+{"id":"249","input":"can i order take out food at this time","label":"takeaway_order"}
+{"id":"250","input":"lights off bathroom","label":"iot_hue_lightoff"}
+{"id":"251","input":"do i need a jacket in the evening","label":"weather_query"}
+{"id":"252","input":"i have a new email address can you send an email","label":"email_sendemail"}
+{"id":"253","input":"remind my friend to get the assignment tomorrow","label":"calendar_set"}
+{"id":"254","input":"set a repeating calendar event","label":"calendar_set"}
+{"id":"255","input":"i need to reply to this email","label":"email_sendemail"}
+{"id":"256","input":"give me the best pizza deals offered today","label":"takeaway_order"}
+{"id":"257","input":"place a take out order at olive garden","label":"takeaway_order"}
+{"id":"258","input":"set my alarm please","label":"alarm_set"}
+{"id":"259","input":"could you turn off light","label":"iot_hue_lightoff"}
+{"id":"260","input":"start the dog walking playlist","label":"play_music"}
+{"id":"261","input":"place a takeaway order for a cheeseburger and fries from burger king","label":"takeaway_order"}
+{"id":"262","input":"open take-out menus","label":"takeaway_order"}
+{"id":"263","input":"i want to eat two pita gyros please and some diet coke","label":"takeaway_order"}
+{"id":"264","input":"please play my favorite pop songs from my list","label":"play_music"}
+{"id":"265","input":"change my alarms to mountain time","label":"alarm_set"}
+{"id":"266","input":"set notification before this event","label":"calendar_set"}
+{"id":"267","input":"play my workout playlist in spotify","label":"play_music"}
+{"id":"268","input":"hey order me some take out from jason's deli","label":"takeaway_order"}
+{"id":"269","input":"set an alarm for five hundred and thirty","label":"alarm_set"}
+{"id":"270","input":"when i get home can you please order a pizza","label":"takeaway_order"}
+{"id":"271","input":"locate jen's most recent email so i can reply","label":"email_sendemail"}
+{"id":"272","input":"please play me a song from my favorite list","label":"play_music"}
+{"id":"273","input":"i need an alarm set for eight am","label":"alarm_set"}
+{"id":"274","input":"turn off the light in the bathroom","label":"iot_hue_lightoff"}
+{"id":"275","input":"all lights has to be turned off during the day","label":"iot_hue_lightoff"}
+{"id":"276","input":"please order some sushi for dinner","label":"takeaway_order"}
+{"id":"277","input":"remind me to send the presentation today at one p. m.","label":"calendar_set"}
+{"id":"278","input":"go to my gmail and click on compose when finished i will tell you what i want to write in the email","label":"email_sendemail"}
+{"id":"279","input":"set an alarm for two hours from now","label":"alarm_set"}
+{"id":"280","input":"call me at six am","label":"alarm_set"}
+{"id":"281","input":"add a reminder to april fourth to go to the dentist","label":"calendar_set"}
+{"id":"282","input":"set an alarm for this eight hundred p. m. this evening","label":"alarm_set"}
+{"id":"283","input":"please respond to greg's email stating that his idea is fantastic","label":"email_sendemail"}
+{"id":"284","input":"add on my calendar for today joe smith at one p. m.","label":"calendar_set"}
+{"id":"285","input":"do i need my raingear","label":"weather_query"}
+{"id":"286","input":"weather today","label":"weather_query"}
+{"id":"287","input":"turn off lamp","label":"iot_hue_lightoff"}
+{"id":"288","input":"find me the top news of the day","label":"news_query"}
+{"id":"289","input":"set alarm for sixth of june two thousand seventeen at five am","label":"alarm_set"}
+{"id":"290","input":"wake me up at eight o'clock","label":"alarm_set"}
+{"id":"291","input":"get me to alarm setting","label":"alarm_set"}
+{"id":"292","input":"new music tracks","label":"play_music"}
+{"id":"293","input":"please set alarm at five p. m.","label":"alarm_set"}
+{"id":"294","input":"set new alarm on five am","label":"alarm_set"}
+{"id":"295","input":"give me the weather detail of fifteenth march","label":"weather_query"}
+{"id":"296","input":"is it hot or cold outside","label":"weather_query"}
+{"id":"297","input":"please turn on the music i want to hear my favorites songs","label":"play_music"}
+{"id":"298","input":"order chinese from china spring wonton soup and a small beef and broccoli","label":"takeaway_order"}
+{"id":"299","input":"turn off the lights in the bedroom","label":"iot_hue_lightoff"}
+{"id":"300","input":"continue to next song please","label":"play_music"}
+{"id":"301","input":"set alarm for one hour from now","label":"alarm_set"}
+{"id":"302","input":"please remind me of my teachers meeting on thursday at three p. m.","label":"calendar_set"}
+{"id":"303","input":"email joejoe at gmail dot com","label":"email_sendemail"}
+{"id":"304","input":"can i get a recap on the latest news going on in the world","label":"news_query"}
+{"id":"305","input":"can i wear shorts today","label":"weather_query"}
+{"id":"306","input":"set reminder to go workout at the gym every friday at eight hundred am","label":"calendar_set"}
+{"id":"307","input":"olly please schedule all my doctors appointments","label":"calendar_set"}
+{"id":"308","input":"tell me the top stories in the news","label":"news_query"}
+{"id":"309","input":"remind me the night before my doctor's appointment","label":"calendar_set"}
+{"id":"310","input":"the set alarm for nine p. m. on thursday night","label":"alarm_set"}
+{"id":"311","input":"prepare a reply email to mark","label":"email_sendemail"}
+{"id":"312","input":"send to the contact an email as follows","label":"email_sendemail"}
+{"id":"313","input":"please turn off right side of light","label":"iot_hue_lightoff"}
+{"id":"314","input":"cut the lights off","label":"iot_hue_lightoff"}
+{"id":"315","input":"what's the weather like in toronto","label":"weather_query"}
+{"id":"316","input":"add event in calendar","label":"calendar_set"}
+{"id":"317","input":"turn room light off","label":"iot_hue_lightoff"}
+{"id":"318","input":"play songs related to a. c. d. c.","label":"play_music"}
+{"id":"319","input":"mike will send me an email tomorrow can you please set up an alarm fifteen minutes after receiving that email","label":"alarm_set"}
+{"id":"320","input":"my mother wants to know what the weekly weather will be like send her an email","label":"email_sendemail"}
+{"id":"321","input":"olly let's email sandy","label":"email_sendemail"}
+{"id":"322","input":"today get umbrella","label":"weather_query"}
+{"id":"323","input":"check latest news","label":"news_query"}
+{"id":"324","input":"weather report of boston","label":"weather_query"}
+{"id":"325","input":"how is the weather today","label":"weather_query"}
+{"id":"326","input":"add valia's wedding the next saturday at eight o'clock","label":"calendar_set"}
+{"id":"327","input":"i want the light in the kitchen powered off","label":"iot_hue_lightoff"}
+{"id":"328","input":"i want to sleep","label":"iot_hue_lightoff"}
+{"id":"329","input":"personal digital assistant","label":"news_query"}
+{"id":"330","input":"please play my top music playlist","label":"play_music"}
+{"id":"331","input":"please play jennifer lopez album","label":"play_music"}
+{"id":"332","input":"what is the current temperature in austin","label":"weather_query"}
+{"id":"333","input":"inform me about the latest news of donald trump","label":"news_query"}
+{"id":"334","input":"what was the news for today from news provider","label":"news_query"}
+{"id":"335","input":"reply to john stating that i will attend the party","label":"email_sendemail"}
+{"id":"336","input":"make an alarm for five p. m. on tuesday","label":"alarm_set"}
+{"id":"337","input":"set an alarm for next tuesdays meeting","label":"alarm_set"}
+{"id":"338","input":"olly good night lights off","label":"iot_hue_lightoff"}
+{"id":"339","input":"play rap","label":"play_music"}
+{"id":"340","input":"turn all the lights off","label":"iot_hue_lightoff"}
+{"id":"341","input":"will i need sunblock this afternoon","label":"weather_query"}
+{"id":"342","input":"play do re mi","label":"play_music"}
+{"id":"343","input":"set alarm for reminder","label":"alarm_set"}
+{"id":"344","input":"turn off the kitchen lights","label":"iot_hue_lightoff"}
+{"id":"345","input":"send an email to peter that where he is now and if he is at the market text him to bring some wine","label":"email_sendemail"}
+{"id":"346","input":"alert me thirty minutes before my meeting at three p. m. tomorrow","label":"calendar_set"}
+{"id":"347","input":"meeting tuesday noon","label":"calendar_set"}
+{"id":"348","input":"is it forecasted to rain in the next two days","label":"weather_query"}
+{"id":"349","input":"add my doctor appointment for the fifteenth","label":"calendar_set"}
+{"id":"350","input":"play all rock songs","label":"play_music"}
+{"id":"351","input":"alexa email mom and ask how the weather is there","label":"email_sendemail"}
+{"id":"352","input":"open calendar","label":"calendar_set"}
+{"id":"353","input":"switch the lights off","label":"iot_hue_lightoff"}
+{"id":"354","input":"set reminder for three o'clock","label":"calendar_set"}
+{"id":"355","input":"play the song which is in movie rangoon","label":"play_music"}
+{"id":"356","input":"set alarm for this event reminder repeating for ten times","label":"alarm_set"}
+{"id":"357","input":"olly add tomorrow's dinner date to the calendar","label":"calendar_set"}
+{"id":"358","input":"turn off my desk lamp","label":"iot_hue_lightoff"}
+{"id":"359","input":"send email to daddy i'll be going to the birthday party","label":"email_sendemail"}
+{"id":"360","input":"do i need to wear boots","label":"weather_query"}
+{"id":"361","input":"remind me to call my daughter first thing on thursday to wish her happy anniversary","label":"calendar_set"}
+{"id":"362","input":"provide me the world latest news","label":"news_query"}
+{"id":"363","input":"remind me about the office meeting tomorrow at seven","label":"calendar_set"}
+{"id":"364","input":"i need a reminder at two hundred every day to check on my mother","label":"calendar_set"}
+{"id":"365","input":"can i wear sandals","label":"weather_query"}
+{"id":"366","input":"south it going to be hot tomorrow","label":"weather_query"}
+{"id":"367","input":"local news from bay news nine","label":"news_query"}
+{"id":"368","input":"schedule a meeting with brian billings for two thirty p. m. on friday","label":"calendar_set"}
+{"id":"369","input":"what's happening in world news","label":"news_query"}
+{"id":"370","input":"wake me at daybreak","label":"alarm_set"}
+{"id":"371","input":"what is trending in tech today","label":"news_query"}
+{"id":"372","input":"please send an email to john saying i'm on leave","label":"email_sendemail"}
+{"id":"373","input":"order two cheeseburgers from wings n. ale on university drive","label":"takeaway_order"}
+{"id":"374","input":"create an event in my calendar","label":"calendar_set"}
+{"id":"375","input":"i need to get going at eight am tomorrow set up an alarm thirty minutes before that","label":"alarm_set"}
+{"id":"376","input":"please turn off the porch light","label":"iot_hue_lightoff"}
+{"id":"377","input":"hey google hey its too hot outside what is the temperature this afternoon","label":"weather_query"}
+{"id":"378","input":"order a large plain pizza from mimo's for me","label":"takeaway_order"}
+{"id":"379","input":"from wangs kitchen restaurant home delivery for a chicken manchow soup","label":"takeaway_order"}
+{"id":"380","input":"olly what is the weather like this week","label":"weather_query"}
+{"id":"381","input":"wake me up at six am","label":"alarm_set"}
+{"id":"382","input":"play huey lewis","label":"play_music"}
+{"id":"383","input":"set an alarm for nine p. m.","label":"alarm_set"}
+{"id":"384","input":"please remind me the birthday of my uncle joe every may fourth","label":"calendar_set"}
+{"id":"385","input":"nobody knows by pink","label":"play_music"}
+{"id":"386","input":"will the temperature be in the today","label":"weather_query"}
+{"id":"387","input":"set an alarm","label":"alarm_set"}
+{"id":"388","input":"show latest news about migration","label":"news_query"}
+{"id":"389","input":"send an email to jesse","label":"email_sendemail"}
+{"id":"390","input":"tell me the latest news about donald trump","label":"news_query"}
+{"id":"391","input":"please give me update of hockey","label":"news_query"}
+{"id":"392","input":"put alarm for this meeting","label":"alarm_set"}
+{"id":"393","input":"what's happening today","label":"news_query"}
+{"id":"394","input":"set alarm to begin","label":"alarm_set"}
+{"id":"395","input":"send mail to someone","label":"email_sendemail"}
+{"id":"396","input":"remind me of my meeting at five p. m.","label":"calendar_set"}
+{"id":"397","input":"send email to tim","label":"email_sendemail"}
+{"id":"398","input":"please turn off all the lights in the house","label":"iot_hue_lightoff"}
+{"id":"399","input":"order a pizza","label":"takeaway_order"}
+{"id":"400","input":"reply to this email","label":"email_sendemail"}
+{"id":"401","input":"set a continuous alarm without the option to snooze for seven am please","label":"alarm_set"}
+{"id":"402","input":"show me more about the presidential election","label":"news_query"}
+{"id":"403","input":"shuffle play my slow songs play list from spotify","label":"play_music"}
+{"id":"404","input":"schedule pizza take-out for seven p. m.","label":"takeaway_order"}
+{"id":"405","input":"will you remind me to go to hockey class every sunday afternoon","label":"calendar_set"}
+{"id":"406","input":"set the alarm for nine am on weekends","label":"alarm_set"}
+{"id":"407","input":"is today a sunscreen day","label":"weather_query"}
+{"id":"408","input":"set my alarm for eight am","label":"alarm_set"}
+{"id":"409","input":"turn off lights in kitchen","label":"iot_hue_lightoff"}
+{"id":"410","input":"set reminder on calendar for","label":"calendar_set"}
+{"id":"411","input":"i go with black sunglasses or not","label":"weather_query"}
+{"id":"412","input":"turn off the upstairs bathroom light","label":"iot_hue_lightoff"}
+{"id":"413","input":"remind about of all event in calendars","label":"calendar_set"}
+{"id":"414","input":"turn on my electronic playlist","label":"play_music"}
+{"id":"415","input":"at seven am tomorrow morning ring the alarm","label":"alarm_set"}
+{"id":"416","input":"turn light off","label":"iot_hue_lightoff"}
+{"id":"417","input":"place event in my calendar every tuesday","label":"calendar_set"}
+{"id":"418","input":"put the song in order of singer first arijit singh song then sukhwinder then sunidhi","label":"play_music"}
+{"id":"419","input":"play anything by cat stevens and i'll be happy","label":"play_music"}
+{"id":"420","input":"turn bedroom lights off","label":"iot_hue_lightoff"}
+{"id":"421","input":"tell me the top stories on the la times","label":"news_query"}
+{"id":"422","input":"call and order pizza for delivery","label":"takeaway_order"}
+{"id":"423","input":"please keep tabs on how the presidential debates are going","label":"news_query"}
+{"id":"424","input":"play country music","label":"play_music"}
+{"id":"425","input":"its hot today","label":"weather_query"}
+{"id":"426","input":"need an alarm set for sunday at five in the morning","label":"alarm_set"}
+{"id":"427","input":"near pizza shops","label":"takeaway_order"}
+{"id":"428","input":"please respond","label":"email_sendemail"}
+{"id":"429","input":"could you create a new event with these people only","label":"calendar_set"}
+{"id":"430","input":"call the closest mexican restaurant","label":"takeaway_order"}
+{"id":"431","input":"reshuffle and play music","label":"play_music"}
+{"id":"432","input":"please set an alarm clock for my next meeting with the team at three p. m. next friday","label":"alarm_set"}
+{"id":"433","input":"i need an alarm","label":"alarm_set"}
+{"id":"434","input":"turn off the lights in this room please","label":"iot_hue_lightoff"}
+{"id":"435","input":"play recently added songs","label":"play_music"}
+{"id":"436","input":"how is this week's weather","label":"weather_query"}
+{"id":"437","input":"olly what will the weather be like on saturday","label":"weather_query"}
+{"id":"438","input":"could you please send an email to my husband","label":"email_sendemail"}
+{"id":"439","input":"i need an alarm for nine p. m.","label":"alarm_set"}
+{"id":"440","input":"set alarm for tomorrow at two p. m.","label":"alarm_set"}
+{"id":"441","input":"can you order me a pizza today from dominoes","label":"takeaway_order"}
+{"id":"442","input":"please tell me what the world news headlines are","label":"news_query"}
+{"id":"443","input":"reply to robert's email of today morning","label":"email_sendemail"}
+{"id":"444","input":"notify me when my rent due","label":"calendar_set"}
+{"id":"445","input":"please turn off the lights in bedroom","label":"iot_hue_lightoff"}
+{"id":"446","input":"bedroom light off","label":"iot_hue_lightoff"}
+{"id":"447","input":"play spotify playlist blank","label":"play_music"}
+{"id":"448","input":"open calendar schedule event meeting","label":"calendar_set"}
+{"id":"449","input":"select and play only christian rock from one thousand nine hundred and ninety upwards","label":"play_music"}
+{"id":"450","input":"i want to hear the news on tmz","label":"news_query"}
+{"id":"451","input":"tell me when the event starts","label":"calendar_set"}
+{"id":"452","input":"order a smoked meat platter from beanos","label":"takeaway_order"}
+{"id":"453","input":"please set a monthly reminder for paying rent","label":"calendar_set"}
+{"id":"454","input":"play the latest song of eminem","label":"play_music"}
+{"id":"455","input":"add to calendar an medical appointment for the first day of the next five months","label":"calendar_set"}
+{"id":"456","input":"tune song of ddlj movie","label":"play_music"}
+{"id":"457","input":"how the weather today","label":"weather_query"}
+{"id":"458","input":"could you please set an alarm at six am","label":"alarm_set"}
+{"id":"459","input":"through mobile phones","label":"email_sendemail"}
+{"id":"460","input":"hey email jan about our meeting","label":"email_sendemail"}
+{"id":"461","input":"place an order for two pizzas from dominoes","label":"takeaway_order"}
+{"id":"462","input":"reply to the email","label":"email_sendemail"}
+{"id":"463","input":"play that last song","label":"play_music"}
+{"id":"464","input":"church with mom and dad on sunday","label":"calendar_set"}
+{"id":"465","input":"play crystal lewis's beauty of the cross for me","label":"play_music"}
+{"id":"466","input":"turn off the garage light","label":"iot_hue_lightoff"}
+{"id":"467","input":"play the pre gaming playlist","label":"play_music"}
+{"id":"468","input":"please open a reply to the email","label":"email_sendemail"}
+{"id":"469","input":"reply back to bob smith","label":"email_sendemail"}
+{"id":"470","input":"can you please turn off the lights in this room","label":"iot_hue_lightoff"}
+{"id":"471","input":"is it too warm to wear my wooly sweater today","label":"weather_query"}
+{"id":"472","input":"popular culture news","label":"news_query"}
+{"id":"473","input":"reply to patrick that i am on my way","label":"email_sendemail"}
+{"id":"474","input":"remind me at five p. m.","label":"alarm_set"}
+{"id":"475","input":"is there any breaking news from c. n. n.","label":"news_query"}
+{"id":"476","input":"play my favorite songs","label":"play_music"}
+{"id":"477","input":"create an email to aran","label":"email_sendemail"}
+{"id":"478","input":"send mail to bubbles i want to meet her tomorrow at two p. m. in office","label":"email_sendemail"}
+{"id":"479","input":"hey order a side of hot wings with my previous order","label":"takeaway_order"}
+{"id":"480","input":"olly send email to family member and read it first","label":"email_sendemail"}
+{"id":"481","input":"meetings","label":"calendar_set"}
+{"id":"482","input":"please find new from c. n. n.","label":"news_query"}
+{"id":"483","input":"send an email to sarah about brunch today","label":"email_sendemail"}
+{"id":"484","input":"place order of one pizza","label":"takeaway_order"}
+{"id":"485","input":"will i need to wear a coat today in the afternoon","label":"weather_query"}
+{"id":"486","input":"set an alarm for me for tomorrow at seven p. m.","label":"alarm_set"}
+{"id":"487","input":"would you open the email and i would like to compose a new one","label":"email_sendemail"}
+{"id":"488","input":"alarm five p. m. tuesday","label":"alarm_set"}
+{"id":"489","input":"google home","label":"news_query"}
+{"id":"490","input":"compose an email to parisa","label":"email_sendemail"}
+{"id":"491","input":"tell me some braking news in new york","label":"news_query"}
+{"id":"492","input":"what is the entrepreneur saying about homelessness in the seattle times article","label":"news_query"}
+{"id":"493","input":"i want to hear that song","label":"play_music"}
+{"id":"494","input":"play billy joel","label":"play_music"}
+{"id":"495","input":"send an email to a new address","label":"email_sendemail"}
+{"id":"496","input":"what's the weather like","label":"weather_query"}
+{"id":"497","input":"let me know when there is news on the dakota pipeline","label":"news_query"}
+{"id":"498","input":"let me know the weather for today","label":"weather_query"}
+{"id":"499","input":"turn off the light in the kitchen","label":"iot_hue_lightoff"}
+{"id":"500","input":"should i take an umbrella with me tonight","label":"weather_query"}
+{"id":"501","input":"play this song on twelve am","label":"play_music"}
+{"id":"502","input":"set alarm for six am everyday","label":"alarm_set"}
+{"id":"503","input":"what is the weather for today","label":"weather_query"}
+{"id":"504","input":"show me chinese food near me","label":"takeaway_order"}
+{"id":"505","input":"order two pizzas from dominoes","label":"takeaway_order"}
+{"id":"506","input":"what's the news","label":"news_query"}
+{"id":"507","input":"when will i meet with joe next","label":"calendar_set"}
+{"id":"508","input":"hi please send mail to sam by evening","label":"email_sendemail"}
+{"id":"509","input":"do you expect sun on sunday","label":"weather_query"}
+{"id":"510","input":"what is going on with blank","label":"news_query"}
+{"id":"511","input":"set alarm half an hour from my meal time","label":"alarm_set"}
+{"id":"512","input":"call the nearest pizza place that offers buffalo pizza","label":"takeaway_order"}
+{"id":"513","input":"what's the weather","label":"weather_query"}
+{"id":"514","input":"set an alarm for thursday at seven p. m.","label":"alarm_set"}
+{"id":"515","input":"do you have any updates on blank","label":"news_query"}
+{"id":"516","input":"is the weather bad in new york right now","label":"weather_query"}
+{"id":"517","input":"finances","label":"news_query"}
+{"id":"518","input":"switch off light","label":"iot_hue_lightoff"}
+{"id":"519","input":"tell me the humidity level downtown today","label":"weather_query"}
+{"id":"520","input":"what are today's headlines","label":"news_query"}
+{"id":"521","input":"please mark my calendar for therapy every tuesday at eleven am","label":"calendar_set"}
+{"id":"522","input":"reply to john's email today saying i will be late","label":"email_sendemail"}
+{"id":"523","input":"play list five","label":"play_music"}
+{"id":"524","input":"alexa play classic rock","label":"play_music"}
+{"id":"525","input":"what's the latest news from b. b. c.","label":"news_query"}
+{"id":"526","input":"olly lights off","label":"iot_hue_lightoff"}
+{"id":"527","input":"bedroom lights off now","label":"iot_hue_lightoff"}
+{"id":"528","input":"will you please turn the lights off","label":"iot_hue_lightoff"}
+{"id":"529","input":"set up notification for meeting","label":"calendar_set"}
+{"id":"530","input":"time to sleep olly","label":"iot_hue_lightoff"}
+{"id":"531","input":"hey play crazy by britney spears","label":"play_music"}
+{"id":"532","input":"please add a birthday party on saturday evening","label":"calendar_set"}
+{"id":"533","input":"please turn off all of the lights in the house","label":"iot_hue_lightoff"}
+{"id":"534","input":"should i close the window before i leave this afternoon","label":"weather_query"}
+{"id":"535","input":"remind me every first of the month","label":"calendar_set"}
+{"id":"536","input":"kill the lights","label":"iot_hue_lightoff"}
+{"id":"537","input":"send email to grandma subject saturday message we are dropping by on saturday see you then","label":"email_sendemail"}
+{"id":"538","input":"what is the extended forecast","label":"weather_query"}
+{"id":"539","input":"please sound an alarm three hours before a scheduled event","label":"alarm_set"}
+{"id":"540","input":"can you direct me to the menu for the highest rated chinese carry-out near me","label":"takeaway_order"}
+{"id":"541","input":"send a mail to alex asking about the due payment","label":"email_sendemail"}
+{"id":"542","input":"all emails received between ten p. m. and seven am everyday is to be replied","label":"email_sendemail"}
+{"id":"543","input":"open calendar set event","label":"calendar_set"}
+{"id":"544","input":"send an email to sjobs at apple dot com","label":"email_sendemail"}
+{"id":"545","input":"i would like to listen to","label":"play_music"}
+{"id":"546","input":"i would like to have a sushi can you order me a lunch","label":"takeaway_order"}
+{"id":"547","input":"remind me i need to be at the library a week from today at five","label":"calendar_set"}
+{"id":"548","input":"turn off the room light","label":"iot_hue_lightoff"}
+{"id":"549","input":"set this before event","label":"calendar_set"}
+{"id":"550","input":"make an alarm for the morning","label":"alarm_set"}
+{"id":"551","input":"olly place an order for a combo platter from china buffet please","label":"takeaway_order"}
+{"id":"552","input":"open email to new person please","label":"email_sendemail"}
+{"id":"553","input":"play my most played songs","label":"play_music"}
+{"id":"554","input":"takeaway noodles one pack","label":"takeaway_order"}
+{"id":"555","input":"has the war in syria ended","label":"news_query"}
+{"id":"556","input":"play the last song from my most recent playlist","label":"play_music"}
+{"id":"557","input":"i want you to put on be warned by tech nine","label":"play_music"}
+{"id":"558","input":"get me top headlines","label":"news_query"}
+{"id":"559","input":"what is today's temperature","label":"weather_query"}
+{"id":"560","input":"i wish to know the weather in s. f.","label":"weather_query"}
+{"id":"561","input":"latest news on ortcars","label":"news_query"}
+{"id":"562","input":"order me a byron from deliveroo","label":"takeaway_order"}
+{"id":"563","input":"ok google add a notification from bob's news on the weather","label":"news_query"}
+{"id":"564","input":"keep me updated on the latest storm news","label":"news_query"}
+{"id":"565","input":"reply to that email","label":"email_sendemail"}
+{"id":"566","input":"selection of restaurants","label":"takeaway_order"}
+{"id":"567","input":"send me a notification an hour before my next calendar events","label":"calendar_set"}
+{"id":"568","input":"send mom an email and find out what he weather is like for the week","label":"email_sendemail"}
+{"id":"569","input":"tell me the weather for new york city","label":"weather_query"}
+{"id":"570","input":"is it going to rain later today","label":"weather_query"}
+{"id":"571","input":"hey play me a popular r. & b. song","label":"play_music"}
+{"id":"572","input":"lights off","label":"iot_hue_lightoff"}
+{"id":"573","input":"olly play me an upbeat song through your speakers","label":"play_music"}
+{"id":"574","input":"wake me up every weekday at seven am","label":"alarm_set"}
+{"id":"575","input":"set a reminder alarm for my five p. m. meeting please","label":"alarm_set"}
+{"id":"576","input":"hey siri what is in the world news right now","label":"news_query"}
+{"id":"577","input":"give the latest updates on narendra modi","label":"news_query"}
+{"id":"578","input":"set repeating event gym day on calendar","label":"calendar_set"}
+{"id":"579","input":"remind me in time to do thing","label":"calendar_set"}
+{"id":"580","input":"set alarm for twelve weeks from today at eight am","label":"alarm_set"}
+{"id":"581","input":"send email to cat that i will accept job offer","label":"email_sendemail"}
+{"id":"582","input":"please remind me about the eleven am business meet","label":"calendar_set"}
+{"id":"583","input":"checkout domino center near me and order cheese pizza","label":"takeaway_order"}
+{"id":"584","input":"will you put in my calendar that john c. and his wife are meeting with us at four p. m. tomorrow","label":"calendar_set"}
+{"id":"585","input":"write an email recipient ray","label":"email_sendemail"}
+{"id":"586","input":"play hip hop songs","label":"play_music"}
+{"id":"587","input":"what will the temperatures be for the next week","label":"weather_query"}
+{"id":"588","input":"kitchen light off","label":"iot_hue_lightoff"}
+{"id":"589","input":"pull up my party playlist","label":"play_music"}
+{"id":"590","input":"what's going on in the world right now","label":"news_query"}
+{"id":"591","input":"turn off lights of kitchen","label":"iot_hue_lightoff"}
+{"id":"592","input":"what are the chances of hail this week","label":"weather_query"}
+{"id":"593","input":"get large pizza with pepperoni","label":"takeaway_order"}
+{"id":"594","input":"do i need a hat","label":"weather_query"}
+{"id":"595","input":"play my itunes music","label":"play_music"}
+{"id":"596","input":"send email to rohan to meet me today at evening","label":"email_sendemail"}
+{"id":"597","input":"create an email to toby at tobytoday dot com","label":"email_sendemail"}
+{"id":"598","input":"play pop music","label":"play_music"}
+{"id":"599","input":"can you remind me about the gym class in two hours","label":"calendar_set"}
+{"id":"600","input":"can you message back jean via email","label":"email_sendemail"}
+{"id":"601","input":"should i wear a hat today","label":"weather_query"}
+{"id":"602","input":"play music from a given artist","label":"play_music"}
+{"id":"603","input":"find and read to me world events happening today","label":"news_query"}
+{"id":"604","input":"what's the weather like in sydney","label":"weather_query"}
+{"id":"605","input":"remind me about my monday meeting with peter francis fifteen minutes before the meeting","label":"calendar_set"}
+{"id":"606","input":"create an alarm at four o'clock tomorrow morning","label":"alarm_set"}
+{"id":"607","input":"make an alarm","label":"alarm_set"}
+{"id":"608","input":"can you set my alarm","label":"alarm_set"}
+{"id":"609","input":"change alarm to start at midnight","label":"alarm_set"}
+{"id":"610","input":"what are the top news headlines right now","label":"news_query"}
+{"id":"611","input":"turn on my michael jackson playlist","label":"play_music"}
+{"id":"612","input":"can you set an alarm for seven am","label":"alarm_set"}
+{"id":"613","input":"should i wear a a dress or a sweat shirt today","label":"weather_query"}
+{"id":"614","input":"should i wear my sunscreen","label":"weather_query"}
+{"id":"615","input":"what is the weather in austin","label":"weather_query"}
+{"id":"616","input":"turn off lights","label":"iot_hue_lightoff"}
+{"id":"617","input":"create an alarm for six am","label":"alarm_set"}
+{"id":"618","input":"create new email address","label":"email_sendemail"}
+{"id":"619","input":"lights off for the kids bedroom please then change the lights to my room to red","label":"iot_hue_lightoff"}
+{"id":"620","input":"send a birthday email to my boss","label":"email_sendemail"}
+{"id":"621","input":"play jingle bells next","label":"play_music"}
+{"id":"622","input":"send help only to jane","label":"email_sendemail"}
+{"id":"623","input":"i want topics on latest news","label":"news_query"}
+{"id":"624","input":"get me the weather forecast of beijing","label":"weather_query"}
+{"id":"625","input":"please reply to this email","label":"email_sendemail"}
+{"id":"626","input":"order me a bowl from chipotle take-out","label":"takeaway_order"}
+{"id":"627","input":"order spaghetti from spaghetti warehouse to bring home","label":"takeaway_order"}
+{"id":"628","input":"can you turn off one of my lights in my bathroom","label":"iot_hue_lightoff"}
+{"id":"629","input":"please set an alarm for seven hundred and thirty am tomorrow","label":"alarm_set"}
+{"id":"630","input":"send a reply email thank you very much to john at gmail dot com","label":"email_sendemail"}
+{"id":"631","input":"forward shown content to blahblah at blah dot com with email","label":"email_sendemail"}
+{"id":"632","input":"play kids songs","label":"play_music"}
+{"id":"633","input":"please order me pizza and wings from papa johns now","label":"takeaway_order"}
+{"id":"634","input":"yo order take out from jason's deli on sixth avenue","label":"takeaway_order"}
+{"id":"635","input":"add a new notifier for the g. p. s. on my car","label":"news_query"}
+{"id":"636","input":"add to calendar an everyday reminder for laundry","label":"calendar_set"}
+{"id":"637","input":"notify me with news updates on nigeria","label":"news_query"}
+{"id":"638","input":"hey olly order me some take out from jason's deli","label":"takeaway_order"}
+{"id":"639","input":"can you order me some pizza","label":"takeaway_order"}
+{"id":"640","input":"order take-out pizza from domino's for seven p. m.","label":"takeaway_order"}
+{"id":"641","input":"i'm hungry show me some takeaway food","label":"takeaway_order"}
+{"id":"642","input":"send an email to mike about this weekend party","label":"email_sendemail"}
+{"id":"643","input":"forward email","label":"email_sendemail"}
+{"id":"644","input":"remind me to pick up more dog food at petco tomorrow at seven twenty p. m.","label":"calendar_set"}
+{"id":"645","input":"set a thanks giving event for friday","label":"calendar_set"}
+{"id":"646","input":"call eastwind and order lomaine to go","label":"takeaway_order"}
+{"id":"647","input":"what's going on in congress","label":"news_query"}
+{"id":"648","input":"i want an alarm for six am everyday","label":"alarm_set"}
+{"id":"649","input":"give me the news update from b. b. c.","label":"news_query"}
+{"id":"650","input":"turn off living room lights","label":"iot_hue_lightoff"}
+{"id":"651","input":"open alarm","label":"alarm_set"}
+{"id":"652","input":"please add haircut to march twenty seventh at three p. m.","label":"calendar_set"}
+{"id":"653","input":"order me a large ham and olive pizza from dominoes","label":"takeaway_order"}
+{"id":"654","input":"inform me about international news","label":"news_query"}
+{"id":"655","input":"get me a turkey jimmy johns sub and set it to be delivered at five p. m. tonight","label":"takeaway_order"}
+{"id":"656","input":"todays news","label":"news_query"}
+{"id":"657","input":"start my play list","label":"play_music"}
+{"id":"658","input":"through mail server","label":"email_sendemail"}
+{"id":"659","input":"play foke","label":"play_music"}
+{"id":"660","input":"what will the high be tomorrow in tucson","label":"weather_query"}
+{"id":"661","input":"order take-out from pizza restaurant","label":"takeaway_order"}
+{"id":"662","input":"answer this mail","label":"email_sendemail"}
+{"id":"663","input":"close the light","label":"iot_hue_lightoff"}
+{"id":"664","input":"what's up with the new provider","label":"news_query"}
+{"id":"665","input":"will the weather be bad on sunday","label":"weather_query"}
+{"id":"666","input":"save email for later","label":"email_sendemail"}
+{"id":"667","input":"what are the news update on b. b. c.","label":"news_query"}
+{"id":"668","input":"switch off main light","label":"iot_hue_lightoff"}
+{"id":"669","input":"play some carnatic songs","label":"play_music"}
+{"id":"670","input":"forward email address to my new email olly","label":"email_sendemail"}
+{"id":"671","input":"set alarm of every tuesday of march month morning eight am","label":"alarm_set"}
+{"id":"672","input":"remind me at six thirty p. m.","label":"alarm_set"}
+{"id":"673","input":"turn off the bathroom light","label":"iot_hue_lightoff"}
+{"id":"674","input":"i want a reply to the email","label":"email_sendemail"}
+{"id":"675","input":"i did not want you to send that text yet wait until i say send","label":"email_sendemail"}
+{"id":"676","input":"will there be any seventy degree days next week","label":"weather_query"}
+{"id":"677","input":"play only classical music","label":"play_music"}
+{"id":"678","input":"turn off smart lamp in den","label":"iot_hue_lightoff"}
+{"id":"679","input":"tell me today's sports news headlines","label":"news_query"}
+{"id":"680","input":"repeat birthday","label":"calendar_set"}
+{"id":"681","input":"how cold is it outside","label":"weather_query"}
+{"id":"682","input":"set a reminder alarm for my meeting with the agent this evening","label":"alarm_set"}
+{"id":"683","input":"turn off lights in bathroom","label":"iot_hue_lightoff"}
+{"id":"684","input":"add jane's birthday party at one hundred and twenty three main for two p. m. tomorrow on my calendar","label":"calendar_set"}
+{"id":"685","input":"should i bring extra water with me today","label":"weather_query"}
+{"id":"686","input":"send email to mom asking about the weather","label":"email_sendemail"}
+{"id":"687","input":"is it raining now","label":"weather_query"}
+{"id":"688","input":"create a birthday wish reminder for tomorrow at ten am","label":"calendar_set"}
+{"id":"689","input":"open calendar and make an event reminder","label":"calendar_set"}
+{"id":"690","input":"set alarm on tenth november for clock","label":"alarm_set"}
+{"id":"691","input":"add alarm","label":"alarm_set"}
+{"id":"692","input":"please play all the songs in high volume and make adjustments to pop music mode","label":"play_music"}
+{"id":"693","input":"i want to order some food","label":"takeaway_order"}
+{"id":"694","input":"mail administrator","label":"email_sendemail"}
+{"id":"695","input":"email gary","label":"email_sendemail"}
+{"id":"696","input":"remind me about tomorrow's meeting tonight","label":"calendar_set"}
+{"id":"697","input":"set a reminder on fifteenth march as meeting","label":"calendar_set"}
+{"id":"698","input":"please turn off kitchen light for me","label":"iot_hue_lightoff"}
+{"id":"699","input":"start a new email to","label":"email_sendemail"}
+{"id":"700","input":"please remind me for the function at miami tomorrow","label":"calendar_set"}
+{"id":"701","input":"now i need to write an email to my colleague","label":"email_sendemail"}
+{"id":"702","input":"get it in my device","label":"news_query"}
+{"id":"703","input":"lights off in the guest room","label":"iot_hue_lightoff"}
+{"id":"704","input":"weather this week","label":"weather_query"}
+{"id":"705","input":"put an order in for two pizzas from dominoes","label":"takeaway_order"}
+{"id":"706","input":"play top ten","label":"play_music"}
+{"id":"707","input":"play the latest pop song","label":"play_music"}
+{"id":"708","input":"tell me about the news","label":"news_query"}
+{"id":"709","input":"open the site bbcnews dot com","label":"news_query"}
+{"id":"710","input":"turn on bjork","label":"play_music"}
+{"id":"711","input":"air pollution","label":"news_query"}
+{"id":"712","input":"please set my alarm clock for eight am","label":"alarm_set"}
+{"id":"713","input":"repeat this event","label":"calendar_set"}
+{"id":"714","input":"set alarm at ten am","label":"alarm_set"}
+{"id":"715","input":"what is the current price of brent crude","label":"news_query"}
+{"id":"716","input":"is it going to be hot in two hours","label":"weather_query"}
+{"id":"717","input":"event","label":"calendar_set"}
+{"id":"718","input":"play for me the music by madonna","label":"play_music"}
+{"id":"719","input":"turn lights off in kitchen","label":"iot_hue_lightoff"}
+{"id":"720","input":"lights off in the kitchen please","label":"iot_hue_lightoff"}
+{"id":"721","input":"lights off in the living room","label":"iot_hue_lightoff"}
+{"id":"722","input":"please turn off my patio lights","label":"iot_hue_lightoff"}
+{"id":"723","input":"turn off lights in all bathrooms","label":"iot_hue_lightoff"}
+{"id":"724","input":"hey google email to caroline how are you can you send me updates on last project cheers tomasz","label":"email_sendemail"}
+{"id":"725","input":"olly it's too bright in here can you turn a light off","label":"iot_hue_lightoff"}
+{"id":"726","input":"do i need umbrella now","label":"weather_query"}
+{"id":"727","input":"give me the news from source","label":"news_query"}
+{"id":"728","input":"set a new event","label":"calendar_set"}
+{"id":"729","input":"order chinese for delivery","label":"takeaway_order"}
+{"id":"730","input":"remind me about my eye exam at walmart on the twenty sixth","label":"calendar_set"}
+{"id":"731","input":"please add event in calendar","label":"calendar_set"}
+{"id":"732","input":"create an email to my brother asking him what time he will be over for dinner","label":"email_sendemail"}
+{"id":"733","input":"turn on my playlist of country music","label":"play_music"}
+{"id":"734","input":"my calendar is to be updated with all rccg event in march","label":"calendar_set"}
+{"id":"735","input":"add to calendar every year on may two is mary's birthday","label":"calendar_set"}
+{"id":"736","input":"i want the light switched off can you do it for me","label":"iot_hue_lightoff"}
+{"id":"737","input":"set an alarm for two p. m.","label":"alarm_set"}
+{"id":"738","input":"olly weather conditions for the next day","label":"weather_query"}
+{"id":"739","input":"please reply to my most recent email","label":"email_sendemail"}
+{"id":"740","input":"my mother needs the weekly weather sent to her","label":"email_sendemail"}
+{"id":"741","input":"is fox news reporting any breaking news at this time","label":"news_query"}
+{"id":"742","input":"what are the latest news","label":"news_query"}
+{"id":"743","input":"can you set an alarm for me","label":"alarm_set"}
+{"id":"744","input":"play hopsin from my latest playlist","label":"play_music"}
+{"id":"745","input":"ok google what is the weather going to be like on march twentieth two thousand and seventeen","label":"weather_query"}
+{"id":"746","input":"will i need a jacket today","label":"weather_query"}
+{"id":"747","input":"turn off one light in my bedroom","label":"iot_hue_lightoff"}
+{"id":"748","input":"can you remind me of the meeting today at four p. m.","label":"calendar_set"}
+{"id":"749","input":"order ribs for dinner","label":"takeaway_order"}
+{"id":"750","input":"please we're the following alarm","label":"alarm_set"}
+{"id":"751","input":"please wake me up at eight am","label":"alarm_set"}
+{"id":"752","input":"i need an email to be sent to sdfa at hotmail dot com","label":"email_sendemail"}
+{"id":"753","input":"send mail to sil for cap","label":"email_sendemail"}
+{"id":"754","input":"shut the lights off in my bedroom please","label":"iot_hue_lightoff"}
+{"id":"755","input":"what is the weather forecast","label":"weather_query"}
+{"id":"756","input":"can you send an email to my mother about the weekly weather","label":"email_sendemail"}
+{"id":"757","input":"set an alarm for twelve","label":"alarm_set"}
+{"id":"758","input":"alexa play pandora nineties dance party","label":"play_music"}
+{"id":"759","input":"send the following email to my sister","label":"email_sendemail"}
+{"id":"760","input":"is it raining in boston","label":"weather_query"}
+{"id":"761","input":"switch the light off in bedroom","label":"iot_hue_lightoff"}
+{"id":"762","input":"i want to order a takeaway from papa john's","label":"takeaway_order"}
+{"id":"763","input":"can you repeat this event","label":"calendar_set"}
+{"id":"764","input":"play my best song","label":"play_music"}
+{"id":"765","input":"how warm is it now","label":"weather_query"}
+{"id":"766","input":"i am gone today an umbrella","label":"weather_query"}
+{"id":"767","input":"turn off light in bedroom","label":"iot_hue_lightoff"}
+{"id":"768","input":"what will the weather be today","label":"weather_query"}
+{"id":"769","input":"put on my calendar meeting with ms. boland on wednesday eight hundred am","label":"calendar_set"}
+{"id":"770","input":"confirm the order and send me the confirmation","label":"takeaway_order"}
+{"id":"771","input":"what's the scoop","label":"news_query"}
+{"id":"772","input":"please send an email to toms principal in regards to the meeting we have tomorrow","label":"email_sendemail"}
+{"id":"773","input":"place alarm at five o'clock morning","label":"alarm_set"}
+{"id":"774","input":"it looks sunny and clear today is that true","label":"weather_query"}
+{"id":"775","input":"please let me know when there is an update to the plane crash story","label":"news_query"}
+{"id":"776","input":"tell me c. n. n. news for me right now","label":"news_query"}
+{"id":"777","input":"send an email to john that i am on my way to home","label":"email_sendemail"}
+{"id":"778","input":"change alarm setting","label":"alarm_set"}
+{"id":"779","input":"i want to listen classical music","label":"play_music"}
+{"id":"780","input":"turn this room light off","label":"iot_hue_lightoff"}
+{"id":"781","input":"i want to hear music by a band from my playlist","label":"play_music"}
+{"id":"782","input":"finance","label":"news_query"}
+{"id":"783","input":"set alarm for eight am tomorrow","label":"alarm_set"}
+{"id":"784","input":"remind me to take out the trash","label":"calendar_set"}
+{"id":"785","input":"turn off garage light","label":"iot_hue_lightoff"}
+{"id":"786","input":"what is the current weather in miami","label":"weather_query"}
+{"id":"787","input":"alert me at ten am please","label":"alarm_set"}
+{"id":"788","input":"please set an alarm for tomorrows meeting at seven am","label":"alarm_set"}
+{"id":"789","input":"fire in columbus ohio","label":"news_query"}
+{"id":"790","input":"schedule my meeting with tom cruise today evening at six p. m.","label":"calendar_set"}
+{"id":"791","input":"remind me tomorrow at four about an event","label":"calendar_set"}
+{"id":"792","input":"turn off the living room lights","label":"iot_hue_lightoff"}
+{"id":"793","input":"send an email to ray","label":"email_sendemail"}
+{"id":"794","input":"what is today's weather in springfield","label":"weather_query"}
+{"id":"795","input":"remind me of my meeting on wednesday at nine am","label":"calendar_set"}
+{"id":"796","input":"please set the lights off in the living room","label":"iot_hue_lightoff"}
+{"id":"797","input":"what is todays weather forecast","label":"weather_query"}
+{"id":"798","input":"what's the weather like in chicago","label":"weather_query"}
+{"id":"799","input":"i want to hear unk song unk","label":"play_music"}
+{"id":"800","input":"what is latest on the recent events happening right now","label":"news_query"}
+{"id":"801","input":"do i need to apply sunburn cream when i go to golf club","label":"weather_query"}
+{"id":"802","input":"please set a reminder for me to something in sometime","label":"calendar_set"}
+{"id":"803","input":"shoot dale an email response warning him about the gulls at the beach","label":"email_sendemail"}
+{"id":"804","input":"play two thousand one hundred and twelve by rush","label":"play_music"}
+{"id":"805","input":"find me the current weather condition","label":"weather_query"}
+{"id":"806","input":"how is the news media reacting to trump's potential ties with russia","label":"news_query"}
+{"id":"807","input":"shutoff light in the kitchen","label":"iot_hue_lightoff"}
+{"id":"808","input":"answer email from","label":"weather_query"}
+{"id":"809","input":"play all my favorite latin songs","label":"play_music"}
+{"id":"810","input":"order a ham and cheese sandwich from subway","label":"takeaway_order"}
+{"id":"811","input":"the calendar event has multiple people","label":"calendar_set"}
+{"id":"812","input":"is it going to rain on my birthday","label":"weather_query"}
+{"id":"813","input":"what's the weather today","label":"weather_query"}
+{"id":"814","input":"let me know when it is ten","label":"alarm_set"}
+{"id":"815","input":"whether it would be sunny in califonia","label":"weather_query"}
+{"id":"816","input":"siri how is the news media reacting to trump's potential ties with russia","label":"news_query"}
+{"id":"817","input":"start a new email to george brown","label":"email_sendemail"}
+{"id":"818","input":"turn on my alarm","label":"alarm_set"}
+{"id":"819","input":"meeting with joe next week tuesday","label":"calendar_set"}
+{"id":"820","input":"i don't need light","label":"iot_hue_lightoff"}
+{"id":"821","input":"order a takeaway sandwich and soup from the italian's","label":"takeaway_order"}
+{"id":"822","input":"can you set my alarm for seven thirty am","label":"alarm_set"}
+{"id":"823","input":"order two hamburgers for me","label":"takeaway_order"}
+{"id":"824","input":"iphone","label":"news_query"}
+{"id":"825","input":"i would like to set the event repetitive","label":"calendar_set"}
+{"id":"826","input":"remind me to look at the pasta in thirty minutes","label":"calendar_set"}
+{"id":"827","input":"please send mom an email saying that i can make it next week","label":"email_sendemail"}
+{"id":"828","input":"what's going on with the trump budget proposal","label":"news_query"}
+{"id":"829","input":"please turn off the light of the bathroom","label":"iot_hue_lightoff"}
+{"id":"830","input":"can you play the instrumentals of","label":"play_music"}
+{"id":"831","input":"today's weather is awesome","label":"weather_query"}
+{"id":"832","input":"i want the alarm set for six","label":"alarm_set"}
+{"id":"833","input":"i'd like to send a reply","label":"email_sendemail"}
+{"id":"834","input":"make an alarm for four p. m.","label":"alarm_set"}
+{"id":"835","input":"alarm time for twelve p. m.","label":"alarm_set"}
+{"id":"836","input":"temperature","label":"weather_query"}
+{"id":"837","input":"wake me up at six thirty","label":"alarm_set"}
+{"id":"838","input":"i need an alarm for sunday at eight am can you please set one for me","label":"alarm_set"}
+{"id":"839","input":"i want the light to be switched off","label":"iot_hue_lightoff"}
+{"id":"840","input":"give me the latest population statistics for donald trump","label":"news_query"}
+{"id":"841","input":"what will the weather be like in austin on march sixteenth","label":"weather_query"}
+{"id":"842","input":"order from dominoes","label":"takeaway_order"}
+{"id":"843","input":"my daughter's anniversary is thursday send me a reminder","label":"calendar_set"}
+{"id":"844","input":"olly do i need sun screen lotion today","label":"weather_query"}
+{"id":"845","input":"please turn off middle light of room","label":"iot_hue_lightoff"}
+{"id":"846","input":"tomorrow my mother birthday","label":"calendar_set"}
+{"id":"847","input":"play rock music","label":"play_music"}
+{"id":"848","input":"wake me up at four am","label":"alarm_set"}
+{"id":"849","input":"open grubhub","label":"takeaway_order"}
+{"id":"850","input":"play sanam","label":"play_music"}
+{"id":"851","input":"set a reminder of meeting at nine am tomorrow","label":"calendar_set"}
+{"id":"852","input":"play a selection of classical music","label":"play_music"}
+{"id":"853","input":"notify me when trump is in the news","label":"news_query"}
+{"id":"854","input":"what's going on outside","label":"weather_query"}
+{"id":"855","input":"get news from b. b. c.","label":"news_query"}
+{"id":"856","input":"what's the latest on trump","label":"news_query"}
+{"id":"857","input":"if there news about up politics what is that","label":"news_query"}
+{"id":"858","input":"alarm me at eight am","label":"alarm_set"}
+{"id":"859","input":"play the last played playlist","label":"play_music"}
+{"id":"860","input":"calendar invite for breakfast with sarah at eight am","label":"calendar_set"}
+{"id":"861","input":"please take me to wall street journal","label":"news_query"}
+{"id":"862","input":"set a reminder for five p. m. tomorrow","label":"calendar_set"}
+{"id":"863","input":"please start playing my youtube playlist","label":"play_music"}
+{"id":"864","input":"shut off the lights in the kitchen","label":"iot_hue_lightoff"}
+{"id":"865","input":"recent headlines","label":"news_query"}
+{"id":"866","input":"schedule a delivery from food at the nearby takeaway diner","label":"takeaway_order"}
+{"id":"867","input":"turn off lobby light","label":"iot_hue_lightoff"}
+{"id":"868","input":"ethics","label":"news_query"}
+{"id":"869","input":"play all the latest pop songs","label":"play_music"}
+{"id":"870","input":"set calendar reminder for noon titled lunch meeting","label":"calendar_set"}
+{"id":"871","input":"alexa do need an umbrella today","label":"weather_query"}
+{"id":"872","input":"open the calendar and create a new event","label":"calendar_set"}
+{"id":"873","input":"control lights turn off room lights","label":"iot_hue_lightoff"}
+{"id":"874","input":"turn lights in the room off","label":"iot_hue_lightoff"}
+{"id":"875","input":"play latest country music releases","label":"play_music"}
+{"id":"876","input":"could you please check if i am free on thursday afternoon if so add a reminder to go to the food festival","label":"calendar_set"}
+{"id":"877","input":"play one love","label":"play_music"}
+{"id":"878","input":"i'd like to email mary and ask if she wanted to meet up after work at tgi friday's","label":"email_sendemail"}
+{"id":"879","input":"make an alarm to wake me up after five hours","label":"alarm_set"}
+{"id":"880","input":"play new songs by barenaked ladies","label":"play_music"}
+{"id":"881","input":"current world news","label":"news_query"}
+{"id":"882","input":"notify me the day before the horse race at santa anita on march seventh","label":"calendar_set"}
+{"id":"883","input":"order the best priced general tofu in nyack","label":"takeaway_order"}
+{"id":"884","input":"please tell me the latest news about politics","label":"news_query"}
+{"id":"885","input":"set the alarm for five am","label":"alarm_set"}
+{"id":"886","input":"start a takeaway order for me","label":"takeaway_order"}
+{"id":"887","input":"what's going on around here","label":"news_query"}
+{"id":"888","input":"send email to elain and reminder her not to forget the oranges in the morning","label":"email_sendemail"}
+{"id":"889","input":"play c. n. n. news","label":"news_query"}
+{"id":"890","input":"play my country music playlist","label":"play_music"}
+{"id":"891","input":"get me the news about today's meeting","label":"news_query"}
+{"id":"892","input":"is there any current news on the presidential election","label":"news_query"}
+{"id":"893","input":"how about some pizza tonight can you please order a pepperoni large","label":"takeaway_order"}
+{"id":"894","input":"play songs by nkotb","label":"play_music"}
+{"id":"895","input":"play the song by michael jackson","label":"play_music"}
+{"id":"896","input":"set my alarm for time","label":"alarm_set"}
+{"id":"897","input":"send an email to my family asking how they're doing","label":"email_sendemail"}
+{"id":"898","input":"add an event for july thirtieth named birthday","label":"calendar_set"}
+{"id":"899","input":"tell me about the current weather","label":"weather_query"}
+{"id":"900","input":"between ten p. m. and seven am everyday all emails received has to be replied to","label":"email_sendemail"}
+{"id":"901","input":"cut off the bathroom lights","label":"iot_hue_lightoff"}
+{"id":"902","input":"call pizza hut and order a large pan pizza with ham and mushrooms","label":"takeaway_order"}
+{"id":"903","input":"can you order me take-out","label":"takeaway_order"}
+{"id":"904","input":"will it rain on august fifteenth","label":"weather_query"}
+{"id":"905","input":"tell me today's weather report of city alabama","label":"weather_query"}
+{"id":"906","input":"set an eight hundred am alarm for next tuesday","label":"alarm_set"}
+{"id":"907","input":"play lupe","label":"play_music"}
+{"id":"908","input":"schedule an alarm to wake me up after three hours","label":"alarm_set"}
+{"id":"909","input":"punjabi","label":"play_music"}
+{"id":"910","input":"shuffle and play songs from dance genre","label":"play_music"}
+{"id":"911","input":"send email to jim's work email","label":"email_sendemail"}
+{"id":"912","input":"please tell me what is the election result today happened","label":"news_query"}
+{"id":"913","input":"set reminder at three p. m.","label":"calendar_set"}
+{"id":"914","input":"i need to send a new email here is the address and then add it to the contact list","label":"email_sendemail"}
+{"id":"915","input":"don't let me forget i have a parent teacher conference this monday at four hundred p. m.","label":"calendar_set"}
+{"id":"916","input":"notify me when this meeting is close","label":"calendar_set"}
+{"id":"917","input":"put off the living room light","label":"iot_hue_lightoff"}
+{"id":"918","input":"add event for date and time with these people","label":"calendar_set"}
+{"id":"919","input":"email to address","label":"email_sendemail"}
+{"id":"920","input":"is it gonna be cloudy","label":"weather_query"}
+{"id":"921","input":"please remind to get donuts for the meeting","label":"calendar_set"}
+{"id":"922","input":"what are the headlines on the new york times","label":"news_query"}
+{"id":"923","input":"run reply to latest email received","label":"email_sendemail"}
+{"id":"924","input":"notify me about news","label":"news_query"}
+{"id":"925","input":"what's the latest on the travel ban","label":"news_query"}
+{"id":"926","input":"read about the latest new about this world","label":"news_query"}
+{"id":"927","input":"send a remind email","label":"email_sendemail"}
+{"id":"928","input":"create event with alarm for meeting in two hours","label":"alarm_set"}
+{"id":"929","input":"alexa state the weather in our city","label":"weather_query"}
+{"id":"930","input":"please tell me the latest news of world","label":"news_query"}
+{"id":"931","input":"postpone my alarm by fifteen minutes","label":"alarm_set"}
+{"id":"932","input":"latest finance news","label":"news_query"}
+{"id":"933","input":"hey order a pizza pie with extra cheese","label":"takeaway_order"}
+{"id":"934","input":"please turn off only right side light","label":"iot_hue_lightoff"}
+{"id":"935","input":"how is weather on such and such day","label":"weather_query"}
+{"id":"936","input":"add running to my calendar for thursday","label":"calendar_set"}
+{"id":"937","input":"turn the lights off in the bedroom","label":"iot_hue_lightoff"}
+{"id":"938","input":"switch off all lights","label":"iot_hue_lightoff"}
+{"id":"939","input":"do i need to bring a coat today","label":"weather_query"}
+{"id":"940","input":"set the alarm to seven am for work","label":"alarm_set"}
+{"id":"941","input":"remind me to send that email later","label":"calendar_set"}
+{"id":"942","input":"send that email to james please","label":"email_sendemail"}
+{"id":"943","input":"do i need to bring a coat out tonight","label":"weather_query"}
+{"id":"944","input":"what is today's weather forecast","label":"weather_query"}
+{"id":"945","input":"please turn off the lights in the bedroom","label":"iot_hue_lightoff"}
+{"id":"946","input":"play my sadness playlist","label":"play_music"}
+{"id":"947","input":"send email to my uncle about situation of current weather","label":"email_sendemail"}
+{"id":"948","input":"play maroon five playlist","label":"play_music"}
+{"id":"949","input":"please send my family an email that says the following","label":"email_sendemail"}
+{"id":"950","input":"switch all lights off except living area","label":"iot_hue_lightoff"}
+{"id":"951","input":"remind me about tuesday meeting with client at ten am","label":"calendar_set"}
+{"id":"952","input":"set an alarm for eight am","label":"alarm_set"}
+{"id":"953","input":"send voice email","label":"email_sendemail"}
+{"id":"954","input":"get me fresh news","label":"news_query"}
+{"id":"955","input":"show me recent news on particular subject","label":"news_query"}
+{"id":"956","input":"bed room two switch off the lights","label":"iot_hue_lightoff"}
+{"id":"957","input":"switch off kitchen lights","label":"iot_hue_lightoff"}
+{"id":"958","input":"play newest bob dylan playlist","label":"play_music"}
+{"id":"959","input":"set an alarm for four in the afternoon","label":"alarm_set"}
+{"id":"960","input":"can you look up chinese take-out near here","label":"takeaway_order"}
+{"id":"961","input":"olly will it rain on saturday","label":"weather_query"}
+{"id":"962","input":"what's happening in pop industry","label":"news_query"}
+{"id":"963","input":"play true love next","label":"play_music"}
+{"id":"964","input":"play my dance music playlist","label":"play_music"}
+{"id":"965","input":"fix an alarm","label":"alarm_set"}
+{"id":"966","input":"open spotify and play list five","label":"play_music"}
+{"id":"967","input":"remind me of my meeting tomorrow ten in the morning","label":"calendar_set"}
+{"id":"968","input":"play enrique iglesias song after this one","label":"play_music"}
+{"id":"969","input":"set a meeting for tomorrow","label":"calendar_set"}
+{"id":"970","input":"can you turn off my bedroom lamp","label":"iot_hue_lightoff"}
+{"id":"971","input":"enter new address in email form","label":"email_sendemail"}
+{"id":"972","input":"turn off the lights in the living room","label":"iot_hue_lightoff"}
+{"id":"973","input":"will it be cold tomorrow","label":"weather_query"}
+{"id":"974","input":"set a reminder to happy thing every two days","label":"calendar_set"}
+{"id":"975","input":"can you schedule me for a hair cut on april first in saskatoon","label":"calendar_set"}
+{"id":"976","input":"remind me an email to my sister","label":"calendar_set"}
+{"id":"977","input":"place order for a chicken manchow soup from wangs kitchen restaurant","label":"takeaway_order"}
+{"id":"978","input":"send email to my brother","label":"email_sendemail"}
+{"id":"979","input":"i want to respond to my last email","label":"email_sendemail"}
+{"id":"980","input":"set reminder to pick up kids on weekdays at three p. m.","label":"calendar_set"}
+{"id":"981","input":"set an alarm for one hour from now","label":"alarm_set"}
+{"id":"982","input":"set alarm at two am","label":"alarm_set"}
+{"id":"983","input":"i want to listen song one","label":"play_music"}
+{"id":"984","input":"put alarm at five am","label":"alarm_set"}
+{"id":"985","input":"schedule meeting on tuesday","label":"calendar_set"}
+{"id":"986","input":"let me know if anything happens on that subject","label":"news_query"}
+{"id":"987","input":"alexa i would like to have a sushi can you order me a lunch","label":"takeaway_order"}
+{"id":"988","input":"compare weather home and san antonio texas","label":"weather_query"}
+{"id":"989","input":"i want to listen jazz","label":"play_music"}
+{"id":"990","input":"olly what is the most recent update regarding the hurricane katrina","label":"news_query"}
+{"id":"991","input":"is snap doing good after the i. p. o.","label":"news_query"}
+{"id":"992","input":"read email and send to family member","label":"email_sendemail"}
+{"id":"993","input":"terrorist activities","label":"news_query"}
+{"id":"994","input":"turn off my room lights","label":"iot_hue_lightoff"}
+{"id":"995","input":"at eleven am tomorrow remind me of my three p. m. meeting","label":"calendar_set"}
+{"id":"996","input":"weather in bristol v. t.","label":"weather_query"}
+{"id":"997","input":"obtain latest news","label":"news_query"}
+{"id":"998","input":"how me the latest news update on b. b. c.","label":"news_query"}
+{"id":"999","input":"follow trump campaign news feed","label":"news_query"}
+{"id":"1000","input":"show me weather list for tomorrow","label":"weather_query"}
+{"id":"1001","input":"reply to johns email by saying yes i can","label":"email_sendemail"}
+{"id":"1002","input":"send reply to joe","label":"email_sendemail"}
+{"id":"1003","input":"please set an alarm for me","label":"alarm_set"}
+{"id":"1004","input":"set a notification for my twelve p. m. meeting fifteen minutes before","label":"calendar_set"}
+{"id":"1005","input":"put reminder to call pawel tomorrow","label":"calendar_set"}
+{"id":"1006","input":"go to cnncom","label":"news_query"}
+{"id":"1007","input":"please provide me with notifications on the election results","label":"news_query"}
+{"id":"1008","input":"play back in black","label":"play_music"}
+{"id":"1009","input":"what is the highest temperature for this week","label":"weather_query"}
+{"id":"1010","input":"set an alarm for time","label":"alarm_set"}
+{"id":"1011","input":"set my alarm for six am tomorrow","label":"alarm_set"}
+{"id":"1012","input":"it's pleasant today","label":"weather_query"}
+{"id":"1013","input":"send will do thanks to john as a reply to his last message","label":"email_sendemail"}
+{"id":"1014","input":"on my sisters birthday send her flowers","label":"calendar_set"}
+{"id":"1015","input":"send an email to my mom","label":"email_sendemail"}
+{"id":"1016","input":"show todays news about migration","label":"news_query"}
+{"id":"1017","input":"world news","label":"news_query"}
+{"id":"1018","input":"reply to my last email","label":"email_sendemail"}
+{"id":"1019","input":"what is happening in the election","label":"news_query"}
+{"id":"1020","input":"email my friend about our plans tonight","label":"email_sendemail"}
+{"id":"1021","input":"please put mary's birthday party on the twenty second at seven p. m.","label":"calendar_set"}
+{"id":"1022","input":"play something random from google play","label":"play_music"}
+{"id":"1023","input":"put out the lights","label":"iot_hue_lightoff"}
+{"id":"1024","input":"set an alarm at ten am tomorrow and label it as meeting","label":"alarm_set"}
+{"id":"1025","input":"what is the weather for the school week","label":"weather_query"}
+{"id":"1026","input":"will it rain in the evening today","label":"weather_query"}
+{"id":"1027","input":"turn off the lights in my room","label":"iot_hue_lightoff"}
+{"id":"1028","input":"play mp playlist from start","label":"play_music"}
+{"id":"1029","input":"set a meeting on the twentieth october ten thirty am","label":"calendar_set"}
+{"id":"1030","input":"if my package shows that it is for delivery tomorrow can you set up an alarm one hour after thank you","label":"alarm_set"}
+{"id":"1031","input":"give me the last news about iphone","label":"news_query"}
+{"id":"1032","input":"what will be the weather today night","label":"weather_query"}
+{"id":"1033","input":"olly i need to remember to get to the shops before they close","label":"calendar_set"}
+{"id":"1034","input":"turn off the lights now","label":"iot_hue_lightoff"}
+{"id":"1035","input":"start a reply to marleen's most recent email","label":"email_sendemail"}
+{"id":"1036","input":"play all songs by metallica on shuffle","label":"play_music"}
+{"id":"1037","input":"wake me up on friday at five in the morning i need to catch the train","label":"alarm_set"}
+{"id":"1038","input":"notify me when there's news on the dakota pipeline","label":"news_query"}
+{"id":"1039","input":"spotify","label":"play_music"}
+{"id":"1040","input":"no lights","label":"iot_hue_lightoff"}
+{"id":"1041","input":"six am alarm please","label":"alarm_set"}
+{"id":"1042","input":"what was the temperature when i was in the park","label":"weather_query"}
+{"id":"1043","input":"what is the leading story at this time on fox news","label":"news_query"}
+{"id":"1044","input":"play sixty","label":"play_music"}
+{"id":"1045","input":"hey google hey call the nearest chinese restaurant for a takeaway","label":"takeaway_order"}
+{"id":"1046","input":"order the usual from turiellos pizza","label":"takeaway_order"}
+{"id":"1047","input":"what were the winning numbers of the powerball lottery yesterday","label":"news_query"}
+{"id":"1048","input":"can you create an email for me","label":"email_sendemail"}
+{"id":"1049","input":"can the latest news be pulled up on the latest weather forecast for the week","label":"news_query"}
+{"id":"1050","input":"will it rain on friday","label":"weather_query"}
+{"id":"1051","input":"tell me the weather for new brighton pa","label":"weather_query"}
+{"id":"1052","input":"i want to eat something will you order food for me","label":"takeaway_order"}
+{"id":"1053","input":"reply to sarah's email","label":"email_sendemail"}
+{"id":"1054","input":"i'm in the mood to order takeaway","label":"takeaway_order"}
+{"id":"1055","input":"i have a sales meeting this thursday at seven am please notify me and add to calendar","label":"calendar_set"}
+{"id":"1056","input":"lights turn off","label":"iot_hue_lightoff"}
+{"id":"1057","input":"add a meeting with my mother for next sunday","label":"calendar_set"}
+{"id":"1058","input":"play my playlist","label":"play_music"}
+{"id":"1059","input":"please play me the michael jackson song again","label":"play_music"}
+{"id":"1060","input":"send an email to james asking when he is getting off of work","label":"email_sendemail"}
+{"id":"1061","input":"trending hot news topics","label":"news_query"}
+{"id":"1062","input":"i want to listen to elton john in a live concert","label":"play_music"}
+{"id":"1063","input":"order me postmates of mcdonald","label":"takeaway_order"}
+{"id":"1064","input":"set my alarm for tuesday at six p. m.","label":"alarm_set"}
+{"id":"1065","input":"any updates from donald trump's tweet feed","label":"news_query"}
+{"id":"1066","input":"remember me to send the presentation today at one p. m.","label":"calendar_set"}
+{"id":"1067","input":"set reminder in one hour for a meeting","label":"calendar_set"}
+{"id":"1068","input":"play songs by sia","label":"play_music"}
+{"id":"1069","input":"i have a meeting by two p. m. today please remind me","label":"calendar_set"}
+{"id":"1070","input":"hi to all","label":"calendar_set"}
+{"id":"1071","input":"remind me about meeting next week","label":"calendar_set"}
+{"id":"1072","input":"what are the latest changes happening today in the us","label":"news_query"}
+{"id":"1073","input":"reply to the email from my bank and inform them that i have paid the credit card dues","label":"email_sendemail"}
+{"id":"1074","input":"send danielle an email","label":"email_sendemail"}
+{"id":"1075","input":"i want to listen arijit's songs please tune that","label":"play_music"}
+{"id":"1076","input":"repeat alarm","label":"alarm_set"}
+{"id":"1077","input":"please set the alarm for next morning to seven am","label":"alarm_set"}
+{"id":"1078","input":"could you please search my new news provider for the latest news","label":"news_query"}
+{"id":"1079","input":"play for me hip hop music","label":"play_music"}
+{"id":"1080","input":"give me the weather for the last five days","label":"weather_query"}
+{"id":"1081","input":"show me the highest weather this week","label":"weather_query"}
+{"id":"1082","input":"time constrain","label":"iot_hue_lightoff"}
+{"id":"1083","input":"start email to client","label":"email_sendemail"}
+{"id":"1084","input":"reply to new email from joe","label":"email_sendemail"}
+{"id":"1085","input":"google let me know when anything news about trump","label":"news_query"}
+{"id":"1086","input":"i want you to play my michael jackson favorite song","label":"play_music"}
+{"id":"1087","input":"add a five am alarm in place of my nine p. m. alarm","label":"alarm_set"}
+{"id":"1088","input":"do i need to put a jacket on when i go outside","label":"weather_query"}
+{"id":"1089","input":"please find me the p. e. most recent news on","label":"news_query"}
+{"id":"1090","input":"places to order takeaway food","label":"takeaway_order"}
+{"id":"1091","input":"i want to reply to allen","label":"email_sendemail"}
+{"id":"1092","input":"food order from grubhub","label":"takeaway_order"}
+{"id":"1093","input":"schedule an alarm for next week's dentist appointment","label":"alarm_set"}
+{"id":"1094","input":"please turn off all the lights outdoor","label":"iot_hue_lightoff"}
+{"id":"1095","input":"play walking list","label":"play_music"}
+{"id":"1096","input":"reply to all emails received from ten p. m. to nine am","label":"email_sendemail"}
+{"id":"1097","input":"it seems cold","label":"weather_query"}
+{"id":"1098","input":"please order take from jason's deli","label":"takeaway_order"}
+{"id":"1099","input":"please give me the weather report for this week","label":"weather_query"}
+{"id":"1100","input":"can i get a recap of what is going on with sprint right now","label":"news_query"}
+{"id":"1101","input":"add yoga to my calendar for friday","label":"calendar_set"}
+{"id":"1102","input":"notify me one hour before my meeting","label":"calendar_set"}
+{"id":"1103","input":"olly can you please turn off the light of my bed room","label":"iot_hue_lightoff"}
+{"id":"1104","input":"turn off lights in my room","label":"iot_hue_lightoff"}
+{"id":"1105","input":"what is the latest news about this world","label":"news_query"}
+{"id":"1106","input":"play jumper by third eye blind","label":"play_music"}
+{"id":"1107","input":"what is this weeks weather forecast","label":"weather_query"}
+{"id":"1108","input":"forward a mail to sandy","label":"email_sendemail"}
+{"id":"1109","input":"set a calendar event","label":"calendar_set"}
+{"id":"1110","input":"send email new address","label":"email_sendemail"}
+{"id":"1111","input":"reply my address to john","label":"email_sendemail"}
+{"id":"1112","input":"can you pull up the current news stories","label":"news_query"}
+{"id":"1113","input":"hows it going to be today","label":"weather_query"}
+{"id":"1114","input":"play lady now","label":"play_music"}
+{"id":"1115","input":"do i need a coat today","label":"weather_query"}
+{"id":"1116","input":"i want to hear my favorite song","label":"play_music"}
+{"id":"1117","input":"notify me when i am supposed to attend the dance recital on march fifth","label":"calendar_set"}
+{"id":"1118","input":"tell person a i want meet him today","label":"calendar_set"}
+{"id":"1119","input":"is it currently raining in new york city","label":"weather_query"}
+{"id":"1120","input":"please enter in my calendar an appointment with doctor branden for this friday at six p. m.","label":"calendar_set"}
+{"id":"1121","input":"i want to order some take-out food","label":"takeaway_order"}
+{"id":"1122","input":"create new message to robert at work what time you off from me send","label":"email_sendemail"}
+{"id":"1123","input":"reminder","label":"alarm_set"}
+{"id":"1124","input":"can i order takeaway from spanish place","label":"takeaway_order"}
+{"id":"1125","input":"add an event to my google calendar for the date march twenty second please","label":"calendar_set"}
+{"id":"1126","input":"can you turn my bedroom lights off","label":"iot_hue_lightoff"}
+{"id":"1127","input":"order pizza","label":"takeaway_order"}
+{"id":"1128","input":"add new contact and send email","label":"email_sendemail"}
+{"id":"1129","input":"notify me about all meetings tomorrow","label":"calendar_set"}
+{"id":"1130","input":"order me a cheese burger from tommy's burgers","label":"takeaway_order"}
+{"id":"1131","input":"i want to go to the outdoor movie screening this weekend remind me","label":"calendar_set"}
+{"id":"1132","input":"please play artist first in queue","label":"play_music"}
+{"id":"1133","input":"set an alarm forty minutes from now","label":"alarm_set"}
+{"id":"1134","input":"home town weather","label":"weather_query"}
+{"id":"1135","input":"play all indie pop songs","label":"play_music"}
+{"id":"1136","input":"what are the top world news stories","label":"news_query"}
+{"id":"1137","input":"wake me up at this time","label":"alarm_set"}
+{"id":"1138","input":"send this message to the family group","label":"email_sendemail"}
+{"id":"1139","input":"will you send the email to greg","label":"email_sendemail"}
+{"id":"1140","input":"send john a mail for financial report two thousand and seventeen","label":"email_sendemail"}
+{"id":"1141","input":"how's the weather in orlando","label":"weather_query"}
+{"id":"1142","input":"please set a reminder alarm for three p. m. on saturday","label":"alarm_set"}
+{"id":"1143","input":"i need to set an alarm tomorrow at one thousand two hundred p. m. to remind me to take my medication","label":"alarm_set"}
+{"id":"1144","input":"what is the weather in utah","label":"weather_query"}
+{"id":"1145","input":"train wreck","label":"news_query"}
+{"id":"1146","input":"during the daytime all lights has to be turned off","label":"iot_hue_lightoff"}
+{"id":"1147","input":"remind me to check morning news update","label":"news_query"}
+{"id":"1148","input":"i need you to respond to jennifer's email by stating we will be late","label":"email_sendemail"}
+{"id":"1149","input":"please remind this sunday to go to mass","label":"calendar_set"}
+{"id":"1150","input":"play playlist one","label":"play_music"}
+{"id":"1151","input":"add to calendar new event thanksgiving","label":"calendar_set"}
+{"id":"1152","input":"send a calendar appointment to jan","label":"calendar_set"}
+{"id":"1153","input":"i want to play that music one again","label":"play_music"}
+{"id":"1154","input":"i want to listen to classical music","label":"play_music"}
+{"id":"1155","input":"find the this week's news about emigration legislation in the us please","label":"news_query"}
+{"id":"1156","input":"please set the alarm for eight p. m. wednesday evening","label":"alarm_set"}
+{"id":"1157","input":"turn off the nearest light","label":"iot_hue_lightoff"}
+{"id":"1158","input":"put a record on","label":"play_music"}
+{"id":"1159","input":"call linda and remind her to pick me up for bowling","label":"calendar_set"}
+{"id":"1160","input":"put a mail to sandy","label":"email_sendemail"}
+{"id":"1161","input":"play firefly by mura masa","label":"play_music"}
+{"id":"1162","input":"set the alarm","label":"alarm_set"}
+{"id":"1163","input":"can you reply to the email","label":"email_sendemail"}
+{"id":"1164","input":"write email to my company mate to submit the task tomorrow","label":"email_sendemail"}
+{"id":"1165","input":"hey turn off the light please","label":"iot_hue_lightoff"}
+{"id":"1166","input":"play michael jackson from my playlist","label":"play_music"}
+{"id":"1167","input":"pull up the menu for the closest mexican restaurant","label":"takeaway_order"}
+{"id":"1168","input":"add event to calendar and repeat","label":"calendar_set"}
+{"id":"1169","input":"create an email that needs to go out to my family","label":"email_sendemail"}
+{"id":"1170","input":"email tom the date and time of tomorrow's meeting","label":"email_sendemail"}
+{"id":"1171","input":"please send dad an email asking about the weather in new jersey","label":"email_sendemail"}
+{"id":"1172","input":"email company worker about work project","label":"email_sendemail"}
+{"id":"1173","input":"i want to get hourly notification on financial news","label":"news_query"}
+{"id":"1174","input":"create new event on calendar john's birthday","label":"calendar_set"}
+{"id":"1175","input":"should i plan to shovel my way out of the house","label":"weather_query"}
+{"id":"1176","input":"play some music","label":"play_music"}
+{"id":"1177","input":"i hope it is sunny weather there","label":"weather_query"}
+{"id":"1178","input":"please put my birthday party on the calendar","label":"calendar_set"}
+{"id":"1179","input":"what are the headlines from the l. a. times","label":"news_query"}
+{"id":"1180","input":"play some blues by atif aslam","label":"play_music"}
+{"id":"1181","input":"i need an email to be sent to comcastcom about my service issues","label":"email_sendemail"}
+{"id":"1182","input":"set the alarm for two hours from now","label":"alarm_set"}
+{"id":"1183","input":"give me dark","label":"iot_hue_lightoff"}
+{"id":"1184","input":"please schedule all my doctors appointments","label":"calendar_set"}
+{"id":"1185","input":"what's going on lately with the europe","label":"news_query"}
+{"id":"1186","input":"weather like","label":"weather_query"}
+{"id":"1187","input":"please provide world hot news","label":"news_query"}
+{"id":"1188","input":"order a pizza from pizza express","label":"takeaway_order"}
+{"id":"1189","input":"shift the balcony light to off","label":"iot_hue_lightoff"}
+{"id":"1190","input":"add reminder today evening to collect the parcel from jakes bristo","label":"calendar_set"}
+{"id":"1191","input":"send an email to frank at work","label":"email_sendemail"}
+{"id":"1192","input":"off lights","label":"iot_hue_lightoff"}
+{"id":"1193","input":"could you please send and email to my friend susie letting her know i won't be at church tomorrow","label":"email_sendemail"}
+{"id":"1194","input":"set an alarm for seven thirty am","label":"alarm_set"}
+{"id":"1195","input":"hey olly tell my today's top news","label":"news_query"}
+{"id":"1196","input":"i would like to order some take-out","label":"takeaway_order"}
+{"id":"1197","input":"will you send an email to this new email address","label":"email_sendemail"}
+{"id":"1198","input":"when this song ends play hotel california","label":"play_music"}
+{"id":"1199","input":"tell me the news in technology from engadget","label":"news_query"}
+{"id":"1200","input":"find me the nearest chinese for delivery","label":"takeaway_order"}
+{"id":"1201","input":"remind me when it is lunchtime","label":"calendar_set"}
+{"id":"1202","input":"wake me up at nine am on friday","label":"alarm_set"}
+{"id":"1203","input":"olly play music from my favorite pianist","label":"play_music"}
+{"id":"1204","input":"set an alarm for me for tomorrow","label":"alarm_set"}
+{"id":"1205","input":"set a birthday event for wednesday","label":"calendar_set"}
+{"id":"1206","input":"provide me with the news about iphone","label":"news_query"}
+{"id":"1207","input":"play a song of your choice for me","label":"play_music"}
+{"id":"1208","input":"search for all titles for huey lewis and play","label":"play_music"}
+{"id":"1209","input":"start playing thinking out loud now","label":"play_music"}
+{"id":"1210","input":"show me news from c. n. n. for today","label":"news_query"}
+{"id":"1211","input":"reply yes to this","label":"email_sendemail"}
+{"id":"1212","input":"every wednesday night at five p. m. remind me to meet phil","label":"calendar_set"}
+{"id":"1213","input":"add gold digger to queue","label":"play_music"}
+{"id":"1214","input":"what's going on here","label":"news_query"}
+{"id":"1215","input":"is it sunny today","label":"weather_query"}
+{"id":"1216","input":"olly what are the most recent headlines on c. n. n.","label":"news_query"}
+{"id":"1217","input":"i want a reminder for an editor's meeting at two p. m. thursday","label":"calendar_set"}
+{"id":"1218","input":"free home delivery","label":"takeaway_order"}
+{"id":"1219","input":"is there a chance of snow wednesday","label":"weather_query"}
+{"id":"1220","input":"is my alarm set for seven am","label":"alarm_set"}
+{"id":"1221","input":"remind me to get the mail in ten minutes","label":"calendar_set"}
+{"id":"1222","input":"could you play this song love for me please","label":"play_music"}
+{"id":"1223","input":"should i wear sandals","label":"weather_query"}
+{"id":"1224","input":"put an alarm and wake me up at six am tomorrow morning","label":"alarm_set"}
+{"id":"1225","input":"call china king chinese restaurant","label":"takeaway_order"}
+{"id":"1226","input":"who is going to win the next elections in the france","label":"news_query"}
+{"id":"1227","input":"turn off the lights","label":"iot_hue_lightoff"}
+{"id":"1228","input":"compose this email to this new email address","label":"email_sendemail"}
+{"id":"1229","input":"i always pay attention","label":"weather_query"}
+{"id":"1230","input":"replay the song","label":"play_music"}
+{"id":"1231","input":"play latest songs for me from the net","label":"play_music"}
+{"id":"1232","input":"tell me the current weather for danville il","label":"weather_query"}
+{"id":"1233","input":"can i get some background music","label":"play_music"}
+{"id":"1234","input":"what is happening in the world right now","label":"news_query"}
+{"id":"1235","input":"are there any status updates on c. n. n. news facebook page","label":"news_query"}
+{"id":"1236","input":"i need you to set twelve noon prayer for every friday","label":"calendar_set"}
+{"id":"1237","input":"please play jazz music","label":"play_music"}
+{"id":"1238","input":"order pizza from domino's","label":"takeaway_order"}
+{"id":"1239","input":"can you make sure the kitchen light is off","label":"iot_hue_lightoff"}
+{"id":"1240","input":"please send an email to my family","label":"email_sendemail"}
+{"id":"1241","input":"order me some chipotle","label":"takeaway_order"}
+{"id":"1242","input":"monthly weather report","label":"weather_query"}
+{"id":"1243","input":"what is the weather in miami","label":"weather_query"}
+{"id":"1244","input":"please schedule a hair cutting appointment for one p. m. on saturday","label":"calendar_set"}
+{"id":"1245","input":"give us president's election news","label":"news_query"}
+{"id":"1246","input":"please turn off the lamp","label":"iot_hue_lightoff"}
+{"id":"1247","input":"what's the current temperature outside","label":"weather_query"}
+{"id":"1248","input":"what is the news in my area","label":"news_query"}
+{"id":"1249","input":"what is the newest news right now","label":"news_query"}
+{"id":"1250","input":"call domino's pizza","label":"takeaway_order"}
+{"id":"1251","input":"send thank you so much mom to mom","label":"email_sendemail"}
+{"id":"1252","input":"please shut off the kitchen lights","label":"iot_hue_lightoff"}
+{"id":"1253","input":"set alarm for eight every weekday","label":"alarm_set"}
+{"id":"1254","input":"put on be warned by tech nine","label":"play_music"}
+{"id":"1255","input":"play a song randomly from my playlist","label":"play_music"}
+{"id":"1256","input":"play metallica on shuffle","label":"play_music"}
+{"id":"1257","input":"set an office meeting reminder for the next three days","label":"calendar_set"}
+{"id":"1258","input":"play classical music playlist","label":"play_music"}
+{"id":"1259","input":"turn the living rooms lights off","label":"iot_hue_lightoff"}
+{"id":"1260","input":"is there any chance of rains in mysore to beat the heat","label":"weather_query"}
+{"id":"1261","input":"what was the news for march fourth two thousand and seventeenth","label":"news_query"}
+{"id":"1262","input":"what happened last week","label":"news_query"}
+{"id":"1263","input":"is it snowing right now","label":"weather_query"}
+{"id":"1264","input":"what's the news like in the u. k.","label":"news_query"}
+{"id":"1265","input":"do i need to wear some warm clothes today","label":"weather_query"}
+{"id":"1266","input":"alert me at three p. m. to go to the concert","label":"alarm_set"}
+{"id":"1267","input":"please turn off the lights","label":"iot_hue_lightoff"}
+{"id":"1268","input":"wake me up at nine am","label":"alarm_set"}
+{"id":"1269","input":"remind me of my sister's birthday party tomorrow an hour before it starts","label":"calendar_set"}
+{"id":"1270","input":"how was the weather this week","label":"weather_query"}
+{"id":"1271","input":"please set an alarm for tomorrow's meeting at seven am","label":"alarm_set"}
+{"id":"1272","input":"i want to order some pizza","label":"takeaway_order"}
+{"id":"1273","input":"i want to know the latest local news of the city","label":"news_query"}
+{"id":"1274","input":"meeting this monday","label":"calendar_set"}
+{"id":"1275","input":"play music by korn","label":"play_music"}
+{"id":"1276","input":"olly email jennifer the new schedule of the meeting for tomorrow","label":"email_sendemail"}
+{"id":"1277","input":"can you turn my bathroom lights off","label":"iot_hue_lightoff"}
+{"id":"1278","input":"alexa turn off the lamp in the living room","label":"iot_hue_lightoff"}
+{"id":"1279","input":"will it be sunny on friday","label":"weather_query"}
+{"id":"1280","input":"how is the current weather in washington d. c.","label":"weather_query"}
+{"id":"1281","input":"hi play me playlist of a r. rehman songs released current year","label":"play_music"}
+{"id":"1282","input":"what is today's weather","label":"weather_query"}
+{"id":"1283","input":"send an email to scott asking what the weather will be like this week","label":"email_sendemail"}
+{"id":"1284","input":"how is the weather in utah right now","label":"weather_query"}
+{"id":"1285","input":"send that","label":"email_sendemail"}
+{"id":"1286","input":"play next song of my selected","label":"play_music"}
+{"id":"1287","input":"what are they saying about donald trump on this topic","label":"news_query"}
+{"id":"1288","input":"play that song next","label":"play_music"}
+{"id":"1289","input":"play my top twenty playlist","label":"play_music"}
+{"id":"1290","input":"send email to family saying i love you all","label":"email_sendemail"}
+{"id":"1291","input":"give me options for indian carry-out under dollars","label":"takeaway_order"}
+{"id":"1292","input":"set an alarm in an hour's time","label":"alarm_set"}
+{"id":"1293","input":"what were the cities affected by the earthquake","label":"news_query"}
+{"id":"1294","input":"turn off light","label":"iot_hue_lightoff"}
+{"id":"1295","input":"open news","label":"news_query"}
+{"id":"1296","input":"start music in playlist","label":"play_music"}
+{"id":"1297","input":"time to sleep","label":"iot_hue_lightoff"}
+{"id":"1298","input":"need to carry a umbrella this evening","label":"weather_query"}
+{"id":"1299","input":"read me new headlines","label":"news_query"}
+{"id":"1300","input":"find and order rasgulla of janta sweet home pvt ltd","label":"takeaway_order"}
+{"id":"1301","input":"wake me up at five hundred and thirty","label":"alarm_set"}
+{"id":"1302","input":"search for new stuff on that subject","label":"news_query"}
+{"id":"1303","input":"play next song on track","label":"play_music"}
+{"id":"1304","input":"how much does general tsos chicken cost at peking garden","label":"takeaway_order"}
+{"id":"1305","input":"set my alarm for six thirty in the morning tomorrow","label":"alarm_set"}
+{"id":"1306","input":"are there any latest news","label":"news_query"}
+{"id":"1307","input":"give me the weekly weather near me","label":"weather_query"}
+{"id":"1308","input":"what was the weather report for today","label":"weather_query"}
+{"id":"1309","input":"what is happening with president trump","label":"news_query"}
+{"id":"1310","input":"play new rihanna song","label":"play_music"}
+{"id":"1311","input":"email to my family saying i love you all","label":"email_sendemail"}
+{"id":"1312","input":"how humid is the environment today","label":"weather_query"}
+{"id":"1313","input":"how weather info","label":"weather_query"}
+{"id":"1314","input":"open media player and play my gym playlist","label":"play_music"}
+{"id":"1315","input":"schedule meeting with manager tomorrow at two p. m.","label":"calendar_set"}
+{"id":"1316","input":"will it be warm tomorrow","label":"weather_query"}
+{"id":"1317","input":"please send pedro a email about his car","label":"email_sendemail"}
+{"id":"1318","input":"what mexican restaurants are there nearby for take-out","label":"takeaway_order"}
+{"id":"1319","input":"add date and time in calendar with these people","label":"calendar_set"}
+{"id":"1320","input":"order a large pepperoni pizza from dominoes to go","label":"takeaway_order"}
+{"id":"1321","input":"olly i need an alarm set for five hundred and thirty am tomorrow","label":"alarm_set"}
+{"id":"1322","input":"brief me about today's football match","label":"news_query"}
+{"id":"1323","input":"news around the city","label":"news_query"}
+{"id":"1324","input":"add to calendar doctor k. at three hundred and thirty p. m. on march seven","label":"calendar_set"}
+{"id":"1325","input":"i need you to turn off the light of my bed room","label":"iot_hue_lightoff"}
+{"id":"1326","input":"meeting at eight am to twelve p. m.","label":"calendar_set"}
+{"id":"1327","input":"olly do i need to bring a coat today","label":"weather_query"}
+{"id":"1328","input":"order a pizza for me","label":"takeaway_order"}
+{"id":"1329","input":"send message via email","label":"email_sendemail"}
+{"id":"1330","input":"i would like to know the latest from n. b. c. news","label":"news_query"}
+{"id":"1331","input":"i want to check julia's available dates so would you send her mail and ask about it","label":"email_sendemail"}
+{"id":"1332","input":"play some rock music","label":"play_music"}
+{"id":"1333","input":"alexa send the email to this new email address","label":"email_sendemail"}
+{"id":"1334","input":"play music by that artist","label":"play_music"}
+{"id":"1335","input":"please find music by afi","label":"play_music"}
+{"id":"1336","input":"order two medium cheese and one medium pepperoni pizza from dominoes","label":"takeaway_order"}
+{"id":"1337","input":"what's the news from wbc right now","label":"news_query"}
+{"id":"1338","input":"alarm for ten am","label":"alarm_set"}
+{"id":"1339","input":"play david bowie","label":"play_music"}
+{"id":"1340","input":"twelveth july is bola's birthday and my calendar to be updated with this date","label":"calendar_set"}
+{"id":"1341","input":"i would love to hear more songs by that artist","label":"play_music"}
+{"id":"1342","input":"i'd like an alarm set for this saturday at ten","label":"alarm_set"}
+{"id":"1343","input":"any good fast food items","label":"takeaway_order"}
+{"id":"1344","input":"turn off the living room light","label":"iot_hue_lightoff"}
+{"id":"1345","input":"play song all the small things","label":"play_music"}
+{"id":"1346","input":"olly send an email to jesse","label":"email_sendemail"}
+{"id":"1347","input":"hot news","label":"news_query"}
+{"id":"1348","input":"alarm five p. m.","label":"alarm_set"}
+{"id":"1349","input":"good night","label":"iot_hue_lightoff"}
+{"id":"1350","input":"what are the top twenty jazz hits","label":"play_music"}
+{"id":"1351","input":"what topic is the most talked about today","label":"news_query"}
+{"id":"1352","input":"put alarm on","label":"alarm_set"}
+{"id":"1353","input":"weather fulton missouri","label":"weather_query"}
+{"id":"1354","input":"please set alarm for all days","label":"alarm_set"}
+{"id":"1355","input":"please send email to liz","label":"email_sendemail"}
+{"id":"1356","input":"message my mother in law to book the reservations before friday or they will expire","label":"email_sendemail"}
+{"id":"1357","input":"send a mail to mike tell him we will meet today seven p. m. for dinner at coffee house","label":"email_sendemail"}
+{"id":"1358","input":"pull up today's news from c. n. n.","label":"news_query"}
+{"id":"1359","input":"turn the lights off in the living room","label":"iot_hue_lightoff"}
+{"id":"1360","input":"olly what movies are playing at carmike cinemas","label":"takeaway_order"}
+{"id":"1361","input":"check weather update for lagos this week","label":"weather_query"}
+{"id":"1362","input":"open my morning briefing email from the new york times","label":"news_query"}
+{"id":"1363","input":"shut the living room lights","label":"iot_hue_lightoff"}
+{"id":"1364","input":"news","label":"news_query"}
+{"id":"1365","input":"is it sunny","label":"weather_query"}
+{"id":"1366","input":"please set alarm to my mobile phones","label":"alarm_set"}
+{"id":"1367","input":"play some tunes for me","label":"play_music"}
+{"id":"1368","input":"hi send i love you message to my wife","label":"email_sendemail"}
+{"id":"1369","input":"can you turn off the lights","label":"iot_hue_lightoff"}
+{"id":"1370","input":"what's new today","label":"news_query"}
+{"id":"1371","input":"off all the lights on the right side","label":"iot_hue_lightoff"}
+{"id":"1372","input":"what is the weather like","label":"weather_query"}
+{"id":"1373","input":"send email to liz","label":"email_sendemail"}
+{"id":"1374","input":"reply to my email from sasha saying thanks","label":"email_sendemail"}
+{"id":"1375","input":"people canceling iowa vacations over congressman's words","label":"news_query"}
+{"id":"1376","input":"send email thank you very much to sarah as a reply","label":"email_sendemail"}
+{"id":"1377","input":"make an alarm for me at five am tomorrow","label":"alarm_set"}
+{"id":"1378","input":"play anything from metallica","label":"play_music"}
+{"id":"1379","input":"turn the left light off","label":"iot_hue_lightoff"}
+{"id":"1380","input":"turn the lights off now","label":"iot_hue_lightoff"}
+{"id":"1381","input":"send email to joejoe at gmail dot com","label":"email_sendemail"}
+{"id":"1382","input":"send a request to martin","label":"email_sendemail"}
+{"id":"1383","input":"set alarm at five am","label":"alarm_set"}
+{"id":"1384","input":"show me the latest news update on b. b. c.","label":"news_query"}
+{"id":"1385","input":"order chinese food","label":"takeaway_order"}
+{"id":"1386","input":"facebook launches disputed tag to crack down on fake news","label":"news_query"}
+{"id":"1387","input":"send a confirmation email to sandy","label":"email_sendemail"}
+{"id":"1388","input":"will i need a coat this morning","label":"weather_query"}
+{"id":"1389","input":"add a meeting with francine for two p. m. tomorrow","label":"calendar_set"}
+{"id":"1390","input":"please set an alarm at six am","label":"alarm_set"}
+{"id":"1391","input":"i need you to set an alarm","label":"alarm_set"}
+{"id":"1392","input":"turn the lights off in my bed room","label":"iot_hue_lightoff"}
+{"id":"1393","input":"set an alarm for eight p. m.","label":"alarm_set"}
+{"id":"1394","input":"please tell what would be the weather in washington d. c. for the coming week","label":"weather_query"}
+{"id":"1395","input":"can locate some gospel music","label":"play_music"}
+{"id":"1396","input":"new email recipient donna do you have plans for today","label":"email_sendemail"}
+{"id":"1397","input":"this room lights off","label":"iot_hue_lightoff"}
+{"id":"1398","input":"i need an email chain to my mother i'm planning a trip to see her ask her how the weather will be so i know how to pack","label":"email_sendemail"}
+{"id":"1399","input":"google what is the temperature outside","label":"weather_query"}
+{"id":"1400","input":"turn off the light of my bed room please","label":"iot_hue_lightoff"}
+{"id":"1401","input":"please add my birthday","label":"calendar_set"}
+{"id":"1402","input":"send a reply to that email","label":"email_sendemail"}
+{"id":"1403","input":"put on some coldplay","label":"play_music"}
+{"id":"1404","input":"what is the weather going to be like today","label":"weather_query"}
+{"id":"1405","input":"tell me every day to take green tea at four p. m.","label":"calendar_set"}
+{"id":"1406","input":"set a weekly meeting for friday nine am","label":"calendar_set"}
+{"id":"1407","input":"remind me about meeting at eight am to twelve p. m.","label":"calendar_set"}
+{"id":"1408","input":"please let me know about my birthday","label":"calendar_set"}
+{"id":"1409","input":"any signs of rain","label":"weather_query"}
+{"id":"1410","input":"olly remind me about my eye exam at walmart on the twenty sixth","label":"calendar_set"}
+{"id":"1411","input":"i need to get up at seven am","label":"alarm_set"}
+{"id":"1412","input":"select the r. & b. playlist from the nineties please","label":"play_music"}
+{"id":"1413","input":"can i dry my clothes on the line","label":"weather_query"}
+{"id":"1414","input":"turn the lamp off","label":"iot_hue_lightoff"}
+{"id":"1415","input":"remind me at six about the meeting at seven","label":"calendar_set"}
+{"id":"1416","input":"i want to hear my favorite song from iron maiden","label":"play_music"}
+{"id":"1417","input":"what happened with it","label":"news_query"}
+{"id":"1418","input":"there is an email i need you to send my friend","label":"email_sendemail"}
+{"id":"1419","input":"what's happening on b. b. c. news today","label":"news_query"}
+{"id":"1420","input":"remind me everyday at five am","label":"calendar_set"}
+{"id":"1421","input":"is it going to snow","label":"weather_query"}
+{"id":"1422","input":"email ashwin patel my best wishes and an attachment of workpdf","label":"email_sendemail"}
+{"id":"1423","input":"send an email to stan francis","label":"email_sendemail"}
+{"id":"1424","input":"check if i need umbrella now","label":"weather_query"}
+{"id":"1425","input":"mail my friend","label":"email_sendemail"}
+{"id":"1426","input":"pull up peking garden online","label":"takeaway_order"}
+{"id":"1427","input":"schedule a meeting with the v. p. of the department on the twenty first of march two thousand and seventeen","label":"calendar_set"}
+{"id":"1428","input":"please tell me if there is going to be snow this weekend","label":"weather_query"}
+{"id":"1429","input":"give me the weather for merced at three p. m.","label":"weather_query"}
+{"id":"1430","input":"find the nearest olive garden that has take out service","label":"takeaway_order"}
+{"id":"1431","input":"tell me the latest updates of new york","label":"news_query"}
+{"id":"1432","input":"olly alert me at three p. m. to go to the concert","label":"alarm_set"}
+{"id":"1433","input":"show b. b. c. report on migration","label":"news_query"}
+{"id":"1434","input":"conduct meeting on thursday","label":"calendar_set"}
+{"id":"1435","input":"play favorites","label":"play_music"}
+{"id":"1436","input":"thirteen minutes from now remind me to drive to the park","label":"calendar_set"}
+{"id":"1437","input":"i don't need the lights","label":"iot_hue_lightoff"}
+{"id":"1438","input":"play my workout playlist","label":"play_music"}
+{"id":"1439","input":"is snow in the forecast","label":"weather_query"}
+{"id":"1440","input":"food will be given at the exhibition","label":"weather_query"}
+{"id":"1441","input":"please start an email for my sister","label":"email_sendemail"}
+{"id":"1442","input":"set alarm of whole week morning ten am in april month","label":"alarm_set"}
+{"id":"1443","input":"order me some chinese food","label":"takeaway_order"}
+{"id":"1444","input":"play for me the music by michael jackson","label":"play_music"}
+{"id":"1445","input":"set alarm for tomorrow morning at six am","label":"alarm_set"}
+{"id":"1446","input":"send me notice of meeting wednesday nine am","label":"calendar_set"}
+{"id":"1447","input":"find news about brexit","label":"news_query"}
+{"id":"1448","input":"can you turn off kitchen light for me","label":"iot_hue_lightoff"}
+{"id":"1449","input":"answer the email","label":"email_sendemail"}
+{"id":"1450","input":"turn on an alarm for nine am","label":"alarm_set"}
+{"id":"1451","input":"is it raining later today","label":"weather_query"}
+{"id":"1452","input":"place order to pizza take-out for seven p. m.","label":"takeaway_order"}
+{"id":"1453","input":"latest reminder about meeting","label":"calendar_set"}
+{"id":"1454","input":"remind me to have launch with boss today at one p. m.","label":"calendar_set"}
+{"id":"1455","input":"checkout top restaurant near me and order shahi panner","label":"takeaway_order"}
+{"id":"1456","input":"play the track eight from google play music","label":"play_music"}
+{"id":"1457","input":"what will be the highest temperature this week","label":"weather_query"}
+{"id":"1458","input":"what is the temperature today","label":"weather_query"}
+{"id":"1459","input":"can i go outing without any umbrella","label":"weather_query"}
+{"id":"1460","input":"remind me about my meeting","label":"calendar_set"}
+{"id":"1461","input":"what is the latest news about donald trump","label":"news_query"}
+{"id":"1462","input":"what's happening today with syria <empty>","label":"news_query"}
+{"id":"1463","input":"can you put sunday hockey class in my calendar as recurrent event","label":"calendar_set"}
+{"id":"1464","input":"alarm set","label":"alarm_set"}
+{"id":"1465","input":"olly email alice to let her know we are on the way","label":"email_sendemail"}
+{"id":"1466","input":"remind me at work to take a meeting with dave on friday","label":"calendar_set"}
+{"id":"1467","input":"draft response to john's email","label":"email_sendemail"}

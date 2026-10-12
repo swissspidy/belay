@@ -117,6 +117,31 @@ export interface LocalRunner<S extends TaskSchema = TaskSchema> {
   prepare?(ctx: RunnerContext<S>, options?: PrepareOptions): Promise<void>;
   /** Release resources. */
   destroy?(): void;
+  /**
+   * Learns from a labeled input: a cloud answer after an escalation, or a correction passed to
+   * `task.feedback()`. Optional: runners that cannot learn omit it. The task calls it after the
+   * result is ready and does not wait for it; a rejection is reported as an `error` event with
+   * stage `learn`. The input is the original, unredacted text: it must never leave the device.
+   */
+  learn?(example: LearnExample<ValueOf<S>>, ctx: RunnerContext<S>): void | Promise<void>;
+}
+
+/** A labeled input for {@link LocalRunner.learn}. */
+export interface LearnExample<V = unknown> {
+  input: string;
+  /** The label: the cloud's validated answer, or the user's correction. */
+  value: V;
+  /**
+   * - `cloud`: the cloud runner answered an escalated run.
+   * - `feedback`: the app passed a correction to `task.feedback()`, e.g. from the user.
+   */
+  source: 'cloud' | 'feedback';
+  /** The cloud's own confidence, when its adapter reports one. */
+  cloudConfidence?: number;
+  /** The local attempt of the same run (`cloud` only), when there was one. */
+  local?: { value: V; confidence: number };
+  /** Why the run escalated (`cloud` only). */
+  reason?: EscalationReason;
 }
 
 export interface PrepareOptions {
@@ -229,7 +254,12 @@ export type EscalationReason =
   /** The local runner exceeded `localTimeoutMs`. */
   | 'local-timeout'
   /** The local output failed schema validation. */
-  | 'invalid-output';
+  | 'invalid-output'
+  /**
+   * The local answer was confident, but the run was picked at random (`explore`) to go to the
+   * cloud anyway. Measures the local runner where it would otherwise never be checked.
+   */
+  | 'exploration';
 
 /**
  * Why a wanted escalation did not produce the result:
@@ -284,7 +314,27 @@ export interface TaskOptions<S extends TaskSchema> {
   privacy?: PrivacyOptions;
   /** Escalate if the local runner takes longer than this. */
   localTimeoutMs?: number;
+  /**
+   * Sends a random share of confident runs to the cloud anyway (escalation reason
+   * `exploration`), so the local answer is compared with the cloud's where it would otherwise
+   * never be checked. A runner with `learn()` learns from those runs too. Only applies under the
+   * `auto` escalation policy. A number is the share in [0, 1]; defaults to 0.
+   */
+  explore?: number | ExploreOptions;
   onEvent?: (event: BelayEvent) => void;
+}
+
+export interface ExploreOptions {
+  /** Share of confident runs to send to the cloud, in [0, 1]. */
+  rate: number;
+  /** Source of randomness in [0, 1). Defaults to `Math.random`. */
+  random?: () => number;
+}
+
+export interface FeedbackOptions {
+  signal?: AbortSignal;
+  /** Context appended to the task context, as in `run()`. */
+  context?: string;
 }
 
 export interface Task<S extends TaskSchema> {
@@ -296,6 +346,12 @@ export interface Task<S extends TaskSchema> {
   prepare(options?: PrepareOptions): Promise<void>;
   /** Resolves the threshold (loading the calibration if needed). */
   threshold(): Promise<number>;
+  /**
+   * Teaches the local runner the correct value for an input, e.g. a user's correction. Resolves
+   * to `false` when the local runner cannot learn. Throws `BelayError('invalid-feedback')` if the
+   * value does not match the schema.
+   */
+  feedback(input: string, value: ValueOf<S>, options?: FeedbackOptions): Promise<boolean>;
   destroy(): void;
 }
 
@@ -311,6 +367,11 @@ export interface RunEvent {
   source: 'local' | 'cloud';
   /** Categorical/ordinal/binary label of the returned value (omitted for structured tasks). */
   label?: string;
+  /**
+   * Label of the local attempt, when there was one (omitted for structured tasks). On an
+   * `exploration` run, `label === localLabel` says whether the local answer agreed with the cloud.
+   */
+  localLabel?: string;
   confidence: number | null;
   localConfidence: number | null;
   threshold: number;
@@ -332,7 +393,7 @@ export interface ErrorEvent {
   type: 'error';
   task: string;
   timestamp: number;
-  stage: 'local' | 'cloud' | 'calibration' | 'consent' | 'redact';
+  stage: 'local' | 'cloud' | 'calibration' | 'consent' | 'redact' | 'learn';
   message: string;
 }
 

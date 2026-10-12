@@ -1,7 +1,7 @@
 # Releasing
 
-`@swissspidy/belay-core`, `@swissspidy/belay-web` and `@swissspidy/belay-calibrate` are released
-together, at the same version, with [Changesets](https://github.com/changesets/changesets) and
+`@swissspidy/belay-core`, `@swissspidy/belay-web`, `@swissspidy/belay-learn` and
+`@swissspidy/belay-calibrate` are released together, at the same version, with [Changesets](https://github.com/changesets/changesets) and
 [`release.yml`](.github/workflows/release.yml).
 
 ## Every change
@@ -30,7 +30,7 @@ until you approve it with 2FA:
 - on npmjs.com, under **Staged Packages**, or
 - with `npm stage approve <stage-id>`. The release job's summary lists the stage IDs.
 
-Approve all three packages, so they go live at the same version.
+Approve all four packages, so they go live at the same version.
 
 ## How the release workflow runs
 
@@ -53,7 +53,8 @@ installs and runs nothing from the dependency tree:
 Each package's trusted publisher on npm names this repository, `release.yml` and the `npm`
 environment, and only needs to allow staged publishes. Provenance comes from
 `publishConfig.provenance` in each package, which also means a `npm publish` from a laptop fails:
-releases go through the workflow. Don't add required reviewers to the `npm` environment; the 2FA
+releases go through the workflow. A new package needs its trusted publisher set up on npm before
+its first release, or the `stage` job fails for it. Don't add required reviewers to the `npm` environment; the 2FA
 approval on npm is the review step.
 
 ## Moving to an organization

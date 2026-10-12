@@ -3,6 +3,10 @@
  * calibration inlined, and a copy of each calibration report. The numbers on the page come from
  * the calibration files, so re-running a calibration and rebuilding updates them.
  *
+ * It also builds the learned-classifier demo into `_site/learn/`, with the built
+ * `@swissspidy/belay-core` and `@swissspidy/belay-learn` (run `npm run build` first), the
+ * ticket-triage stream and its seed file.
+ *
  *   node site/build.mjs [outDir]
  */
 import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
@@ -73,8 +77,54 @@ for (const [task, meta] of Object.entries(TASKS)) {
 const order = Object.keys(CLOUDS);
 results.sort((a, b) => Object.keys(TASKS).indexOf(a.task) - Object.keys(TASKS).indexOf(b.task) || order.indexOf(a.cloud) - order.indexOf(b.cloud));
 
+// ---- The learned-classifier demo --------------------------------------------------------------
+const learn = join(out, 'learn');
+for (const pkg of ['core', 'learn']) {
+  const dist = join(root, 'packages', pkg, 'dist');
+  let files;
+  try {
+    files = (await readdir(dist)).filter((f) => f.endsWith('.js'));
+  } catch {
+    throw new Error(`packages/${pkg}/dist is missing: run \`npm run build\` first`);
+  }
+  await mkdir(join(learn, 'lib', pkg), { recursive: true });
+  for (const f of files) await copyFile(join(dist, f), join(learn, 'lib', pkg, f));
+}
+await copyFile(join(root, 'site', 'learn', 'index.html'), join(learn, 'index.html'));
+await copyFile(join(examples, 'ticket-triage', 'stream.jsonl'), join(learn, 'stream.jsonl'));
+await copyFile(join(examples, 'ticket-triage', 'belay-seed.json'), join(learn, 'belay-seed.json'));
+console.log(`Wrote ${learn}/`);
+
+// ---- Learned-classifier simulation results (examples/scripts/learn-simulate.mjs) ---------------
+const learned = [];
+for (const task of Object.keys(TASKS)) {
+  let sim;
+  try {
+    sim = JSON.parse(await readFile(join(examples, task, 'learn-simulation.json'), 'utf8'));
+  } catch (err) {
+    if (err.code === 'ENOENT') continue;
+    throw err;
+  }
+  for (const r of sim.results) {
+    learned.push({
+      task,
+      taskTitle: TASKS[task].title,
+      stream: sim.stream,
+      order: r.order,
+      teacher: r.teacher,
+      teacherAccuracy: r.teacherAccuracy,
+      seeded: r.seeded,
+      all: r.all,
+      last: r.last,
+      curve: r.curve.map((c) => ({ from: c.from, runs: c.runs, localShare: c.localShare, localAccuracy: c.localAccuracy })),
+    });
+  }
+}
+
 const template = await readFile(join(root, 'site', 'index.html'), 'utf8');
 const json = JSON.stringify(results).replace(/</g, '\\u003c');
 if (!template.includes('"__RESULTS__"')) throw new Error('site/index.html lacks the "__RESULTS__" placeholder');
-await writeFile(join(out, 'index.html'), template.replace('"__RESULTS__"', () => json));
+if (!template.includes('"__LEARN__"')) throw new Error('site/index.html lacks the "__LEARN__" placeholder');
+const learnJson = JSON.stringify(learned).replace(/</g, '\\u003c');
+await writeFile(join(out, 'index.html'), template.replace('"__RESULTS__"', () => json).replace('"__LEARN__"', () => learnJson));
 console.log(`Wrote ${out}/index.html with ${results.length} calibrations`);

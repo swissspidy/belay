@@ -1,0 +1,55 @@
+{
+  "name": "@swissspidy/belay-learn",
+  "version": "0.1.1",
+  "description": "A Belay local runner that learns: on-device embeddings and a small head trained on cloud answers and user corrections.",
+  "license": "Apache-2.0",
+  "author": "Pascal Birchler",
+  "homepage": "https://github.com/swissspidy/belay/tree/main/packages/learn#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swissspidy/belay.git",
+    "directory": "packages/learn"
+  },
+  "bugs": {
+    "url": "https://github.com/swissspidy/belay/issues"
+  },
+  "keywords": [
+    "ai",
+    "on-device",
+    "cascade",
+    "classification",
+    "embeddings",
+    "distillation",
+    "active-learning",
+    "transformers.js"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "peerDependencies": {
+    "@huggingface/transformers": "^4.0.0",
+    "@swissspidy/belay-core": "^0.1.1"
+  },
+  "peerDependenciesMeta": {
+    "@huggingface/transformers": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "prepack": "tsc -b --force"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

@@ -12,6 +12,8 @@ import type {
   EscalationBlock,
   EscalationPolicy,
   EscalationReason,
+  FeedbackOptions,
+  LearnExample,
   PrepareOptions,
   RunnerContext,
   RunOptions,
@@ -52,6 +54,11 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
   if (privacy.escalation === 'consent' && typeof privacy.consent !== 'function') {
     throw new BelayError('invalid-task', `task "${name}": escalation "consent" needs a consent callback`);
   }
+  const explore = typeof options.explore === 'number' ? { rate: options.explore } : options.explore;
+  if (explore && !(explore.rate >= 0 && explore.rate <= 1)) {
+    throw new BelayError('invalid-task', `task "${name}": explore rate must be in [0, 1]`);
+  }
+  const random = explore?.random ?? Math.random;
 
   const fingerprint = schemaFingerprint(schema);
   const jsonSchema = toJsonSchema(schema);
@@ -98,6 +105,16 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
 
   const contextFor = (runContext?: string): string | undefined =>
     [options.context, runContext].filter(Boolean).join('\n') || undefined;
+
+  /** Hands a labeled input to the local runner without waiting for it (see `LocalRunner.learn`). */
+  const teach = (example: LearnExample<ValueOf<S>>, ctx: RunnerContext<S>): void => {
+    if (!local.learn) return;
+    try {
+      Promise.resolve(local.learn(example, ctx)).catch((err: unknown) => emitError('learn', err));
+    } catch (err) {
+      emitError('learn', err);
+    }
+  };
 
   async function run(input: string, runOptions: RunOptions = {}): Promise<BelayResult<ValueOf<S>>> {
     const { signal } = runOptions;
@@ -201,12 +218,14 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
         local: localResult,
       };
       const label = labelOf(schema, full.value);
+      const localLabel = localResult ? labelOf(schema, localResult.value) : undefined;
       emit({
         type: 'run',
         task: name,
         timestamp: Date.now(),
         source: full.source,
         ...(label !== undefined ? { label } : {}),
+        ...(localLabel !== undefined ? { localLabel } : {}),
         confidence: full.confidence,
         localConfidence,
         threshold,
@@ -234,6 +253,12 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
         null,
       );
     };
+
+    // Exploration: a random share of confident runs goes to the cloud anyway. Never under
+    // `consent` (it would ask the user about an answer the cascade already trusts) or `never`.
+    if (reason === null && explore && explore.rate > 0 && policy === 'auto' && cloud && random() < explore.rate) {
+      reason = 'exploration';
+    }
 
     if (reason === null) {
       return finish({ value: localResult!.value, confidence: localResult!.confidence, source: 'local', escalationBlocked: null }, null);
@@ -284,6 +309,18 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
       signal?.throwIfAborted();
       const parsed = parseValue(schema, output.value);
       if (!parsed.ok) throw new BelayError('cloud-invalid-output', `task "${name}": cloud output failed schema validation`);
+      // The run's own signal is left out: learning outlives the run.
+      teach(
+        {
+          input,
+          value: parsed.value,
+          source: 'cloud',
+          ...(reason ? { reason } : {}),
+          ...(typeof output.confidence === 'number' ? { cloudConfidence: output.confidence } : {}),
+          ...(localResult ? { local: { value: localResult.value, confidence: localResult.confidence } } : {}),
+        },
+        { task: name, schema, ...(context ? { context } : {}) },
+      );
       return finish(
         {
           value: parsed.value,
@@ -319,6 +356,19 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
     },
     async threshold(): Promise<number> {
       return thresholdOf(await resolveThreshold());
+    },
+    async feedback(input: string, value: ValueOf<S>, feedbackOptions: FeedbackOptions = {}): Promise<boolean> {
+      const { signal } = feedbackOptions;
+      signal?.throwIfAborted();
+      const parsed = parseValue(schema, value);
+      if (!parsed.ok) throw new BelayError('invalid-feedback', `task "${name}": feedback value does not match the schema`);
+      if (!local.learn) return false;
+      const context = contextFor(feedbackOptions.context);
+      await local.learn(
+        { input, value: parsed.value, source: 'feedback' },
+        { task: name, schema, ...(context ? { context } : {}), ...(signal ? { signal } : {}) },
+      );
+      return true;
     },
     destroy(): void {
       local.destroy?.();

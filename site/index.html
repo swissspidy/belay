@@ -135,6 +135,8 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
     <a href="#method">Method</a>
     <a href="https://github.com/swissspidy/belay/tree/main/examples">Reproduce it</a>
     <a href="#try-it">Try it</a>
+    <a href="#learning">A model that learns</a>
+    <a href="learn/">Demo</a>
   </p>
 </header>
 
@@ -154,6 +156,10 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
     <li><strong>When the local model knows nothing the cloud doesn't, the cascade only saves money.</strong>
       On intent detection it kept about a third of the runs on device at the cloud's accuracy, give or
       take one example.</li>
+    <li><strong>A local model that learns from the cloud's answers takes over narrow tasks.</strong>
+      Starting from nothing, it answered 87% of 1,500 support messages on the device at 99.5%
+      accuracy, and it kept escalating where it couldn't tell. <a href="#learning">Details</a> ·
+      <a href="learn/">demo</a>.</li>
     <li><strong>For generation, the judge is the bottleneck.</strong> Gemini Nano extracted calendar
       events reasonably well, but no confidence signal we tried could tell its right answers from its
       wrong ones well enough to keep many on device.</li>
@@ -296,6 +302,57 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
     <a href="https://github.com/swissspidy/belay/blob/main/docs/adr/0002-calibration-in-a-real-browser.md#8-built-in-ai-under-playwright">details are in ADR 0002</a>.
   </p>
 
+  <h2 id="learning">A local model that learns from the cloud</h2>
+  <p>
+    Every escalation pays for a cloud answer, and a fixed on-device model throws it away.
+    <a href="https://github.com/swissspidy/belay/tree/main/packages/learn"><code>@swissspidy/belay-learn</code></a>
+    keeps it: its local model is a small embedding model in the page (bge-small-en-v1.5, 34 MB)
+    plus a classifier trained on the cloud's answers to earlier escalations and on users'
+    corrections. It starts by sending everything to the cloud and needs it less the longer it runs.
+    Its confidence is recalibrated on its own record as it learns, so the threshold keeps meaning
+    "at least this likely right". <a href="learn/">Watch it learn ticket triage in your browser.</a>
+  </p>
+  <p>
+    We streamed 1,000–1,500 held-out inputs per task through it, one at a time, at threshold 0.9,
+    with 5% of confident runs still sent to the cloud as a check. The cloud is simulated with the
+    datasets' labels, so these numbers are the classifier's, not a cloud model's.
+  </p>
+  <ul>
+    <li><strong>On narrow tasks it takes over.</strong> Starting from nothing, the device answered
+      87% of ticket-triage messages at 99.5% accuracy, and 94% of the last 300. Intents went the
+      same way.</li>
+    <li><strong>Where it can't tell, it doesn't guess.</strong> Embeddings separate toxic from
+      civil comments poorly; the device answered about a third of them, at 96%. With a teacher as
+      noisy as Jev it kept nearly all of them in the cloud: it can't look more reliable than the
+      labels it learns from.</li>
+    <li><strong>It notices when the inputs change.</strong> Fed all the civil comments first and then
+      all the toxic ones, it lost its confidence as the toxic ones began and relearned, at 99.5%
+      accuracy on what it answered.</li>
+  </ul>
+</main>
+
+<div class="wide">
+  <div class="legend" aria-hidden="true">
+    <span><svg width="18" height="4"><line x1="0" x2="18" y1="2" y2="2" stroke="var(--jev)" stroke-width="2"/></svg>Answered on device</span>
+    <span><svg width="18" height="4"><line x1="0" x2="18" y1="2" y2="2" stroke="var(--gemini)" stroke-width="2"/></svg>Accuracy of those answers</span>
+  </div>
+  <div class="charts" id="learn-charts"></div>
+  <p class="caption">
+    Each point covers 100 inputs. Starting from nothing, with an always-right teacher. The last
+    panel is the content-moderation stream sorted by label: civil comments first, then toxic ones.
+  </p>
+  <div class="table-wrap"><table id="learn-table"></table></div>
+</div>
+
+<main>
+  <p class="small muted">
+    The <a href="https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md">guide</a>
+    explains how it works and how to use it; the design is in
+    <a href="https://github.com/swissspidy/belay/blob/main/docs/adr/0004-learning-from-escalations.md">ADR 0004</a>,
+    and <a href="https://github.com/swissspidy/belay/tree/main/examples#learned-classifier"><code>scripts/learn-simulate.mjs</code></a>
+    reproduces these numbers.
+  </p>
+
   <h2 id="results">All results</h2>
   <p class="small muted">
     Accuracy and cost with Belay are held out (five-fold cross-validation). "On device" is the share
@@ -350,6 +407,10 @@ npm install --save-dev @swissspidy/belay-calibrate playwright-core</code></pre>
   <p>
     The <a href="https://github.com/swissspidy/belay#readme">README</a> shows how to define a task
     and calibrate it on your own labeled examples.
+  </p>
+  <p>
+    <code>@swissspidy/belay-learn</code> adds a local model that learns from the cloud's answers.
+    <a href="learn/">Watch it learn ticket triage in your browser.</a>
   </p>
 </main>
 
@@ -525,6 +586,114 @@ npm install --save-dev @swissspidy/belay-calibrate playwright-core</code></pre>
     body.append(tr);
   }
   table.append(head, body);
+})();
+</script>
+<script type="application/json" id="learn-data">"__LEARN__"</script>
+<script>
+(() => {
+  const rows = JSON.parse(document.getElementById('learn-data').textContent);
+  if (!rows.length) return;
+  const pct = (v) => (v === null ? '–' : (v * 100).toFixed(1) + '%');
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, text) => {
+    const node = ['svg', 'g', 'line', 'circle', 'text', 'path', 'rect', 'polyline'].includes(tag) ? document.createElementNS(ns, tag) : document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const tooltip = document.getElementById('tooltip');
+  const panels = [
+    ['ticket-triage', 'mixed', 'Ticket triage'],
+    ['intent-detection', 'mixed', 'Intent detection'],
+    ['content-moderation', 'mixed', 'Content moderation'],
+    ['content-moderation', 'shift', 'Content moderation, sorted by label'],
+  ];
+  const charts = document.getElementById('learn-charts');
+  for (const [task, order, title] of panels) {
+    const r = rows.find((x) => x.task === task && x.order === order && x.teacher === 'reference' && !x.seeded);
+    if (!r) continue;
+    const W = 460, H = 200, L = 40, R = 76, T = 10, B = 26;
+    const n = r.stream;
+    const x = (i) => L + (i / n) * (W - L - R);
+    const y = (v) => T + (1 - v) * (H - T - B);
+    const div = el('div', { class: 'chart' });
+    div.append(el('h3', {}, title), el('p', { class: 'sub' }, `${n.toLocaleString('en-US')} inputs · on device ${pct(r.all.localShare)} at ${pct(r.all.localAccuracy)}`));
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${title}: share answered on device and its accuracy, per 100 inputs` });
+    for (const v of [0, 0.5, 1]) {
+      svg.append(el('line', { class: 'grid', x1: L, x2: W - R, y1: y(v), y2: y(v) }));
+      svg.append(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end' }, `${v * 100}%`));
+    }
+    for (let i = 0; i <= n; i += 500) svg.append(el('text', { x: x(i), y: H - 6, 'text-anchor': 'middle' }, i.toLocaleString('en-US')));
+    const mid = (c) => c.from - 1 + c.runs / 2;
+    const share = r.curve.map((c) => [x(mid(c)), y(c.localShare)]);
+    const acc = r.curve.filter((c) => c.localAccuracy !== null).map((c) => [x(mid(c)), y(c.localAccuracy)]);
+    const line = (pts, color) => el('polyline', { points: pts.map((p) => p.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+    svg.append(line(acc, 'var(--gemini)'), line(share, 'var(--jev)'));
+    // Direct labels at the line ends.
+    const last = r.curve.at(-1);
+    const ends = [[last.localShare, 'on device', 'var(--text-2)'], [last.localAccuracy ?? 0, 'accuracy', 'var(--text-2)']];
+    if (Math.abs(ends[0][0] - ends[1][0]) < 0.08) ends[0][0] -= 0.08;
+    for (const [v, label] of ends) svg.append(el('text', { class: 'label', x: W - R + 6, y: y(v) + 4 }, label));
+    // Hover: one band per window.
+    const cross = el('line', { x1: 0, x2: 0, y1: T, y2: H - B, stroke: 'var(--text-3)', 'stroke-width': 1, visibility: 'hidden' });
+    svg.append(cross);
+    for (const c of r.curve) {
+      const x0 = x(c.from - 1), x1 = x(c.from - 1 + c.runs);
+      const band = el('rect', { class: 'hit', x: x0, y: T, width: Math.max(1, x1 - x0), height: H - T - B, tabindex: 0 });
+      const show = (ev) => {
+        cross.setAttribute('x1', x(mid(c)));
+        cross.setAttribute('x2', x(mid(c)));
+        cross.setAttribute('visibility', 'visible');
+        tooltip.innerHTML = '';
+        tooltip.append(el('strong', {}, `Inputs ${c.from.toLocaleString('en-US')}–${(c.from + c.runs - 1).toLocaleString('en-US')}`), el('br'));
+        const k1 = el('span', { class: 'key', style: 'background: var(--jev)' });
+        const k2 = el('span', { class: 'key', style: 'background: var(--gemini)' });
+        tooltip.append(k1, `On device: ${pct(c.localShare)}`, el('br'), k2, `Accuracy on device: ${pct(c.localAccuracy)}`);
+        const box = (ev.currentTarget ?? band).getBoundingClientRect();
+        tooltip.style.display = 'block';
+        tooltip.style.left = Math.min(window.innerWidth - 270, (ev.clientX ?? box.left + box.width / 2) + 12) + 'px';
+        tooltip.style.top = ((ev.clientY ?? box.top) + 12) + 'px';
+      };
+      const hide = () => {
+        cross.setAttribute('visibility', 'hidden');
+        tooltip.style.display = 'none';
+      };
+      band.addEventListener('mousemove', show);
+      band.addEventListener('focus', show);
+      band.addEventListener('mouseleave', hide);
+      band.addEventListener('blur', hide);
+      svg.append(band);
+    }
+    div.append(svg);
+    charts.append(div);
+  }
+
+  // Table: every scenario.
+  const table = document.getElementById('learn-table');
+  const head = el('tr');
+  for (const h of ['Task', 'Order', 'Teacher', 'Seed', 'On device', 'Accuracy on device', 'Accuracy', 'On device, last 300', 'Accuracy on device, last 300']) {
+    head.append(el('th', { class: h === 'Task' || h === 'Order' || h === 'Teacher' || h === 'Seed' ? '' : 'num' }, h));
+  }
+  table.append(el('thead'), el('tbody'));
+  table.tHead.append(head);
+  let prev = null;
+  for (const r of rows) {
+    const tr = el('tr', r.task !== prev && prev !== null ? { class: 'first' } : {});
+    prev = r.task;
+    const cells = [
+      [`${r.taskTitle} (${r.stream.toLocaleString('en-US')})`, ''],
+      [r.order === 'shift' ? 'by label' : 'mixed', ''],
+      [r.teacher === 'reference' ? 'always right' : `${pct(r.teacherAccuracy)} right`, ''],
+      [r.seeded ? '300 examples' : '–', ''],
+      [pct(r.all.localShare), 'num'],
+      [pct(r.all.localAccuracy), 'num'],
+      [pct(r.all.accuracy), 'num'],
+      [pct(r.last.localShare), 'num'],
+      [pct(r.last.localAccuracy), 'num'],
+    ];
+    for (const [v, cls] of cells) tr.append(el('td', cls ? { class: cls } : {}, v));
+    table.tBodies[0].append(tr);
+  }
 })();
 </script>
 </body>

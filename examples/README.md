@@ -123,3 +123,45 @@ verified with Chrome 154 on a CPU-only Linux VM (details in
   accuracy is an upper bound, and so is the local share at the target. A real cloud model needs a
   higher threshold. Re-run with Claude (or your own cloud runner) before shipping a calibration;
   the local outputs are cached, so only the cloud side is queried again.
+
+## Learned classifier
+
+[`@swissspidy/belay-learn`](../packages/learn) learns from the cloud's answers instead of
+throwing them away. [`scripts/learn-simulate.mjs`](scripts/learn-simulate.mjs) shows what that
+does over time: each classification task's `stream.jsonl` (1,000–1,500 inputs, none of them in
+`examples.jsonl`) goes through the real `task()` and `learnedClassifier()` one input at a time,
+with real `bge-small-en-v1.5` embeddings, threshold 0.9 and `explore: 0.05`.
+
+```sh
+npm install && npm run build      # from the repository root
+node examples/scripts/learn-simulate.mjs            # writes <task>/learn-simulation.json
+node examples/scripts/build-seeds.mjs               # writes <task>/belay-seed.json
+```
+
+The embeddings are cached in `.belay-cache/<task>.embeddings.*.jsonl`, so neither script needs the
+model or the network. To embed new inputs, install transformers.js first
+(`npm install --no-save @huggingface/transformers`).
+
+The script doesn't call a cloud model. The teacher is either the dataset's labels (`reference`,
+always right) or those labels flipped as often as the task's calibrated cloud model was wrong
+(`noisy`). Each starts cold or from a seed built from `examples.jsonl`. Accuracy is measured
+against the dataset's labels:
+
+| Task | Order | Teacher | Seed | On device | Accuracy on device | Accuracy | On device, last 300 | Accuracy on device, last 300 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Ticket triage (1,500) | mixed | always right | – | 87.1% | 99.5% | 99.6% | 94.3% | 99.6% |
+| Ticket triage (1,500) | mixed | always right | 300 | 95.6% | 99.0% | 99.1% | 94.3% | 98.9% |
+| Ticket triage (1,500) | mixed | 94.3% right | – | 78.2% | 100.0% | 99.0% | 96.0% | 100.0% |
+| Ticket triage (1,500) | mixed | 94.3% right | 300 | 95.6% | 99.0% | 98.8% | 94.3% | 98.9% |
+| Content moderation (1,000) | by label | always right | – | 78.9% | 99.5% | 99.6% | 93.0% | 99.3% |
+| Content moderation (1,000) | mixed | always right | – | 27.4% | 96.0% | 98.9% | 38.0% | 94.7% |
+| Content moderation (1,000) | mixed | always right | 300 | 30.9% | 97.4% | 99.2% | 38.3% | 95.7% |
+| Content moderation (1,000) | mixed | 83.7% right | – | 1.4% | 85.7% | 81.6% | 4.7% | 85.7% |
+| Content moderation (1,000) | mixed | 83.7% right | 300 | 2.8% | 100.0% | 81.9% | 9.0% | 100.0% |
+| Intent detection (1,467) | mixed | always right | – | 87.5% | 97.5% | 97.8% | 83.0% | 99.6% |
+| Intent detection (1,467) | mixed | always right | 300 | 86.4% | 99.6% | 99.7% | 86.0% | 100.0% |
+| Intent detection (1,467) | mixed | 99.7% right | – | 87.5% | 97.5% | 97.7% | 83.0% | 99.6% |
+| Intent detection (1,467) | mixed | 99.7% right | 300 | 85.5% | 99.6% | 99.5% | 82.3% | 100.0% |
+
+"Last 300" is the end of the stream, after the classifier has learned. The
+[demo](https://swissspidy.github.io/belay/learn/) runs the ticket-triage stream in your browser.

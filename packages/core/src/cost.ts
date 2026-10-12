@@ -62,6 +62,8 @@ export interface SavingsSummary {
   savedShare: number | null;
   /** How many cloud calls were priced from reported usage. */
   measuredCalls: number;
+  /** Cloud runs that were confident locally but explored (`explore`); included in `cloud`. */
+  explored: number;
 }
 
 export interface SavingsMeter {
@@ -77,6 +79,7 @@ interface Tally {
   local: number;
   cloud: number;
   blocked: number;
+  explored: number;
   measuredCalls: number;
   measuredSpend: number;
 }
@@ -97,7 +100,7 @@ export function savingsMeter(options: SavingsMeterOptions = {}): SavingsMeter {
   const tallies = new Map<string, Tally>();
   const tallyFor = (task: string): Tally => {
     let t = tallies.get(task);
-    if (!t) tallies.set(task, (t = { runs: 0, local: 0, cloud: 0, blocked: 0, measuredCalls: 0, measuredSpend: 0 }));
+    if (!t) tallies.set(task, (t = { runs: 0, local: 0, cloud: 0, blocked: 0, explored: 0, measuredCalls: 0, measuredSpend: 0 }));
     return t;
   };
 
@@ -107,6 +110,7 @@ export function savingsMeter(options: SavingsMeterOptions = {}): SavingsMeter {
     t.runs++;
     if (event.source === 'cloud') {
       t.cloud++;
+      if (event.escalationReason === 'exploration') t.explored++;
       if (options.prices && event.cloudUsage?.length) {
         t.measuredSpend += costOf(event.cloudUsage, options.prices);
         t.measuredCalls++;
@@ -141,6 +145,7 @@ export function savingsMeter(options: SavingsMeterOptions = {}): SavingsMeter {
       saved,
       savedShare: denominator > 0 ? saved! / denominator : null,
       measuredCalls,
+      explored: sum('explored'),
     };
   };
 

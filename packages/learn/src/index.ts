@@ -1,0 +1,13 @@
+export { learnedClassifier } from './classifier.js';
+export type { HeadKind, LearnedClassifier, LearnedClassifierOptions, LearnedStats, LearnedTaskSchema } from './classifier.js';
+export { transformersEmbedder } from './embedder.js';
+export type { Embedder, FeatureExtractor, TransformersEmbedderOptions, TransformersModule } from './embedder.js';
+export { indexedDbStore, memoryStore } from './store.js';
+export type { ExampleStore, IndexedDbStoreOptions, StoredExample, StoredMeta } from './store.js';
+export { buildSeed, loadSeed, parseSeed, SEED_VERSION } from './seed.js';
+export type { BuildSeedOptions, SeedFile } from './seed.js';
+export { applyPlatt, fitPlatt } from './calibrator.js';
+export type { CalibrationPair, PlattScaling } from './calibrator.js';
+export { knnPredict, softmaxPredict, softmaxTrain } from './head.js';
+export type { HeadExample, SoftmaxModel, SoftmaxTrainOptions } from './head.js';
+export { decodeInt8, dot, encodeInt8, normalize } from './vector.js';
