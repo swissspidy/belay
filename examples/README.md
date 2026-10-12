@@ -161,13 +161,13 @@ against the dataset's labels:
 | Ticket triage (1,500) | mixed | 94.3% right | 300 | 89.1% | 99.9% | 99.3% | 91.3% | 100.0% |
 | Content moderation (1,000) | by label | always right | – | 76.1% | 98.9% | 99.2% | 87.3% | 99.6% |
 | Content moderation (1,000) | mixed | always right | – | 25.2% | 96.0% | 99.0% | 39.3% | 93.2% |
-| Content moderation (1,000) | mixed | always right | 300 | 30.0% | 96.7% | 99.0% | 35.0% | 95.2% |
+| Content moderation (1,000) | mixed | always right | 300 | 38.8% | 93.3% | 97.4% | 49.3% | 91.2% |
 | Content moderation (1,000) | mixed | 83.7% right | – | 1.3% | 84.6% | 81.6% | 4.3% | 84.6% |
 | Content moderation (1,000) | mixed | 83.7% right | 300 | 2.7% | 100.0% | 81.9% | 8.7% | 100.0% |
 | Intent detection (1,467) | mixed | always right | – | 84.8% | 98.6% | 98.8% | 87.3% | 98.9% |
-| Intent detection (1,467) | mixed | always right | 300 | 79.9% | 99.9% | 99.9% | 76.3% | 100.0% |
+| Intent detection (1,467) | mixed | always right | 300 | 85.2% | 99.7% | 99.7% | 85.0% | 100.0% |
 | Intent detection (1,467) | mixed | 99.7% right | – | 85.3% | 98.6% | 98.6% | 87.3% | 98.9% |
-| Intent detection (1,467) | mixed | 99.7% right | 300 | 79.4% | 99.9% | 99.8% | 75.7% | 100.0% |
+| Intent detection (1,467) | mixed | 99.7% right | 300 | 84.6% | 99.7% | 99.6% | 82.3% | 100.0% |
 
 The ablation for [ADR 0005](../docs/adr/0005-choosing-what-to-ask-and-keeping-what-it-learns.md)
 reruns the cold start with each way of choosing spot checks, with and without the distance gate

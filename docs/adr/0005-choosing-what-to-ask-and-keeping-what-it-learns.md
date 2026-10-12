@@ -105,10 +105,15 @@ inputs, and on-device accuracy went from 99.5% to 98.9%, because the toxic comme
 close to civil ones in embedding space, not far from everything. A distance gate catches inputs
 unlike anything stored, not a change of label among similar inputs; the calibration's recency
 weighting handles that (ADR 0004). On by default because it trades a few cloud calls for fewer
-confident mistakes, which is what a threshold of 0.9 asks for. A seed changes the trade: on
-intents the seeded run kept 79.9% on device at 99.9% (ADR 0004's, without the gate: 86.4% at
-99.6%), presumably because
-the seed's examples are less like the stream's inputs than the stream's are like each other.
+confident mistakes, which is what a threshold of 0.9 asks for. With a seed it cost little on
+intents: 85.2% on device at 99.7%, against ADR 0004's 86.4% at 99.6% without the gate.
+
+Seeded runs turned out sensitive to when the softmax head first trains. Once refits moved off the
+run path (see the threshold above), the first run after loading a seed waits for the gate's first
+fit, and the softmax head trains on the seed meanwhile instead of a few runs later. This moved
+seeded intents from 79.9% to 85.2% on device (99.9% to 99.7% accurate), and seeded content
+moderation from 30.0% at 96.7% to 38.8% at 93.3% (91.2% over the last 300 inputs, close to the 0.9
+target). The tables show the current code.
 
 ### 3. A cost-aware threshold, as a helper
 
