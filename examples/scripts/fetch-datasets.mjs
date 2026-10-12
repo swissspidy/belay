@@ -6,14 +6,25 @@
  *   node examples/scripts/fetch-datasets.mjs
  *
  * Pass dataset names (triage, moderation, intent, extraction) to fetch only those.
+ *
+ * `stream` builds the longer streams for the learned-classifier simulation
+ * (`scripts/learn-simulate.mjs`): `stream.jsonl` next to `examples.jsonl` for ticket triage,
+ * content moderation and intent detection, from the same sources and disjoint from it.
  * Behind a proxy, run with NODE_USE_ENV_PROXY=1 (Node >= 22.21).
  */
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 
 const API = 'https://datasets-server.huggingface.co';
 const only = process.argv.slice(2);
-const want = (name) => only.length === 0 || only.includes(name);
+const want = (name) => (only.length === 0 && name !== 'stream') || only.includes(name);
+const readInputs = async (path) =>
+  new Set(
+    (await readFile(new URL(path, import.meta.url), 'utf8'))
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line).input.trim().toLowerCase()),
+  );
 
 function fnv1a(text) {
   let hash = 0x811c9dc5;
@@ -121,24 +132,30 @@ async function write(path, examples) {
 }
 
 // ---- Ticket triage: Bitext customer support (CDLA-Sharing-1.0) ---------------------------------
-if (want('triage')) {
-  const dataset = 'bitext/Bitext-customer-support-llm-chatbot-training-dataset';
-  const mapping = {
-    account: ['ACCOUNT'],
-    billing: ['INVOICE', 'PAYMENT', 'REFUND'],
-    order: ['ORDER', 'CANCEL'],
-    shipping: ['DELIVERY', 'SHIPPING'],
-    feedback: ['FEEDBACK'],
-  };
+const TRIAGE_DATASET = 'bitext/Bitext-customer-support-llm-chatbot-training-dataset';
+const TRIAGE_MAPPING = {
+  account: ['ACCOUNT'],
+  billing: ['INVOICE', 'PAYMENT', 'REFUND'],
+  order: ['ORDER', 'CANCEL'],
+  shipping: ['DELIVERY', 'SHIPPING'],
+  feedback: ['FEEDBACK'],
+};
+const triageRows = async () => {
   const csv = await (
     await request(
-      `https://huggingface.co/datasets/${dataset}/resolve/main/Bitext_Sample_Customer_Support_Training_Dataset_27K_responses-v11.csv`,
+      `https://huggingface.co/datasets/${TRIAGE_DATASET}/resolve/main/Bitext_Sample_Customer_Support_Training_Dataset_27K_responses-v11.csv`,
       { timeoutMs: 300_000 },
     )
   ).text();
   const all = parseCsv(csv);
-  if (all.length < 1000) throw new Error(`${dataset}: expected a full CSV, got ${all.length} rows`);
-  console.error(`${dataset}: ${all.length} rows`);
+  if (all.length < 1000) throw new Error(`${TRIAGE_DATASET}: expected a full CSV, got ${all.length} rows`);
+  console.error(`${TRIAGE_DATASET}: ${all.length} rows`);
+  return all;
+};
+
+if (want('triage')) {
+  const all = await triageRows();
+  const mapping = TRIAGE_MAPPING;
   const groups = [];
   for (const [label, categories] of Object.entries(mapping)) {
     const rows = all.filter((r) => categories.includes(r.category));
@@ -201,6 +218,43 @@ if (want('extraction')) {
   // event_name annotation are dropped after sampling, keeping the sampled ids stable.
   const sampled = pick(examples, 300, (e) => e.input, 'extraction').map((e, i) => ({ id: `${i + 1}`, ...e }));
   await write(new URL('../event-extraction/examples.jsonl', import.meta.url), sampled.filter((e) => e.label.event_name !== null));
+}
+
+// ---- Streams for the learned-classifier simulation ----------------------------------------------
+// Longer samples from the same sources, disjoint from examples.jsonl: the simulation feeds them to
+// a learned classifier one by one, as an app would see them.
+if (want('stream')) {
+  const triageSeen = await readInputs('../ticket-triage/examples.jsonl');
+  const all = (await triageRows()).filter((r) => !triageSeen.has(r.instruction.trim().toLowerCase()));
+  const triage = Object.entries(TRIAGE_MAPPING).map(([label, categories]) =>
+    pick(all.filter((r) => categories.includes(r.category)), 300, (r) => r.instruction, 'triage-stream').map((r) => ({ input: r.instruction, label, source: r.intent })),
+  );
+  await write(new URL('../ticket-triage/stream.jsonl', import.meta.url), shuffled(interleave(triage), 'triage-stream'));
+
+  const intentSeen = await readInputs('../intent-detection/examples.jsonl');
+  const intents = ['alarm_set', 'weather_query', 'play_music', 'calendar_set', 'iot_hue_lightoff', 'takeaway_order', 'news_query', 'email_sendemail'];
+  const train = (await allRows('SetFit/amazon_massive_intent_en-US', 'train')).filter((r) => !intentSeen.has(r.text.trim().toLowerCase()));
+  const intent = intents.map((name) => pick(train.filter((r) => r.label_text === name), 200, (r) => r.text, 'intent-stream').map((r) => ({ input: r.text, label: name })));
+  await write(new URL('../intent-detection/stream.jsonl', import.meta.url), shuffled(interleave(intent), 'intent-stream'));
+
+  const moderationSeen = await readInputs('../content-moderation/examples.jsonl');
+  const short = (r) => r.text.length >= 20 && r.text.length <= 400 && !moderationSeen.has(r.text.trim().toLowerCase());
+  const rows = await allRows('google/civil_comments', 'validation', {
+    until: (rs) => rs.filter((r) => r.toxicity >= 0.5 && short(r)).length >= 500,
+  });
+  const moderation = [
+    pick(rows.filter((r) => r.toxicity >= 0.5 && short(r)), 500, (r) => r.text, 'moderation-stream').map((r) => ({ input: r.text, label: true, toxicity: Math.round(r.toxicity * 1000) / 1000 })),
+    pick(rows.filter((r) => r.toxicity <= 0.1 && short(r)), 500, (r) => r.text, 'moderation-stream').map((r) => ({ input: r.text, label: false, toxicity: Math.round(r.toxicity * 1000) / 1000 })),
+  ];
+  await write(new URL('../content-moderation/stream.jsonl', import.meta.url), shuffled(interleave(moderation), 'moderation-stream'));
+}
+
+/** A deterministic shuffle (hash order), so a stream is not round-robin by label. */
+function shuffled(examples, seed) {
+  return examples
+    .map((e) => ({ e, h: fnv1a(`${seed}:${e.input}`) }))
+    .sort((a, b) => a.h - b.h)
+    .map((x) => x.e);
 }
 
 /** Reads one file from an uncompressed tar archive (ustar headers, 512-byte blocks). */

@@ -53,3 +53,21 @@ below. Belay's own code is Apache-2.0. These data files keep their original lice
   names one ("i have practice at wrigley tomorrow at six"). 240 remain, with their sampled ids. The
   label is those slots as a JSON object (absent ones `null`); the annotated utterance is kept in
   `source`. Other fields still carry some annotation noise.
+
+## `*/stream.jsonl` (learned-classifier simulation)
+
+Longer samples for `scripts/learn-simulate.mjs` and the [demo](https://swissspidy.github.io/belay/learn/),
+from the same sources and under the same licenses as the `examples.jsonl` next to them. None of
+their inputs appears in that task's `examples.jsonl`. Each file is in hash order, so the labels are
+mixed.
+
+- **`ticket-triage/stream.jsonl`:** 300 more Bitext `instruction` texts per team, mapped as above
+  (CDLA-Sharing-1.0; this subset is distributed under the same agreement).
+- **`content-moderation/stream.jsonl`:** 500 toxic and 500 non-toxic Civil Comments from the
+  validation split, with the same length limits and thresholds as above (CC0 1.0). Contains
+  offensive language.
+- **`intent-detection/stream.jsonl`:** up to 200 utterances per intent from the MASSIVE en-US
+  train split, for the same 8 intents (1,467 in all; CC BY 4.0, © Amazon.com, Inc.).
+
+The `belay-seed.json` files and the embeddings in `.belay-cache/*.embeddings.*.jsonl` are derived
+from these texts (and from `examples.jsonl`) and carry the same licenses.
