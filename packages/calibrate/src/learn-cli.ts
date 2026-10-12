@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import type { TaskSchema } from '@swissspidy/belay-core';
+import { optionLabels, type TaskSchema } from '@swissspidy/belay-core';
 import { buildSeed, parseSeed, simulateLearning, transformersEmbedder, type Embedder, type SimulationSummary } from '@swissspidy/belay-learn';
 import type { CalibrationTaskConfig, LearnConfig } from './config.js';
 import { loadDataset } from './dataset.js';
@@ -200,13 +200,14 @@ export async function simulateCommand(argv: string[]): Promise<number> {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  const labels = [...new Set(dataset.examples.map((e) => e.truth))];
+  // Wrong answers are drawn from the schema's labels, so they are always valid.
+  const labels = optionLabels(schema);
   const teacher =
     teacherAccuracy < 1
       ? (_input: string, truth: unknown) => {
           if (noise() < teacherAccuracy) return truth;
           const others = labels.filter((l) => l !== String(truth));
-          const wrong = others[Math.floor(noise() * others.length)] ?? String(truth);
+          const wrong = others[Math.floor(noise() * others.length)]!;
           return schema.type === 'binary' ? wrong === 'true' : wrong;
         }
       : undefined;
@@ -243,7 +244,7 @@ export async function simulateCommand(argv: string[]): Promise<number> {
     ...result.curve.map((c) => row(`${c.from}–${c.from + c.runs - 1}`, c)),
     '',
     row('All', result.all),
-    row(`Last ${Math.min(3, result.curve.length)} rows`, result.last),
+    row(`Last ${result.last.runs}`, result.last),
     '',
     `Learned        ${result.stats.examples - result.stats.seedExamples} examples (${result.stats.head} head), distance gate ${result.stats.gate.threshold === null ? 'off' : result.stats.gate.threshold.toFixed(3)}, ${result.stats.gate.gated} gated`,
     `"Accurate" is the accuracy of the device's own answers, against the data's labels.`,

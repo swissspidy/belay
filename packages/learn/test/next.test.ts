@@ -315,7 +315,11 @@ describe('simulateLearning', () => {
     const stream = inputs(80).map((input) => ({ input, value: input.split(' ')[0] }));
     const wrong = await simulateLearning({ name: 't', schema: triageSchema, embedder: fakeEmbedder(TOPICS), stream, teacher: () => 'other', classifier: { head: 'knn' } });
     expect(wrong.all.accuracy).toBeLessThan(0.5);
-    await expect(simulateLearning({ name: 't', schema: triageSchema, embedder: fakeEmbedder(TOPICS), stream: [stream[0]!, stream[0]!] })).rejects.toThrow(/duplicate/);
+    // The same input may arrive twice, as in production.
+    const twice = await simulateLearning({ name: 't', schema: triageSchema, embedder: fakeEmbedder(TOPICS), stream: [stream[0]!, stream[0]!] });
+    expect(twice.all.runs).toBe(2);
+    const structured = { type: 'structured', jsonSchema: { type: 'object' } } as unknown as typeof triageSchema;
+    await expect(simulateLearning({ name: 't', schema: structured, embedder: fakeEmbedder(TOPICS), stream })).rejects.toThrow(/supports/);
     await expect(simulateLearning({ name: 't', schema: triageSchema, embedder: fakeEmbedder(TOPICS), stream: [{ input: 'x', value: 'nope' }] })).rejects.toThrow(/outside the schema/);
   });
 });

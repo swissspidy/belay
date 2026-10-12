@@ -73,13 +73,15 @@ export async function simulateLearning<S extends TaskSchema>(options: SimulateOp
   const { name, schema, stream } = options;
   const windowSize = Math.max(1, options.window ?? 100);
   if (!stream.length) throw new Error('simulateLearning: the stream is empty');
-  const truth = new Map<string, unknown>();
-  for (const e of stream) {
+  if (schema.type === 'structured') throw new Error('simulateLearning: the learned classifier supports binary, categorical and ordinal tasks');
+  // By position: the same input may arrive more than once, as in production.
+  const truths = stream.map((e) => {
     const parsed = parseValue(schema, e.value);
     if (!parsed.ok) throw new Error(`simulateLearning: "${e.input.slice(0, 40)}" has a value outside the schema`);
-    if (truth.has(e.input)) throw new Error(`simulateLearning: duplicate input "${e.input.slice(0, 40)}"`);
-    truth.set(e.input, parsed.value);
-  }
+    return parsed.value;
+  });
+  // The label of the input being run: runs are sequential, and the teacher answers within one.
+  let current: unknown;
   const teacher = options.teacher ?? ((_input: string, value: unknown) => value);
   const local = learnedClassifier({
     embedder: options.embedder,
@@ -96,7 +98,7 @@ export async function simulateLearning<S extends TaskSchema>(options: SimulateOp
     name,
     schema,
     local,
-    cloud: cloudAdapter(async ({ input }) => teacher(input, truth.get(input))),
+    cloud: cloudAdapter(async ({ input }) => teacher(input, current)),
     threshold: options.threshold ?? 0.9,
     explore: typeof explore === 'number' ? { rate: explore, random } : { random, ...explore },
   });
@@ -104,12 +106,13 @@ export async function simulateLearning<S extends TaskSchema>(options: SimulateOp
   const rows: { local: boolean; explored: boolean; correct: boolean }[] = [];
   for (const [i, example] of stream.entries()) {
     options.signal?.throwIfAborted();
+    current = truths[i];
     const result = await t.run(example.input, options.signal ? { signal: options.signal } : {});
     await local.flush();
     rows.push({
       local: result.source === 'local',
       explored: result.escalationReason === 'exploration',
-      correct: labelOf(schema, result.value) === labelOf(schema, truth.get(example.input)),
+      correct: labelOf(schema, result.value) === labelOf(schema, truths[i]),
     });
     options.onProgress?.(i + 1, stream.length);
   }
