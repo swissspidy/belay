@@ -17,6 +17,7 @@
   --link: #1c5cab;
   --local: #1baf7a;
   --cloud: #2a78d6;
+  --accuracy: #2a78d6;
   --explore: #8a5cd1;
   --wrong: #c8432b;
   --accent: #0b0b0b;
@@ -34,6 +35,7 @@
     --link: #86b6ef;
     --local: #199e70;
     --cloud: #3987e5;
+    --accuracy: #3987e5;
     --explore: #9d74de;
     --wrong: #e0664e;
     --accent: #ffffff;
@@ -51,6 +53,7 @@
   --link: #86b6ef;
   --local: #199e70;
   --cloud: #3987e5;
+  --accuracy: #3987e5;
   --explore: #9d74de;
   --wrong: #e0664e;
   --accent: #ffffff;
@@ -202,7 +205,7 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
     <h2>Over time</h2>
     <div class="legend" aria-hidden="true">
       <span><i class="key" style="background: var(--local)"></i>Answered on device</span>
-      <span><i class="key" style="background: var(--text)"></i>Accuracy (against the dataset's labels)</span>
+      <span><i class="key" style="background: var(--accuracy)"></i>Accuracy (against the dataset's labels)</span>
     </div>
     <svg id="chart" viewBox="0 0 860 240" role="img" aria-label="Share answered on device and accuracy, over the last 50 messages, as messages arrive"></svg>
     <p class="small muted">Each point covers the 50 messages before it.</p>
@@ -249,6 +252,21 @@ const triage = task({
   threshold: 0.9,
   explore: 0.05,
 });</code></pre>
+  <p>
+    The <a href="https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md">guide</a>
+    walks through adding it to an app: loading the model, shipping a seed of labeled examples,
+    collecting corrections, tuning and monitoring. On ticket triage, starting from nothing, it
+    answered 87% of 1,500 messages on the device at 99.5% accuracy
+    (<a href="../#learning">all results</a>).
+  </p>
+  <p class="small muted">
+    Training a small student on an LLM's answers and deferring when it is unsure is known in
+    research as neural caching or online cascade learning
+    (<a href="https://aclanthology.org/2024.findings-acl.704/">Cache &amp; Distil</a>,
+    <a href="https://arxiv.org/abs/2310.13395">OCaTS</a>,
+    <a href="https://proceedings.mlr.press/v235/nie24a.html">Nie et al.</a>). This brings it into
+    the browser, on the user's device.
+  </p>
   <p class="noscript small muted"><noscript>This demo needs JavaScript and a browser with ES modules and import maps.</noscript></p>
 </main>
 
@@ -545,7 +563,7 @@ function drawChart() {
     el('polyline', { points: points.map((p) => p.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round' });
   if (share.length > 1) {
     parts.push(line(share, 'var(--local)'));
-    parts.push(line(acc, 'var(--text)'));
+    parts.push(line(acc, 'var(--accuracy)'));
   }
   svg.replaceChildren(...parts);
 }

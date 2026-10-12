@@ -95,8 +95,36 @@ await copyFile(join(examples, 'ticket-triage', 'stream.jsonl'), join(learn, 'str
 await copyFile(join(examples, 'ticket-triage', 'belay-seed.json'), join(learn, 'belay-seed.json'));
 console.log(`Wrote ${learn}/`);
 
+// ---- Learned-classifier simulation results (examples/scripts/learn-simulate.mjs) ---------------
+const learned = [];
+for (const task of Object.keys(TASKS)) {
+  let sim;
+  try {
+    sim = JSON.parse(await readFile(join(examples, task, 'learn-simulation.json'), 'utf8'));
+  } catch (err) {
+    if (err.code === 'ENOENT') continue;
+    throw err;
+  }
+  for (const r of sim.results) {
+    learned.push({
+      task,
+      taskTitle: TASKS[task].title,
+      stream: sim.stream,
+      order: r.order,
+      teacher: r.teacher,
+      teacherAccuracy: r.teacherAccuracy,
+      seeded: r.seeded,
+      all: r.all,
+      last: r.last,
+      curve: r.curve.map((c) => ({ from: c.from, runs: c.runs, localShare: c.localShare, localAccuracy: c.localAccuracy })),
+    });
+  }
+}
+
 const template = await readFile(join(root, 'site', 'index.html'), 'utf8');
 const json = JSON.stringify(results).replace(/</g, '\\u003c');
 if (!template.includes('"__RESULTS__"')) throw new Error('site/index.html lacks the "__RESULTS__" placeholder');
-await writeFile(join(out, 'index.html'), template.replace('"__RESULTS__"', () => json));
+if (!template.includes('"__LEARN__"')) throw new Error('site/index.html lacks the "__LEARN__" placeholder');
+const learnJson = JSON.stringify(learned).replace(/</g, '\\u003c');
+await writeFile(join(out, 'index.html'), template.replace('"__RESULTS__"', () => json).replace('"__LEARN__"', () => learnJson));
 console.log(`Wrote ${out}/index.html with ${results.length} calibrations`);

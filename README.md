@@ -169,8 +169,9 @@ still means "at least 90% likely right" as it learns. On a stream of 1,500 suppo
 starting from nothing, it answered 87% of them on the device at 99.5% accuracy. On content
 moderation, where embeddings can't tell toxic comments apart well, it kept most comments in the
 cloud.
-[Try it in your browser](https://swissspidy.github.io/belay/learn/), and see the
-[package README](packages/learn/README.md) and [ADR 0004](docs/adr/0004-learning-from-escalations.md).
+[Try it in your browser](https://swissspidy.github.io/belay/learn/), and read the
+[guide](docs/learned-classifier.md): how it works, how to add it to an app, tuning, and how it
+relates to research on learning from LLM answers.
 
 Two core features work with any local runner:
 

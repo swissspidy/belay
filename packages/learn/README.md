@@ -105,7 +105,10 @@ another schema is rejected. `local.exportSeed()` turns what a classifier learned
 | `minCloudConfidence` | 0 | ignore cloud answers whose reported confidence is lower |
 | `maxExamples` | 5,000 | the oldest cloud answers are dropped first |
 
-The design and its trade-offs are in
+How it works, when to use it and how to tune it: the
+[guide](https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md). It also
+compares it with related research ("neural caching", online cascade learning): the loop is
+established, and this package brings it to the browser. The design and its trade-offs are in
 [ADR 0004](https://github.com/swissspidy/belay/blob/main/docs/adr/0004-learning-from-escalations.md).
 
 ## License

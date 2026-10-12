@@ -154,6 +154,27 @@ the task's calibrated cloud model was wrong. Accuracy is against the dataset's l
   would be learned as if they were right; the explored runs would then agree with them too. The
   classifier can only be as right as its teacher; `feedback()` is the way to correct both.
 
+## Prior art and future work
+
+The loop is established research: neural caching ([Cache & Distil](https://aclanthology.org/2024.findings-acl.704/),
+Findings of ACL 2024), [OCaTS](https://arxiv.org/abs/2310.13395) (Findings of EMNLP 2023, with a
+kNN student like ours) and [Online Cascade Learning](https://proceedings.mlr.press/v235/nie24a.html)
+(ICML 2024). The [guide](../learned-classifier.md#prior-art) compares them. What is new here is
+the packaging: in the browser, stored on the device, corrections as a second teacher, shippable
+seeds, and the task's threshold, privacy policies and telemetry. Not adopted yet, but worth
+trying:
+
+- **Which runs to explore.** Exploration picks confident runs uniformly at random. Cache &
+  Distil found margin sampling and query by committee (here: the two heads disagreeing) the best
+  ways to choose what goes to the LLM. Exploring by margin would spend the same calls where the
+  classifier is least sure of its top label.
+- **A distance gate.** OCaTS also requires the input to be close to its nearest stored examples.
+  A calibrated vote can be confident about an input unlike anything it has seen, if its
+  neighbors happen to agree. A distance check would send those inputs to the cloud.
+- **A cost-aware threshold.** OCaTS tunes its thresholds for accuracy minus λ × the share of
+  LLM calls, and Online Cascade Learning learns the deferral policy itself. Here the threshold is
+  a fixed target probability, as for every Belay runner.
+
 ## Consequences
 
 - A cascade can now get cheaper as it runs. The calibration CLI does not model that: it fits a
