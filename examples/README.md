@@ -22,6 +22,10 @@ Each directory has:
 
 The content-moderation dataset contains offensive language. That's the point of the task.
 
+Starting with the learned classifier? [`learned-quickstart`](learned-quickstart) is a complete app
+(one page and a small server) that learns from Claude, or from you when there's no API key. See
+[below](#learned-classifier) for how it does on these datasets.
+
 `event-extraction` is the generation example: Gemini Nano (Chrome's Prompt API) writes the JSON,
 and a Laya judge (the Classifier API) scores it. On this data the judge doesn't separate right
 from wrong extractions, so the calibration keeps almost everything in the cloud. The
@@ -130,7 +134,9 @@ verified with Chrome 154 on a CPU-only Linux VM (details in
 throwing them away. [`scripts/learn-simulate.mjs`](scripts/learn-simulate.mjs) shows what that
 does over time: each classification task's `stream.jsonl` (1,000–1,500 inputs, none of them in
 `examples.jsonl`) goes through the real `task()` and `learnedClassifier()` one input at a time,
-with real `bge-small-en-v1.5` embeddings, threshold 0.9 and `explore: 0.05`.
+with real `bge-small-en-v1.5` embeddings, threshold 0.9, `explore: 0.05` and the distance gate
+on (the package defaults). It runs through `simulateLearning()`, the function behind
+`belay simulate`.
 
 ```sh
 npm install && npm run build      # from the repository root
@@ -162,6 +168,8 @@ against the dataset's labels:
 | Intent detection (1,467) | mixed | always right | 300 | 86.4% | 99.6% | 99.7% | 86.0% | 100.0% |
 | Intent detection (1,467) | mixed | 99.7% right | – | 87.5% | 97.5% | 97.7% | 83.0% | 99.6% |
 | Intent detection (1,467) | mixed | 99.7% right | 300 | 85.5% | 99.6% | 99.5% | 82.3% | 100.0% |
+
+ABLATION_SECTION
 
 "Last 300" is the end of the stream, after the classifier has learned. The
 [demo](https://swissspidy.github.io/belay/learn/) runs the ticket-triage stream in your browser.
