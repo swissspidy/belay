@@ -344,11 +344,14 @@ export interface ExploreOptions {
    * - `informative`: runs the local runner finds informative (`LocalOutput.informativeness`)
    *   are explored more often, the rest less, at about `rate` on average: probability
    *   `rate × informativeness / its running mean`, at least `rate × floor`. The cloud answers
-   *   of explored runs carry an inverse-probability `explorationWeight`, so a learner can keep
-   *   its estimates unbiased.
+   *   of explored runs carry an inverse-probability `explorationWeight`, so a learner can weigh
+   *   them back to what uniform exploration would have seen.
    */
   strategy?: 'uniform' | 'informative';
-  /** `informative` only: the lowest probability, as a share of `rate`. Defaults to 0.2. */
+  /**
+   * `informative` only: the lowest probability, as a share of `rate`, in (0, 1]. Defaults to 0.2.
+   * Above 0 so that every confident run can be explored, which the weights rely on.
+   */
   floor?: number;
   /** Source of randomness in [0, 1). Defaults to `Math.random`. */
   random?: () => number;

@@ -4,15 +4,17 @@ import {
   applyPlatt,
   fitPlatt,
   learnedClassifier,
+  encodeInt8,
   memoryStore,
   nearestSimilarity,
   normalize,
   parseLearnedState,
   persistStorage,
   quantile,
+  type ExampleStore,
   type LearnedClassifierOptions,
 } from '../src/index.js';
-import { fakeEmbedder, triageSchema } from './helpers.js';
+import { fakeEmbedder, tick, triageSchema } from './helpers.js';
 
 const TOPICS = ['bug', 'billing', 'feature', 'other'];
 const inputs = (n: number, offset = 0) => Array.from({ length: n }, (_, i) => `${TOPICS[(i + offset) % 4]} message ${i + offset}`);
@@ -21,12 +23,12 @@ const oracle = () => {
   return { id: 'oracle', run } as unknown as CloudRunner & { run: typeof run };
 };
 
-async function trained(options: Partial<LearnedClassifierOptions> = {}, n = 120) {
+async function trained(options: Partial<LearnedClassifierOptions> = {}, n = 120, offset = 0) {
   const embedder = fakeEmbedder(TOPICS);
   const local = learnedClassifier({ embedder, head: 'knn', ...options });
   const cloud = oracle();
   const t = task({ name: 'triage', schema: triageSchema, local, cloud, threshold: 0.9 });
-  for (const text of inputs(n)) {
+  for (const text of inputs(n, offset)) {
     await t.run(text);
     await local.flush();
   }
@@ -172,12 +174,70 @@ describe('exportState / importState', () => {
 
   it('keeps the calibration record of both sides when merging', async () => {
     const a = await trained({}, 60);
-    const b = await trained({}, 40);
+    const b = await trained({}, 40, 500);
     const fromA = await a.local.exportState();
     const before = (await b.local.exportState()).pairs.knn.length;
     await b.local.importState(fromA);
     const merged = await b.local.exportState();
-    expect(merged.pairs.knn.length).toBe(Math.min(1000, before + fromA.pairs.knn.length));
+    expect(merged.pairs.knn.length).toBe(before + fromA.pairs.knn.length);
+  });
+
+  it('does not count a calibration record twice when re-importing its own backup', async () => {
+    const { local } = await trained({}, 40);
+    const backup = await local.exportState();
+    await local.importState(backup);
+    await local.importState(backup);
+    expect((await local.exportState()).pairs.knn.length).toBe(backup.pairs.knn.length);
+  });
+
+  it('makes a run that starts during an import wait for it', async () => {
+    const { local: source } = await trained({}, 120);
+    const snapshot = await source.exportState();
+    const base = memoryStore();
+    let slow = false;
+    const store: ExampleStore = {
+      ...base,
+      put: async (scope, examples) => {
+        if (slow) await tick(20); // a large IndexedDB write
+        return base.put(scope, examples);
+      },
+    };
+    const local = learnedClassifier({ embedder: fakeEmbedder(TOPICS), head: 'knn', store });
+    const t = task({ name: 'triage', schema: triageSchema, local, cloud: oracle(), threshold: 0.9 });
+    await t.run('bug one');
+    await local.flush();
+    slow = true;
+    const importing = local.importState(snapshot);
+    await tick(5);
+    await Promise.all([importing, t.run('bug two')]);
+    await local.flush();
+    expect((await local.stats())!.examples).toBeGreaterThanOrEqual(snapshot.examples.length);
+  });
+
+  it('refuses a snapshot for another schema of a task it runs, and keeps maxExamples', async () => {
+    const { local: source } = await trained({}, 120);
+    const snapshot = await source.exportState();
+    const other = learnedClassifier({ embedder: fakeEmbedder(TOPICS), head: 'knn' });
+    const otherSchema = { type: 'categorical', options: ['bug', 'billing', 'feature', 'other', 'spam'] } as const;
+    await task({ name: 'triage', schema: otherSchema, local: other, cloud: oracle(), threshold: 0.9 }).run('bug x');
+    await expect(other.importState(snapshot)).rejects.toThrow(/schema/);
+
+    const small = learnedClassifier({ embedder: fakeEmbedder(TOPICS), head: 'knn', maxExamples: 20 });
+    expect(await small.importState(snapshot)).toEqual({ examples: 20 });
+  });
+
+  it('rejects embeddings of the wrong size or with bad values', async () => {
+    const { local } = await trained({}, 40);
+    const snapshot = await local.exportState();
+    const v = new Float32Array(64);
+    v[0] = 1;
+    const wrong = { ...snapshot, examples: [...snapshot.examples, { id: 'w', label: 'bug', source: 'cloud' as const, createdAt: 1, embedding: encodeInt8(v) }] };
+    await expect(local.importState(wrong)).rejects.toThrow(/dimensions/);
+    const garbled = { ...snapshot, examples: [{ ...snapshot.examples[0]!, id: 'g', embedding: '%%%' }] };
+    await expect(local.importState(garbled)).rejects.toThrow(/snapshot example/);
+    const heavy = { ...snapshot, pairs: { knn: [{ score: 0.5, correct: true, weight: 1e300 }], softmax: [] } };
+    expect(() => parseLearnedState(heavy)).toThrow(/snapshot/);
+    expect(Number.isFinite((await local.stats())!.gate.threshold!)).toBe(true);
   });
 
   it('rejects snapshots from another embedder and malformed ones', async () => {

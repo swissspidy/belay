@@ -1,5 +1,5 @@
 export { defineConfig, defineTask, isBrowserJudge, isBrowserRunner } from './config.js';
-export type { BelayConfig, BrowserConfig, BrowserJudgeSpec, BrowserRunnerSpec, CalibrationTaskConfig, CostConfig, LearnConfig } from './config.js';
+export type { BelayConfig, BrowserConfig, BrowserJudgeSpec, BrowserRunnerSpec, CalibrationTaskConfig, CostConfig, LearnConfig, RunnableTaskConfig } from './config.js';
 export { analyze, candidateThresholds, crossValidate, niceThreshold, wilsonInterval } from './analyze.js';
 export type { Analysis, AnalyzeOptions, CostSummary, CrossValidation, HeadToHead, OptionStats, Sample } from './analyze.js';
 export { calibrate, resolveCreatedAt } from './calibrate.js';

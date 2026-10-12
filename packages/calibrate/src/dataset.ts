@@ -41,7 +41,8 @@ export async function loadDataset(path: string, schema: TaskSchema): Promise<Dat
   const examples = rows.map((row, i): Example => {
     const r = row as Record<string, unknown>;
     const input = r['input'] ?? r['text'];
-    if (typeof input !== 'string') throw new Error(`${path}: example ${i + 1} has no "input" string`);
+    if (typeof input !== 'string') throw new Error(`${path}: example ${i + 1} has no "input" string (keys: ${Object.keys(r).join(', ')})`);
+    if (!('label' in r) && !('expected' in r)) throw new Error(`${path}: example ${i + 1} has no "label" (keys: ${Object.keys(r).join(', ')})`);
     const rawLabel = 'label' in r ? r['label'] : r['expected'];
     const parsed = parseValue(schema, rawLabel);
     if (!parsed.ok) throw new Error(`${path}: example ${i + 1}: invalid label: ${parsed.error}`);

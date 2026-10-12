@@ -1,5 +1,5 @@
 import { BelayError } from '@swissspidy/belay-core';
-import type { CalibrationPair } from './calibrator.js';
+import { MAX_PAIR_WEIGHT, type CalibrationPair } from './calibrator.js';
 
 export const STATE_VERSION = 1;
 
@@ -24,8 +24,14 @@ export interface LearnedState {
 
 const isPair = (p: unknown): p is CalibrationPair => {
   if (!p || typeof p !== 'object') return false;
-  const { score, correct, weight } = p as CalibrationPair;
-  return Number.isFinite(score) && typeof correct === 'boolean' && (weight === undefined || (Number.isFinite(weight) && weight > 0));
+  const { score, correct, weight, id } = p as CalibrationPair;
+  return (
+    Number.isFinite(score) &&
+    typeof correct === 'boolean' &&
+    // Within what recorded weights are clipped to: one huge weight would swamp the fit.
+    (weight === undefined || (Number.isFinite(weight) && weight > 0 && weight <= MAX_PAIR_WEIGHT)) &&
+    (id === undefined || typeof id === 'string')
+  );
 };
 
 /** Checks a parsed snapshot's shape. Throws `BelayError('invalid-task')`. */

@@ -20,12 +20,15 @@ export interface CalibrationTaskConfig<S extends TaskSchema = TaskSchema> {
   /** The same schema object your app passes to `task()`. Share it through a module. */
   schema: S;
   context?: string;
-  /** A browser runner spec, or a `LocalRunner` object executed in Node (mocks, replays, custom runners). */
-  local: BrowserRunnerSpec | LocalRunner<S>;
+  /**
+   * A browser runner spec, or a `LocalRunner` object executed in Node (mocks, replays, custom
+   * runners). Required by `belay calibrate`; `belay seed` and `belay simulate` don't use it.
+   */
+  local?: BrowserRunnerSpec | LocalRunner<S>;
   /** Generation tasks: a browser judge spec or a judge function executed in Node. */
   judge?: BrowserJudgeSpec | Judge<ValueOf<S>>;
-  /** Executed in Node. Point it at the same model your backend uses. */
-  cloud: CloudRunner<S>;
+  /** Executed in Node. Point it at the same model your backend uses. Required by `belay calibrate`. */
+  cloud?: CloudRunner<S>;
   /** Applied to inputs before the cloud call, like `privacy.redact` at runtime. */
   redact?: (input: string) => string | Promise<string>;
   /**
@@ -125,12 +128,18 @@ export function defineConfig(config: BelayConfig): BelayConfig {
   return config;
 }
 
+/** A task config with the runners `belay calibrate` needs. */
+export type RunnableTaskConfig<S extends TaskSchema = TaskSchema> = CalibrationTaskConfig<S> & {
+  local: BrowserRunnerSpec | LocalRunner<S>;
+  cloud: CloudRunner<S>;
+};
+
 /** Typed helper to declare one task's calibration config with schema-inferred value types. */
 export function defineTask<S extends TaskSchema>(config: CalibrationTaskConfig<S>): CalibrationTaskConfig<S> {
   return config;
 }
 
-export function isBrowserRunner(local: CalibrationTaskConfig['local']): local is BrowserRunnerSpec {
+export function isBrowserRunner(local: RunnableTaskConfig['local']): local is BrowserRunnerSpec {
   return typeof (local as BrowserRunnerSpec).runner === 'string' && typeof (local as LocalRunner).run !== 'function';
 }
 

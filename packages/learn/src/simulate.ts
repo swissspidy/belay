@@ -72,6 +72,7 @@ function mulberry32(seed: number): () => number {
 export async function simulateLearning<S extends TaskSchema>(options: SimulateOptions<S>): Promise<SimulationResult> {
   const { name, schema, stream } = options;
   const windowSize = Math.max(1, options.window ?? 100);
+  if (!stream.length) throw new Error('simulateLearning: the stream is empty');
   const truth = new Map<string, unknown>();
   for (const e of stream) {
     const parsed = parseValue(schema, e.value);

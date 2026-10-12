@@ -102,8 +102,8 @@ const snapshot = await local.exportState('ticket-triage');  // JSON: embeddings 
 await local.importState(snapshot);                        // merge (or { replace: true })
 ```
 
-`indexedDbStore()` survives reloads, but browsers may still evict it (Safari after 7 days without
-a visit). Snapshots back it up or move it to another device; a custom `ExampleStore` can sync it
+`indexedDbStore()` survives reloads, but browsers may still evict it (Safari after 7 days of use
+without an interaction on the site, unless it runs as a Home Screen web app). Snapshots back it up or move it to another device; a custom `ExampleStore` can sync it
 to your server. Embeddings can be partly inverted into text: treat snapshots like the inputs.
 Details in the [guide](https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md#keeping-what-it-learns).
 

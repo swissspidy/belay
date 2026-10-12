@@ -21,7 +21,7 @@ node examples/learned-quickstart/server.mjs      # then open http://127.0.0.1:87
   `ant auth login`), escalations go to Claude Opus 5.5 through the server. The key never reaches
   the page.
 - **Without credentials, you are the cloud.** When the classifier is unsure, the page asks you
-  for the team, and it learns from your answer. It starts answering on its own after about 40
+  for the team, and it learns from your answer. It starts answering on its own after 40 to 70
   messages. That is the cold start: it needs 30 predictions it can check against an answer
   before it trusts itself.
 - **Start from the seed** loads 300 labeled examples (embeddings only), so it answers from the

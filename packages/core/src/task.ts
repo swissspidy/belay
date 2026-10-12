@@ -62,7 +62,8 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
     throw new BelayError('invalid-task', `task "${name}": explore strategy must be "uniform" or "informative"`);
   }
   const floor = explore?.floor ?? 0.2;
-  if (!(floor >= 0 && floor <= 1)) throw new BelayError('invalid-task', `task "${name}": explore floor must be in [0, 1]`);
+  // Above 0, so every confident run can be explored: the importance weights need that.
+  if (!(floor > 0 && floor <= 1)) throw new BelayError('invalid-task', `task "${name}": explore floor must be in (0, 1]`);
   const random = explore?.random ?? Math.random;
   // Running mean of the informativeness of confident runs, which `informative` exploration
   // divides by so that it explores about `rate` of them on average.
@@ -72,7 +73,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
   const exploreProbability = (informativeness: number): number => {
     const rate = explore!.rate;
     if (explore!.strategy !== 'informative') return rate;
-    const u = Math.min(1, Math.max(0, informativeness));
+    const u = Number.isFinite(informativeness) ? Math.min(1, Math.max(0, informativeness)) : 1;
     meanInformativeness = meanInformativeness === null ? u : meanInformativeness + 0.02 * (u - meanInformativeness);
     const scaled = meanInformativeness > 0 ? (rate * u) / meanInformativeness : rate;
     return Math.min(1, Math.max(rate * floor, scaled));
@@ -198,7 +199,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
             );
           }
           localConfidence = confidence;
-          if (typeof output.informativeness === 'number') informativeness = output.informativeness;
+          if (Number.isFinite(output.informativeness)) informativeness = output.informativeness;
           localLatencyMs = now() - localStarted;
           localResult = {
             value: parsed.value,

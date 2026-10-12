@@ -120,6 +120,7 @@ function askYou() {
       ask.append(b);
     }
     $('result').append(ask);
+    ask.querySelector('button').focus(); // keyboard users answer right away
   });
 }
 $('cloud-name').textContent = cloudId ? `(${cloudId}, through this server)` : '(you: no Anthropic credentials on the server)';
@@ -160,6 +161,7 @@ $('load').onclick = async () => {
     await ready();
   } catch (err) {
     $('load').disabled = false;
+    $('progress').hidden = true;
     status(`Could not load the model: ${err.message}`);
   }
 };
@@ -209,6 +211,7 @@ $('send').onclick = async () => {
     out.textContent = `Failed: ${err.message}`;
   } finally {
     $('send').disabled = false;
+    if (!document.activeElement || document.activeElement === document.body) $('message').focus();
     await local.flush();
     showStats();
   }

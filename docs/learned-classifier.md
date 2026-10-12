@@ -34,7 +34,8 @@ node examples/learned-quickstart/server.mjs      # open http://127.0.0.1:8787
 
 With `ANTHROPIC_API_KEY` set, escalations go to Claude through the server. Without it, *you* are
 the cloud: when the classifier is unsure, the page asks you for the label and learns from your
-answer. After about 40 messages it starts answering on its own. Reload the page and it still
+answer. After 40 to 70 messages it starts answering on its own: it first needs 30 predictions it
+can check against an answer. Tick *Start from the seed* to skip that. Reload the page and it still
 knows what it learned.
 
 **Or add it to a page without a build step.** An import map is enough:
@@ -60,10 +61,14 @@ const triage = task({
   threshold: 0.9,
   explore: 0.05,
 });
-button.onclick = () => triage.prepare();        // downloads the 34 MB model once
+document.querySelector('#enable').onclick = () => triage.prepare(); // downloads the 34 MB model once
+// Before prepare(), and until it has learned, runs go to the cloud (escalationReason tells you why).
 const { value, source } = await triage.run('I was charged twice');
 </script>
 ```
+
+`/api/belay` is [your backend](#your-backend): it receives the task's instruction and the input,
+asks the LLM, and returns the label.
 
 **Then, in this order:**
 
@@ -168,23 +173,41 @@ In the [simulation](../examples/README.md#learned-classifier), starting from not
 npm install @swissspidy/belay-core @swissspidy/belay-learn @huggingface/transformers
 ```
 
-`@huggingface/transformers` is an optional peer dependency: only `transformersEmbedder()` loads
-it, with a dynamic import, so it lands in its own chunk with most bundlers.
+`@huggingface/transformers` is an optional peer dependency, so apps that bring their own
+`Embedder` don't need it. `transformersEmbedder()` imports it by name at run time, which works with
+an import map but not after bundling: with Vite, webpack or similar, pass the import yourself so
+the bundler sees it (and puts it in its own chunk):
+
+```ts
+transformersEmbedder({ transformers: () => import('@huggingface/transformers') })
+```
+
+If `npm install` fails in `onnxruntime-node`'s postinstall (it downloads native binaries for
+Node), `npm install --ignore-scripts` is enough for the browser; Node scripts such as
+`belay seed` need the binaries.
 
 ### 2. Define the task
 
-```ts
-import { task, fetchAdapter } from '@swissspidy/belay-core';
-import { indexedDbStore, learnedClassifier, transformersEmbedder } from '@swissspidy/belay-learn';
+Put the schema in a module of its own, plain JavaScript, so that the app, the build scripts and
+`belay.config.mjs` (which Node runs directly) all import the same object:
 
-export const schema = {
+```js
+// src/schema.js
+export const schema = /** @type {const} */ ({
   type: 'categorical',
   prompt: 'Which team should handle this customer message?',
   options: ['account', 'billing', 'order', 'shipping', 'feedback'],
-} as const;
+});
+```
 
-const local = learnedClassifier({
-  embedder: transformersEmbedder(),   // Xenova/bge-small-en-v1.5
+```ts
+// src/triage.ts
+import { task, fetchAdapter } from '@swissspidy/belay-core';
+import { indexedDbStore, learnedClassifier, transformersEmbedder } from '@swissspidy/belay-learn';
+import { schema } from './schema.js';
+
+export const local = learnedClassifier({
+  embedder: transformersEmbedder({ transformers: () => import('@huggingface/transformers') }), // Xenova/bge-small-en-v1.5
   store: indexedDbStore(),            // keep what it learned across reloads
   seed: '/belay-seed.json',           // optional, see step 3
 });
@@ -199,8 +222,8 @@ export const triage = task({
 });
 ```
 
-The cloud side is the same as for any Belay task. See the main
-[README](../README.md#cloud-adapters).
+The cloud side is the same as for any Belay task. See [your backend](#your-backend) below, and the
+main [README](../README.md#cloud-adapters) for other adapters.
 
 ### 3. Optional: ship a seed
 
@@ -213,7 +236,7 @@ until there are 30 scored predictions, everything still goes to the cloud.
 // scripts/build-seed.mjs, run in Node with the same model the page uses
 import { writeFile } from 'node:fs/promises';
 import { buildSeed, transformersEmbedder } from '@swissspidy/belay-learn';
-import { schema } from '../src/triage.js';
+import { schema } from '../src/schema.js';
 import labeled from '../data/labeled.json' with { type: 'json' };
 
 const seed = await buildSeed({
@@ -229,6 +252,8 @@ A seed stores about 0.5 KB per example (int8 vectors, no text). A seed made with
 embedding model or for another schema is rejected, with an `error` event at stage `local`.
 `local.exportSeed()` turns what a classifier learned during development into a seed too.
 
+Or, without a script: `npx belay seed --task ticket-triage --data data/labeled.jsonl` (see
+[below](#try-it-on-your-data-first)).
 [`examples/scripts/build-seeds.mjs`](../examples/scripts/build-seeds.mjs) is a working example.
 
 ### 4. Load the model
@@ -261,6 +286,36 @@ A correction weighs 3× a cloud answer, and a later cloud answer for the same in
 override it. `feedback()` resolves to `false` for runners that can't learn, so the same UI works
 with any runner.
 
+### Your backend
+
+`fetchAdapter()` POSTs the request as JSON: the task's ready-made `instruction`, a `jsonSchema`
+for the answer, the (redacted) `input`, and the local attempt. Respond with the answer as JSON:
+the bare value or `{ "value": … }`. A handler with the Anthropic SDK, for any Node framework:
+
+```js
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic(); // ANTHROPIC_API_KEY stays on the server
+
+/** The body of POST /api/belay, in whatever framework you use. */
+export async function belay({ instruction, input, jsonSchema }) {
+  const response = await client.messages.create({
+    model: 'claude-opus-5-5',
+    max_tokens: 1024,
+    system: instruction,
+    messages: [{ role: 'user', content: input }],
+    output_config: { effort: 'low', format: { type: 'json_schema', schema: jsonSchema } },
+  });
+  const text = response.content.find((block) => block.type === 'text')?.text;
+  if (!text) throw new Error(`no answer (stop_reason: ${response.stop_reason})`);
+  return JSON.parse(text); // send this back as the JSON response
+}
+```
+
+Authenticate the route like the rest of your API: anyone who can call it spends your credits.
+[`examples/shared/cloud.mjs`](../examples/shared/cloud.mjs) adds refusal fallbacks and reports
+token usage, so `savingsMeter()` can price the calls.
+
 ## Try it on your data first
 
 Before shipping, stream labeled examples through the classifier in the order your app would see
@@ -278,7 +333,7 @@ an optional `learn` section in the task:
 
 ```js
 // belay.config.mjs
-import { schema } from './src/triage.js';
+import { schema } from './src/schema.js';
 export default {
   tasks: {
     'ticket-triage': {
@@ -334,8 +389,9 @@ the new labels or model. About 0.5 KB per example, so the default cap of 5,000 e
 
 **The browser can still delete it.** Storage is *best-effort* by default: browsers evict a
 site's data under storage pressure, and the user can clear it. Safari also deletes script-written
-storage, IndexedDB included, for sites the user hasn't visited in 7 days of use, unless the site
-is installed to the home screen. To ask for *persistent* storage:
+storage, IndexedDB included, of sites the user hasn't interacted with (clicked or tapped) in the
+last 7 days of Safari use, unless the site runs as a Home Screen web app. To ask for *persistent*
+storage:
 
 ```ts
 import { persistStorage } from '@swissspidy/belay-learn';
@@ -345,12 +401,12 @@ if (!persisted) showExportHint();   // keep a copy some other way
 ```
 
 Chrome and Edge grant it without a prompt to sites the user engages with (bookmarked, installed,
-visited often); Firefox asks the user; Safari grants it to home-screen web apps. Ask after the
-user has used the feature, not on page load.
+visited often); Firefox asks the user; Safari decides by heuristics, such as being a Home Screen
+web app. Ask after the user has used the feature, not on page load.
 
 **Snapshots.** `exportState()` returns a JSON-serializable snapshot: the examples (int8
 embeddings, no text), their labels and sources, and the calibration record. `importState()`
-restores one:
+restores one. `exportState()` needs the task loaded: call it after `prepare()` or a run.
 
 ```ts
 // Back up
@@ -363,10 +419,12 @@ const { examples } = await local.importState(saved);           // merges
 await local.importState(saved, { replace: true });             // or replaces
 ```
 
-A merge keeps both sides; for the same input, a user's correction wins over a cloud answer. A
-snapshot from another embedding model is rejected (`BelayError` code `invalid-task`), and one for
-another schema lands in that schema's scope, not this one. Snapshots for tasks the page hasn't run
-yet are fine. The [quickstart](../examples/learned-quickstart/) has export, import and reset
+A merge keeps both sides, each scored prediction once (re-importing your own backup changes
+nothing); for the same input, a user's correction wins over a cloud answer, and `maxExamples`
+still applies. A snapshot is rejected (`BelayError` code `invalid-task`) if it was made with
+another embedding model, has malformed embeddings, or is for another version of the schema of a
+task the page runs; one for another schema of a task not loaded yet lands in that schema's scope.
+Runs that start during an import wait for it. The [quickstart](../examples/learned-quickstart/) has export, import and reset
 buttons.
 
 **Your own store.** An `ExampleStore` is five async methods (`load`, `put`, `delete`, `putMeta`,
@@ -395,10 +453,10 @@ deletes everything learned (a seed stays).
 
 ## Choosing the threshold
 
-The confidence is a calibrated probability of being right, so the threshold can come from what
-mistakes cost rather than from a dataset. Answering locally costs `(1 − p) × errorCost` in
-expectation; escalating costs a cloud call plus the cloud's own mistakes. `costAwareThreshold()`
-(in core) returns the threshold where the two break even:
+The confidence is a calibrated probability, so the threshold can come from what mistakes cost
+rather than from a dataset. Escalating costs a cloud call plus the cloud's own mistakes; answering
+locally costs a mistake whenever the device is wrong. `costAwareThreshold()` (in core) returns the
+threshold where the two break even:
 
 ```ts
 import { costAwareThreshold } from '@swissspidy/belay-core';
@@ -408,14 +466,20 @@ const threshold = costAwareThreshold({
   cloudCost: 0.002,    // one cloud call (USD)
   cloudAccuracy: 0.97, // the cloud model's accuracy on this task
 });
-// 0.97 − 0.002 / 0.5 = 0.966
+// 1 − 0.002 / (0.97 × 0.5) ≈ 0.996
 ```
 
-Or pass `calibration` (a `belay.calibration.json`) to read the cloud's cost and accuracy from it.
-The cheaper a mistake relative to a call, the lower the threshold. It never goes above the
-cloud's own accuracy: the cloud can't be more right than that. This is Chow's reject rule; the
-[ADR](adr/0005-choosing-what-to-ask-and-keeping-what-it-learns.md#a-cost-aware-threshold) has
-the derivation.
+The learned classifier's confidence is the probability of *agreeing with the cloud*: the cloud's
+answers are all it has to check itself against. So it counts a local answer as right only when it
+agrees with a right cloud, and a fallible cloud asks for a higher threshold, not a lower one. For a
+runner calibrated on labeled data (`belay calibrate`), pass `calibratedAgainst: 'labels'`: then
+the confidence is the probability of being right, and the threshold is `cloudAccuracy − cloudCost
+/ errorCost` (0.966 here). With an always-right cloud the two agree.
+
+Pass `calibration` (a `belay.calibration.json`) to read the cloud's cost and accuracy from it. The
+cheaper a mistake relative to a call, the lower the threshold. This is Chow's reject rule; the
+[ADR](adr/0005-choosing-what-to-ask-and-keeping-what-it-learns.md#3-a-cost-aware-threshold-as-a-helper)
+has the derivation.
 
 ## Choosing what to spot-check
 
@@ -423,13 +487,15 @@ the derivation.
 drift. Two strategies:
 
 - **`uniform`** (the default, `explore: 0.05`): every confident run has the same 5% chance. Simple,
-  and the agreement rate on explored runs is an unbiased estimate of the local accuracy.
+  and the agreement rate on explored runs is an unbiased estimate of how often the device agrees
+  with the cloud on the inputs it answers.
 - **`informative`** (`explore: { rate: 0.05, strategy: 'informative' }`): runs where the
   classifier is least sure of its top label, or where its two heads disagree, are checked more
-  often. The average rate stays about 5%, and every confident run keeps at least `rate × floor`
-  (default 20% of the rate) so that nothing goes unchecked. The cloud answers of rarely-checked
-  runs carry a larger `explorationWeight` (rate / probability), which the calibration uses so
-  that its estimate stays unbiased.
+  often. The rate stays about 5% (a little more, because of the floor: 4.6–6.4% of confident runs
+  in the simulations), and every confident run keeps at least `rate × floor` (default 20% of the
+  rate) so that nothing goes unchecked. The cloud answers of rarely-checked runs carry a larger
+  `explorationWeight` (rate / probability), so the calibration sees the same mix of explored runs
+  as with uniform spot checks.
 
 On this repository's three streams, `informative` was not consistently better than `uniform`
 ([ablation](../examples/README.md#learned-classifier)): it helped on some (intents: 97.5% → 98.4%
@@ -439,12 +505,13 @@ shows that `informative` helps on your data.
 **The distance gate.** Separately from exploration, an input far from everything the classifier
 has stored goes to the cloud even if its neighbors agree. The gate scores an input by its
 similarity to the 5th nearest stored example, and passes it when that is at least as close as
-95% of the stored examples are to their own neighbors. It is on by default once there are 30
-examples; `stats().gate` shows its threshold and how many inputs it sent to the cloud.
+all but the 5% least typical stored examples are to their own neighbors. It is on by default once
+there are 30 examples; `stats().gate` shows its threshold and how many inputs it sent to the cloud.
 `distanceGate: false` turns it off.
 
-In the simulations it cost 0.1–2.8 points of local share and removed many of the device's
-confident mistakes where there were some (intents: from 2.2% of all inputs to 1.2%). It catches
+In the simulations, with uniform spot checks, it cost 0.1–2.8 points of local share (1.1–8.6
+with informative ones) and removed many of the device's confident mistakes where there were some
+(intents: from 2.2% of all inputs to 1.2%). It catches
 inputs unlike anything stored; a change of label among *similar* inputs is caught by the spot
 checks instead.
 
@@ -477,7 +544,7 @@ are the way to fix them.
 ## Watching it in production
 
 ```ts
-const stats = await local.stats();
+const stats = await local.stats('ticket-triage'); // null until the task's first prepare() or run()
 // { examples, seedExamples, perLabel: { billing: 41, … }, head: 'knn', ready: true,
 //   heads: { knn: { pairs, recentAccuracy, … }, softmax: { … } },
 //   gate: { threshold: 0.61, samples: 146, gated: 10 }, pending, version }
@@ -488,7 +555,7 @@ The task's run events say what happened on each run, without the input text:
 - `source` and `escalationReason` give you the local share over time.
 - On `exploration` runs, `label` (the cloud's) and `localLabel` show whether the device agreed.
   A falling agreement rate means the inputs have drifted. Under `informative` exploration, weigh
-  each run by its `explorationWeight` to estimate the local accuracy.
+  each run by its `explorationWeight` to estimate the agreement rate over all confident runs.
 - `stats().gate.gated` counts the inputs the distance gate sent to the cloud. When you call the
   runner directly, its output's `raw.gate` is `'distance'` for those.
 - `savingsMeter()` counts explored runs in `explored`, and their cost in `cloudSpend`.
@@ -511,8 +578,16 @@ The task's run events say what happened on each run, without the input text:
   purpose: old vectors don't fit.
 - **It forgot everything after a week (Safari) or a full disk.** The browser evicted it. See
   [keeping what it learns](#keeping-what-it-learns).
-- **The page stutters while learning.** The softmax head retrains in short steps between
-  frames. On slow devices, use `head: 'knn'`.
+- **The page stutters while learning.** The softmax head retrains, and the distance gate refits, in
+  short steps between frames. On slow devices, use `head: 'knn'`. With thousands of stored
+  examples, the first run after a page load waits for the gate's first fit (about a second at
+  5,000 examples on a laptop), without blocking the page.
+- **`prepare()` fails with "Failed to resolve module specifier '@huggingface/transformers'".**
+  The app is bundled: pass `transformers: () => import('@huggingface/transformers')` to
+  `transformersEmbedder()` ([install](#1-install)).
+- **`belay.config.ts` doesn't typecheck: "Cannot find module 'playwright-core'".** The config
+  types mention Playwright for `belay calibrate`'s browser options. Install `playwright-core`,
+  set `skipLibCheck`, or write the config as `belay.config.mjs`.
 - **Learning errors** arrive as `error` events with stage `learn` (for example, a full IndexedDB
   quota). The run's answer is unaffected.
 

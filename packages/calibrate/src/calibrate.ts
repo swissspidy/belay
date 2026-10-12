@@ -1,14 +1,14 @@
 import { CALIBRATION_VERSION, optionLabels, schemaFingerprint, type CalibrationFile, type PriceTable, type TokenPrices } from '@swissspidy/belay-core';
 import { analyze, crossValidate, type Analysis, type AnalyzeOptions } from './analyze.js';
 import type { OutputCache } from './cache.js';
-import type { CalibrationTaskConfig } from './config.js';
+import type { RunnableTaskConfig } from './config.js';
 import type { Dataset } from './dataset.js';
 import { evaluate, type EvaluateOptions, type Evaluation, type LocalBackend } from './evaluate.js';
 import { renderReport } from './report.js';
 
 export interface CalibrateOptions {
   name: string;
-  config: CalibrationTaskConfig<any>;
+  config: RunnableTaskConfig<any>;
   dataset: Dataset;
   backend: LocalBackend;
   cache: OutputCache;

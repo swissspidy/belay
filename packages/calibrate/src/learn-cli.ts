@@ -169,7 +169,7 @@ export async function simulateCommand(argv: string[]): Promise<number> {
     if (!ok(n)) throw new Error(`--${flag}: invalid value "${v}"`);
     return n;
   };
-  const threshold = num('threshold', values.threshold, (n) => n >= 0);
+  const threshold = num('threshold', values.threshold, (n) => n >= 0 && n <= 1);
   const exploreRate = num('explore', values.explore, (n) => n >= 0 && n <= 1);
   const teacherAccuracy = num('teacher-accuracy', values['teacher-accuracy'], (n) => n > 0 && n <= 1) ?? 1;
   const windowSize = num('window', values.window, (n) => Number.isInteger(n) && n > 0) ?? 100;
@@ -234,16 +234,16 @@ export async function simulateCommand(argv: string[]): Promise<number> {
   });
 
   const row = (label: string, r: SimulationSummary) =>
-    `${label.padEnd(14)} ${pct(r.localShare)}    ${pct(r.localAccuracy)}    ${pct(r.accuracy)}   ${String(r.cloudCalls).padStart(6)}`;
+    `${label.padEnd(14)} ${pct(r.localShare).padStart(9)}  ${pct(r.localAccuracy).padStart(9)}  ${pct(r.accuracy).padStart(9)}  ${String(r.cloudCalls).padStart(11)}`;
   const lines = [
     '',
     `Task           ${task}: ${dataset.examples.length} inputs${seed ? `, seed of ${seed.examples.length}` : ''}, threshold ${threshold ?? learn.threshold ?? 0.9}, explore ${explore.rate} (${explore.strategy ?? 'uniform'})${teacherAccuracy < 1 ? `, teacher right ${pct(teacherAccuracy).trim()}` : ''}`,
     '',
-    `Inputs         On device   Accurate    Overall   Cloud calls`,
+    `Inputs         ${'On device'.padStart(9)}  ${'Accurate'.padStart(9)}  ${'Overall'.padStart(9)}  ${'Cloud calls'.padStart(11)}`,
     ...result.curve.map((c) => row(`${c.from}–${c.from + c.runs - 1}`, c)),
     '',
     row('All', result.all),
-    row('Last 3 rows', result.last),
+    row(`Last ${Math.min(3, result.curve.length)} rows`, result.last),
     '',
     `Learned        ${result.stats.examples - result.stats.seedExamples} examples (${result.stats.head} head), distance gate ${result.stats.gate.threshold === null ? 'off' : result.stats.gate.threshold.toFixed(3)}, ${result.stats.gate.gated} gated`,
     `"Accurate" is the accuracy of the device's own answers, against the data's labels.`,

@@ -267,26 +267,49 @@ describe('explore: informative strategy', () => {
     const local = runner([{ confidence: 1 }]);
     expect(() => task({ name: 't', schema: triageSchema, local, threshold: 0.8, explore: { rate: 0.1, strategy: 'margin' as 'uniform' } })).toThrow(/strategy/);
     expect(() => task({ name: 't', schema: triageSchema, local, threshold: 0.8, explore: { rate: 0.1, floor: 2 } })).toThrow(/floor/);
+    expect(() => task({ name: 't', schema: triageSchema, local, threshold: 0.8, explore: { rate: 0.1, floor: 0 } })).toThrow(/floor/);
+  });
+
+  it('ignores an informativeness that is not a finite number', async () => {
+    const outputs = [{ confidence: 0.99, informativeness: Number.NaN }, { confidence: 0.99, informativeness: 1 }];
+    for (let i = 0; i < 20; i++) outputs.push({ confidence: 0.99, informativeness: 0 });
+    const random = vi.fn(() => 0.99);
+    const t = task({ name: 't', schema: triageSchema, local: runner(outputs), cloud: mockCloud('bug'), threshold: 0.5, explore: { rate: 0.1, strategy: 'informative', random } });
+    for (let i = 0; i < outputs.length - 1; i++) await t.run(`x${i}`);
+    // A NaN must not poison the running mean: the last, uninformative run is explored at rate × floor (0.02).
+    random.mockReturnValue(0.05);
+    expect((await t.run('z')).escalationReason).not.toBe('exploration');
   });
 });
 
 describe('costAwareThreshold', () => {
-  it('is the cloud accuracy minus the call cost per error cost (Chow)', () => {
-    expect(costAwareThreshold({ errorCost: 1, cloudCost: 0.01, cloudAccuracy: 0.95 })).toBeCloseTo(0.94, 10);
-    expect(costAwareThreshold({ errorCost: 0.002, cloudCost: 0.01, cloudAccuracy: 0.95 })).toBe(0);
+  it("is Chow's rule for a confidence calibrated against labels", () => {
+    expect(costAwareThreshold({ errorCost: 1, cloudCost: 0.01, cloudAccuracy: 0.95, calibratedAgainst: 'labels' })).toBeCloseTo(0.94, 10);
+    expect(costAwareThreshold({ errorCost: 0.002, cloudCost: 0.01, cloudAccuracy: 0.95, calibratedAgainst: 'labels' })).toBe(0);
     expect(costAwareThreshold({ errorCost: 100, cloudCost: 0 })).toBe(1);
+  });
+
+  it('defaults to a confidence of agreeing with the cloud, which needs more of it when the cloud is fallible', () => {
+    expect(costAwareThreshold({ errorCost: 1, cloudCost: 0.01, cloudAccuracy: 0.95 })).toBeCloseTo(1 - 0.01 / 0.95, 10);
+    // The same with an always-right cloud.
+    expect(costAwareThreshold({ errorCost: 1, cloudCost: 0.01 })).toBeCloseTo(0.99, 10);
+    expect(costAwareThreshold({ errorCost: 1, cloudCost: 0.01, calibratedAgainst: 'labels' })).toBeCloseTo(0.99, 10);
   });
 
   it('reads the cloud cost and accuracy from a calibration file', () => {
     const calibration = { expected: { cloudAccuracy: 0.9 }, cost: { cloudPerRun: 0.002 } } as unknown as CalibrationFile;
-    expect(costAwareThreshold({ errorCost: 0.1, calibration })).toBeCloseTo(0.88, 10);
+    expect(costAwareThreshold({ errorCost: 0.1, calibration, calibratedAgainst: 'labels' })).toBeCloseTo(0.88, 10);
+    expect(costAwareThreshold({ errorCost: 0.1, calibration })).toBeCloseTo(1 - 0.002 / 0.09, 10);
   });
 
   it('validates its inputs', () => {
     expect(() => costAwareThreshold({ errorCost: 0, cloudCost: 1 })).toThrow(/errorCost/);
     expect(() => costAwareThreshold({ errorCost: 1 })).toThrow(/cloudCost/);
     expect(() => costAwareThreshold({ errorCost: 1, cloudCost: 1, cloudAccuracy: 2 })).toThrow(/cloudAccuracy/);
+    expect(() => costAwareThreshold({ errorCost: 1, cloudCost: 1, cloudAccuracy: 0 })).toThrow(/cloudAccuracy/);
     expect(() => costAwareThreshold({ errorCost: Infinity, cloudCost: Infinity })).toThrow(/errorCost/);
     expect(() => costAwareThreshold({ errorCost: 1, cloudCost: Infinity })).toThrow(/cloudCost/);
+    expect(() => costAwareThreshold({ errorCost: 1, cloudCost: 1, calibratedAgainst: 'x' as 'cloud' })).toThrow(/calibratedAgainst/);
   });
 });
+

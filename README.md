@@ -182,7 +182,8 @@ Two core features work with any local runner:
   `exploration`). On those runs the event's `label` and `localLabel` show whether the local
   answer agreed, so you can watch for drift. `savingsMeter()` counts them as `explored`. With
   `strategy: 'informative'`, the runs the local runner is least sure of are checked more often,
-  and each carries an `explorationWeight` that keeps estimates from them unbiased.
+  and each carries an `explorationWeight` (rate / probability) that weighs them back to what
+  uniform spot checks would have seen.
 - **`costAwareThreshold({ errorCost, cloudCost, cloudAccuracy })`** turns what a mistake and a
   cloud call cost into a threshold, for runners whose confidence is calibrated.
 - **`task.feedback(input, value)`** passes a correction to the local runner's `learn()`. It

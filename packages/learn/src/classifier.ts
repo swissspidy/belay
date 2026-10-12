@@ -11,7 +11,7 @@ import type {
   RunnerContext,
   TaskSchema,
 } from '@swissspidy/belay-core';
-import { applyPlatt, fitPlatt, type CalibrationPair, type PlattScaling } from './calibrator.js';
+import { applyPlatt, fitPlatt, MAX_PAIR_WEIGHT, type CalibrationPair, type PlattScaling } from './calibrator.js';
 import type { Embedder } from './embedder.js';
 import { knnPredict, nearestSimilarity, quantile, softmaxPredict, softmaxTrain, type HeadExample, type SoftmaxModel } from './head.js';
 import { loadSeed, type SeedFile } from './seed.js';
@@ -162,6 +162,8 @@ interface State {
   gate: { threshold: number | null; at: number; size: number; samples: number };
   /** Examples added or replaced, for the gate's refresh (the count stays put once it is full). */
   changes: number;
+  /** The gate refit running in the background, if any. */
+  gateRefresh: Promise<void> | null;
   gated: number;
   version: number;
   /** Incremented by reset(): learning that started before it must not land after it. */
@@ -178,6 +180,8 @@ const MAX_PAIRS = 1000;
 const GATE_SAMPLE = 300;
 /** Recompute the gate's threshold after this share of new examples. */
 const GATE_REFRESH = 0.1;
+/** Leave-one-out scores the gate fit computes between yields to the event loop. */
+const GATE_CHUNK = 25;
 const MAX_CACHED = 512;
 const MAX_PENDING = 256;
 
@@ -240,6 +244,8 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     nearestSimilarity(examples, v, Math.min(gateK, Math.max(1, examples.length - (skip >= 0 ? 1 : 0))), skip);
 
   const states = new Map<string, Promise<State>>();
+  /** Imports being written, by state key: loading that state waits for them. */
+  const imports = new Map<string, Promise<void>>();
   let firstTask: string | undefined;
   const background = new Set<Promise<unknown>>();
   const track = <T>(p: Promise<T>): Promise<T> => {
@@ -265,6 +271,9 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     const fingerprint = schemaFingerprint(ctx.schema);
     const key = `${ctx.task}|${fingerprint}`;
     firstTask ??= ctx.task;
+    // An import into this scope is being written: load what it wrote, not what was there before.
+    const importing = imports.get(key);
+    if (importing) return importing.then(() => stateFor(ctx));
     let state = states.get(key);
     if (!state) {
       state = (async (): Promise<State> => {
@@ -283,7 +292,8 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
             const label = labels.indexOf(e.label);
             if (label >= 0) seed.push({ id: `seed:${i}`, label, embedding: decodeInt8(e.embedding), weight: 1, source: 'seed', createdAt: 0 });
           });
-          seedPairs = seedFile.pairs?.knn ?? [];
+          // Ids, so that merging two records that both start from this seed counts each pair once.
+          seedPairs = (seedFile.pairs?.knn ?? []).map((p, i) => ({ ...p, id: p.id ?? `seed:${i}` }));
         }
         const learned = new Map<string, Example>();
         for (const e of saved.examples) {
@@ -310,6 +320,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
           pending: [],
           gate: { threshold: null, at: -1, size: 0, samples: 0 },
           changes: 0,
+          gateRefresh: null,
           gated: 0,
           version: 0,
           generation: 0,
@@ -321,6 +332,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
         refit(s, 'knn');
         refit(s, 'softmax');
         if (!s.softmax || s.softmax.examples < size(s)) scheduleRetrain(s);
+        refreshGate(s);
         return s;
       })();
       state.catch(() => states.delete(key));
@@ -465,11 +477,11 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     if (!prediction) return;
     s.predictions.delete(id);
     // Inverse-probability weight of an explored run, clipped so one rare pick cannot dominate.
-    const w = weight === undefined || weight === 1 ? undefined : Math.min(20, Math.max(0.05, weight));
+    const w = weight === undefined || weight === 1 || !(weight > 0) ? undefined : Math.min(MAX_PAIR_WEIGHT, weight);
     for (const head of ['knn', 'softmax'] as const) {
       const p = prediction[head];
       if (!p) continue;
-      s.pairs[head].push({ score: p.score, correct: p.label === label, ...(w !== undefined ? { weight: w } : {}) });
+      s.pairs[head].push({ score: p.score, correct: p.label === label, id, ...(w !== undefined ? { weight: w } : {}) });
       if (s.pairs[head].length > MAX_PAIRS) s.pairs[head].splice(0, s.pairs[head].length - MAX_PAIRS);
       refit(s, head);
     }
@@ -489,6 +501,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     }
     if (generation !== s.generation) return;
     batch.forEach((p, i) => addExample(s, p.id, p.label, vectors[i]!, p.source));
+    refreshGate(s);
     saveMeta(s);
   }
 
@@ -512,27 +525,51 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       s.pending.push({ id, input: example.input, label, source: example.source });
       if (s.pending.length > MAX_PENDING) s.pending.splice(0, s.pending.length - MAX_PENDING);
     }
+    refreshGate(s);
     saveMeta(s);
   }
 
+  /** Whether the distance gate's threshold should be (re)computed. */
+  function gateDue(s: State): boolean {
+    if (typeof gateOption !== 'object') return false;
+    if (size(s) < Math.max(2, gateMinSamples)) return false;
+    return s.gate.at < 0 || s.changes - s.gate.at >= Math.max(5, s.gate.size * GATE_REFRESH);
+  }
+
   /**
-   * The distance gate's threshold right now, or null while it is off: the `gateQuantile` of the
-   * leave-one-out score of up to GATE_SAMPLE stored examples (Sun et al.: keep ~95% of
-   * in-distribution data), recomputed once examples amounting to GATE_REFRESH of them were added
-   * or replaced since.
+   * Fits the distance gate's threshold: the `gateQuantile` of the leave-one-out score of up to
+   * GATE_SAMPLE stored examples (Sun et al.: keep ~95% of in-distribution data). It costs up to
+   * GATE_SAMPLE × examples dot products, so it runs in the background, yielding between chunks
+   * (`refreshGate`): runs keep the previous threshold meanwhile, or wait for the first one.
    */
-  function gateThreshold(s: State): number | null {
+  async function fitGate(s: State, yieldEvery: number): Promise<void> {
+    const generation = s.generation;
+    const at = s.changes;
+    const examples = allExamples(s);
+    const step = Math.max(1, Math.ceil(examples.length / GATE_SAMPLE));
+    const scores: number[] = [];
+    for (let i = 0; i < examples.length; i += step) {
+      if (yieldEvery && scores.length && scores.length % yieldEvery === 0) await new Promise((r) => setTimeout(r, 0));
+      scores.push(gateScore(examples, examples[i]!.embedding, i));
+    }
+    if (generation === s.generation) s.gate = { threshold: quantile(scores, gateQuantile), at, size: examples.length, samples: scores.length };
+  }
+
+  /** Recomputes the gate's threshold in the background once examples amounting to GATE_REFRESH of them changed. */
+  function refreshGate(s: State): void {
+    if (s.gateRefresh || !gateDue(s)) return;
+    s.gateRefresh = track(fitGate(s, GATE_CHUNK)).finally(() => {
+      s.gateRefresh = null;
+    });
+  }
+
+  /** The distance gate's threshold right now, or null while it is off. */
+  async function gateThreshold(s: State): Promise<number | null> {
     if (gateOption === false) return null;
     if (typeof gateOption === 'number') return gateOption;
-    const n = size(s);
-    if (n < Math.max(2, gateMinSamples)) return null;
-    if (s.gate.at < 0 || s.changes - s.gate.at >= Math.max(5, s.gate.size * GATE_REFRESH)) {
-      const examples = allExamples(s);
-      const step = Math.max(1, Math.ceil(examples.length / GATE_SAMPLE));
-      const scores: number[] = [];
-      for (let i = 0; i < examples.length; i += step) scores.push(gateScore(examples, examples[i]!.embedding, i));
-      s.gate = { threshold: quantile(scores, gateQuantile), at: s.changes, size: n, samples: scores.length };
-    }
+    refreshGate(s);
+    // Never fitted yet (e.g. examples just loaded from the store or a seed): wait for the first fit.
+    if (s.gate.at < 0 && s.gateRefresh) await s.gateRefresh;
     return s.gate.threshold;
   }
 
@@ -585,7 +622,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       const ready = size(s) >= minExamples && counts[top.label]! >= minPerLabel && scaling !== null;
       // Distance gate: nothing stored is close enough to vouch for this input.
       const nearest = gateScore(allExamples(s), v);
-      const gateAt = gateThreshold(s);
+      const gateAt = await gateThreshold(s);
       const gated = ready && gateAt !== null && nearest < gateAt;
       if (gated) s.gated++;
       const confidence = ready && !gated ? applyPlatt(scaling, top.score) : 0;
@@ -626,7 +663,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
           softmax: { pairs: s.pairs.softmax.length, recentAccuracy: recentAccuracy(s, 'softmax'), scaling: s.scaling.softmax, trained: s.softmax !== null },
         },
         pending: s.pending.length,
-        gate: { threshold: gateThreshold(s), samples: s.gate.samples, gated: s.gated },
+        gate: { threshold: await gateThreshold(s), samples: s.gate.samples, gated: s.gated },
         version: s.version,
       };
     },
@@ -701,38 +738,88 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       }
       const scope = scopeOf(snapshot.task, snapshot.schemaFingerprint);
       const key = `${snapshot.task}|${snapshot.schemaFingerprint}`;
-      // Settle in-flight learning, then let the task reload from the store on its next run.
-      await this.flush();
-      const loaded = states.get(key);
-      let schema: LearnedTaskSchema | undefined;
-      if (loaded) {
-        const s = await loaded.catch(() => null);
-        if (s) {
-          cancelRetrain(s);
-          await s.training?.catch(() => {});
-          s.generation++;
-          schema = s.schema;
+      for (const other of states.keys()) {
+        if (other.startsWith(`${snapshot.task}|`) && other !== key) {
+          throw new BelayError('invalid-task', `snapshot is for another version of task "${snapshot.task}"'s schema than the one it runs with`);
         }
-        states.delete(key);
       }
-      const current = importOptions.replace ? { examples: [], meta: null } : await store.load(scope);
-      const byId = new Map(current.examples.map((e) => [e.id, e]));
-      for (const e of snapshot.examples) {
-        const existing = byId.get(e.id);
-        if (existing?.source === 'feedback' && e.source === 'cloud') continue;
-        byId.set(e.id, { id: e.id, label: e.label, source: e.source, createdAt: e.createdAt, embedding: decodeInt8(e.embedding) });
+      if (imports.has(key)) throw new BelayError('invalid-task', `an import into task "${snapshot.task}" is already running`);
+      let schema: LearnedTaskSchema | undefined;
+      let pending: State['pending'] = [];
+      let seedDims: number | undefined;
+      const work = (async () => {
+        // Settle in-flight learning, then unload the task: runs wait for the import (stateFor).
+        await this.flush();
+        const loaded = states.get(key);
+        if (loaded) {
+          const s = await loaded.catch(() => null);
+          if (s) {
+            cancelRetrain(s);
+            await s.training?.catch(() => {});
+            s.generation++;
+            schema = s.schema;
+            pending = s.pending; // labels still waiting for the embedding model
+            seedDims = s.seed[0]?.embedding.length;
+          }
+          states.delete(key);
+        }
+        const labels = schema ? labelsOf(schema) : null;
+        const current = importOptions.replace ? { examples: [], meta: null } : await store.load(scope);
+        const dims = current.examples[0]?.embedding.length ?? seedDims;
+        const byId = new Map(current.examples.map((e) => [e.id, e]));
+        for (const e of snapshot.examples) {
+          if (labels && !labels.includes(e.label)) continue; // not a label of this schema
+          const existing = byId.get(e.id);
+          if (existing?.source === 'feedback' && e.source === 'cloud') continue;
+          let embedding: Float32Array;
+          try {
+            embedding = decodeInt8(e.embedding);
+          } catch {
+            throw new BelayError('invalid-task', `snapshot example "${e.id}" has an invalid embedding`);
+          }
+          const expected = dims ?? byId.values().next().value?.embedding.length ?? embedding.length;
+          if (embedding.length !== expected || !embedding.every(Number.isFinite)) {
+            throw new BelayError('invalid-task', `snapshot example "${e.id}" has ${embedding.length} dimensions, expected ${expected}`);
+          }
+          byId.set(e.id, { id: e.id, label: e.label, source: e.source, createdAt: e.createdAt, embedding });
+        }
+        // Over maxExamples: drop the oldest cloud answers first, as learning does.
+        const excess = byId.size - maxExamples;
+        if (excess > 0) {
+          const oldest = [...byId.values()].filter((e) => e.source === 'cloud').sort((a, b) => a.createdAt - b.createdAt);
+          for (const e of oldest.slice(0, excess)) byId.delete(e.id);
+        }
+        // Both records count, each prediction once: the snapshot's first, this browser's own last.
+        const mergePairs = (head: 'knn' | 'softmax') => {
+          const own = current.meta?.pairs[head] ?? [];
+          const seen = new Set(own.map((p) => p.id).filter((id) => id !== undefined));
+          return [...snapshot.pairs[head].filter((p) => p.id === undefined || !seen.has(p.id)), ...own].slice(-MAX_PAIRS);
+        };
+        const meta: StoredMeta = { version: 1, pairs: { knn: mergePairs('knn'), softmax: mergePairs('softmax') } };
+        await write(async () => {
+          if (importOptions.replace) await store.clear(scope);
+          await store.put(scope, [...byId.values()]);
+          await store.putMeta(scope, meta);
+        });
+        return byId.size;
+      })();
+      imports.set(
+        key,
+        work.then(
+          () => {},
+          () => {},
+        ),
+      );
+      try {
+        return { examples: await work };
+      } finally {
+        imports.delete(key);
+        // A task that was loaded reloads from the store now (with the import, unless it failed).
+        if (schema) {
+          const s = await stateFor({ task: snapshot.task, schema });
+          s.pending.push(...pending);
+        }
       }
-      // Both records count: the snapshot's first, this browser's own (newer here) last.
-      const mergePairs = (head: 'knn' | 'softmax') => [...snapshot.pairs[head], ...(current.meta?.pairs[head] ?? [])].slice(-MAX_PAIRS);
-      const meta: StoredMeta = { version: 1, pairs: { knn: mergePairs('knn'), softmax: mergePairs('softmax') } };
-      await write(async () => {
-        if (importOptions.replace) await store.clear(scope);
-        await store.put(scope, [...byId.values()]);
-        await store.putMeta(scope, meta);
-      });
-      // A task that was loaded reloads from the store now, so stats() and runs see the import.
-      if (schema) await stateFor({ task: snapshot.task, schema });
-      return { examples: byId.size };
     },
 
     destroy() {

@@ -26,8 +26,9 @@ costs. Using it also raised practical questions the first version left to the ap
 
 ### 1. Informative exploration, with importance weights
 
-`explore: { rate, strategy: 'informative', floor }` spends the same average budget as `rate` but
-skews it towards the runs the local runner is least sure of. A local runner may report
+`explore: { rate, strategy: 'informative', floor }` spends about the same budget as `rate`
+(somewhat more, because of the floor) but skews it towards the runs the local runner is least
+sure of. A local runner may report
 `informativeness` in [0, 1] with its output; the learned classifier reports `1 − (top1 − top2)`
 (margin sampling), or 1 when its kNN and softmax heads disagree (query by committee). Runners
 that don't report it get `1 − confidence`.
@@ -43,20 +44,29 @@ score history.
 
 Exploring by informativeness biases the explored sample. The calibration (ADR 0004 §2) and any
 agreement rate computed from explored runs would then over-represent hard inputs and
-underestimate the local accuracy. So:
+underestimate how often the device agrees with the cloud. So:
 
-- **A floor.** Every confident run keeps probability at least `rate × floor` (default 0.2), so
-  none is unobservable: importance weighting needs a probability bounded away from 0 (IWAL's
-  `p_min`).
+- **A floor.** Every confident run keeps probability at least `rate × floor` (default 0.2, and
+  required to be above 0), so none is unobservable: importance weighting needs a probability
+  bounded away from 0 (IWAL's `p_min`). An informativeness that is not a finite number is ignored.
 - **Importance weights.** An explored run carries `explorationWeight = rate / p` on its
   `LearnExample` and its run event. The learned classifier multiplies the weight of the
-  calibration pair it records for that run (clipped to [0.05, 20]); dashboards weigh agreement by
-  it. A run explored with probability `rate` has weight 1, so `uniform` is unchanged.
+  calibration pair it records for that run (capped at 20); dashboards weigh agreement by it. A
+  run explored with probability `rate` has weight 1, so `uniform` is unchanged.
+
+What the weights buy is limited, and the docs say so: the explored pairs enter the calibration in
+the proportions uniform exploration would have given, in expectation. That does not make the fit
+unbiased. Platt scaling is a two-parameter, recency-weighted model; the pairs from escalations
+below the threshold (and from gated inputs) enter at weight 1; and a weighted agreement rate is a
+ratio estimator, consistent rather than unbiased. Agreement is also agreement with the cloud,
+not accuracy.
 
 In the ablation (cold start, 1,000–1,500 inputs per task, below) it made no consistent
 difference. Without the gate it raised the device's accuracy on intents from 97.5% to 98.4% for
 0.6 points of local share, and the local share on ticket triage with a noisy teacher from 78.2% to
-81.3%; with the gate on, it cost 0.2–5.1 points of local share for at most 0.7 points of accuracy.
+81.3%; with the gate on, it cost 0.2–5.1 points of local share for at most 0.7 points of accuracy,
+and lowered overall accuracy on ticket triage with a noisy teacher from 98.9% to 98.4%. It also
+explored more: 4.6–6.4% of confident runs, against 4.1–4.5% for uniform.
 The default stays `uniform`, whose agreement rate needs no weights, and `informative` is an
 option to try with `belay simulate` on one's own data.
 
@@ -72,8 +82,11 @@ confidence is 0 (they escalate as `low-confidence`, with `raw.gate: 'distance'`)
   robust to one stray near-duplicate.
 - **Threshold:** the 5% quantile of the same score for the stored examples, each left out in
   turn, so about 95% of what the classifier has learned from would pass, the operating point
-  Sun et al. report. It is computed on up to 300 stored examples and recomputed when the example
-  count has moved by 10%, which keeps it at O(300 × n) per refresh.
+  Sun et al. report. It is computed on up to 300 stored examples and recomputed once examples
+  amounting to 10% of the store (at least 5) have been added or replaced since. A refit costs up
+  to 300 × n dot products, about a second at 5,000 examples, so it runs in the background in
+  chunks that yield to the event loop: runs use the previous threshold meanwhile, and the first
+  run after loading a store waits for the first fit.
 - **Off until 30 examples:** with fewer, the leave-one-out scores are too few and too far apart
   to say what "unusual" means.
 - **On by default**, `distanceGate: false` to disable, a number for a fixed threshold, or
@@ -83,8 +96,8 @@ A first version scored each input on arrival against the examples before it. Tha
 skewed low by the early, sparse examples and gated almost nothing later on; the leave-one-out
 quantile over the current examples tracks the store as it grows.
 
-In the ablation the gate cost 0.1–2.8 points of local share and sent 8–44 inputs per stream to
-the cloud. Where the device made confident mistakes it removed many of them: on intents, the
+In the ablation the gate cost 0.1–2.8 points of local share with uniform spot checks (1.1–8.6
+with informative ones) and sent 8–44 inputs per stream to the cloud. Where the device made confident mistakes it removed many of them: on intents, the
 device's accuracy rose from 97.5% to 98.6% (its mistakes fell from 2.2% to 1.2% of all inputs) and
 overall accuracy from 97.8% to 98.8%; on ticket triage from 99.5% to 99.7%. On content moderation
 it changed nothing. On the label-sorted moderation stream it did not help: it gated only 8
@@ -93,25 +106,40 @@ close to civil ones in embedding space, not far from everything. A distance gate
 unlike anything stored, not a change of label among similar inputs; the calibration's recency
 weighting handles that (ADR 0004). On by default because it trades a few cloud calls for fewer
 confident mistakes, which is what a threshold of 0.9 asks for. A seed changes the trade: on
-intents the seeded run kept 79.9% on device (86.4% without the gate) at 99.9%, presumably because
+intents the seeded run kept 79.9% on device at 99.9% (ADR 0004's, without the gate: 86.4% at
+99.6%), presumably because
 the seed's examples are less like the stream's inputs than the stream's are like each other.
 
 ### 3. A cost-aware threshold, as a helper
 
-With a calibrated confidence p, answering locally costs `(1 − p) × C_err` in expectation and
-escalating costs `C_call + (1 − a_cloud) × C_err`. Accepting locally is cheaper iff
+Escalating costs `C_call + (1 − a_cloud) × C_err` in expectation; answering locally costs
+`(1 − P(local right)) × C_err`. What P(local right) is depends on what the confidence p is
+calibrated against:
 
-    p ≥ a_cloud − C_call / C_err
+- **Against labels** (`belay calibrate`), p = P(right), and accepting locally is cheaper iff
 
-Chow's (1970) reject rule, with the cloud as the reject option. OCaTS's objective, accuracy minus
-λ × the share of LLM calls, is the same rule with `λ = C_call / C_err` and a perfect cloud.
+      p ≥ a_cloud − C_call / C_err
 
-`costAwareThreshold({ errorCost, cloudCost, cloudAccuracy, calibration })` in the core returns
-that threshold, reading the cloud's cost and accuracy from a calibration file when given one. It
-is a helper that computes a number for `threshold`, not a new mode: the threshold keeps one
-meaning for every runner, and only a runner with calibrated confidence (the learned classifier)
-makes the formula exact. Learning the deferral policy online (Online Cascade Learning; learning to
-defer, Mozannar & Sontag 2020) would need the error cost at run time, which apps rarely have.
+  Chow's (1970) reject rule, with the cloud as the reject option. OCaTS's objective, accuracy
+  minus λ × the share of LLM calls, is the same rule with `λ = C_call / C_err`.
+- **Against the cloud** (the learned classifier: the cloud's answers are its only labels), p =
+  P(agrees with the cloud). Counting a local answer as right only when it agrees with a right
+  cloud, P(local right) ≈ p × a_cloud, and the break-even is
+
+      p ≥ 1 − C_call / (a_cloud × C_err)
+
+  This is conservative: a local answer that disagrees with a wrong cloud can still be right. A
+  fallible cloud raises this threshold, where it lowers the first one.
+
+`costAwareThreshold({ errorCost, cloudCost, cloudAccuracy, calibration, calibratedAgainst })` in
+the core returns either (default `'cloud'`), reading the cloud's cost and accuracy from a
+calibration file when given one. The two agree when the cloud is always right. A first version
+used the first rule for the learned classifier, which with a 97%-accurate cloud gave 0.966 where
+0.996 was the break-even; the adversarial review caught it. It is a helper that computes a number
+for `threshold`, not a new mode: the threshold keeps one meaning for every runner, and the rule is
+approximately right at best, since the cloud's accuracy also varies with p. Learning the deferral
+policy online (Online Cascade Learning; learning to defer, Mozannar & Sontag 2020) would need the
+error cost at run time, which apps rarely have.
 
 ### 4. Keeping what it learns
 
@@ -119,14 +147,18 @@ defer, Mozannar & Sontag 2020) would need the error cost at run time, which apps
   'belay-learn-state'`, `version: 1`): the task, schema fingerprint and embedder id, the examples
   (int8 embeddings, label, source, time; no text) and the calibration pairs of both heads.
   `importState(snapshot, { replace })` merges into the store (a user's correction wins over a
-  cloud answer for the same input) or replaces it, then reloads the task if it is loaded. A
-  snapshot from another embedder is rejected; one for another schema lands in that schema's
-  scope. This mirrors TensorFlow.js's model save handlers (`indexeddb://`, `downloads://`, HTTP),
+  cloud answer for the same input) or replaces it, then reloads the task if it is loaded.
+  Calibration pairs carry the id of the input they were scored on, so a merge counts each
+  prediction once and re-importing one's own backup changes nothing. Imports respect
+  `maxExamples`, reject malformed embeddings (wrong length, non-finite values) and pair weights
+  above the cap, and refuse a snapshot for another schema of a task the page runs (one for a task
+  not loaded yet lands in its schema's scope). Runs that start during an import wait for it, and
+  labels waiting for the embedding model survive it. This mirrors TensorFlow.js's model save handlers (`indexeddb://`, `downloads://`, HTTP),
   and Teachable Machine's export, for a model that is mostly data.
 - **`persistStorage()`** asks for persistent storage (`navigator.storage.persist()`) and reports
   usage and quota. Best-effort storage is evicted under pressure, and Safari deletes
-  script-written storage after 7 days without a visit unless the site is installed. The guide
-  says when to ask, and that export is the fallback.
+  script-written storage after 7 days of Safari use without an interaction on the site, unless
+  it runs as a Home Screen web app. The guide says when to ask, and that export is the fallback.
 - **No OPFS store.** The origin private file system shares IndexedDB's quota and eviction, so it
   would not keep data any longer; IndexedDB is enough for a few MB of vectors.
 - **Server sync is a recipe, not a feature.** An `ExampleStore` is five methods; the guide shows a
@@ -188,11 +220,12 @@ checks and no gate reproduce ADR 0004's results exactly, so the refactor onto
 | Intent detection | 99.7% right | informative | – | 86.4% | 98.4% | 98.5% | |
 | Intent detection | 99.7% right | informative | ✓ | 80.2% | 99.3% | 99.3% | 22 |
 
-- **The gate** trades 0.1–2.8 points of local share for fewer confident mistakes where there were
-  some (intents: 2.2% → 1.2% of all inputs answered wrongly on the device), and does not help
-  when the labels change among similar inputs (the sorted moderation stream).
+- **The gate** trades 0.1–2.8 points of local share (with uniform spot checks) for fewer confident
+  mistakes where there were some (intents: 2.2% → 1.2% of all inputs answered wrongly on the
+  device), and does not help when the labels change among similar inputs (the sorted moderation
+  stream).
 - **Informative spot checks** are not consistently better than uniform ones at a 5% rate on
-  these streams. With at most about 60 explored runs per stream, which runs are explored likely
+  these streams. With at most 80 explored runs per stream, which runs are explored likely
   matters less than the escalations below the threshold, which already are the uncertain ones.
 - **The gate and informative spot checks together** cost the most local share (ticket triage
   with a noisy teacher: 72.7%, against 77.3% with the gate alone).
@@ -226,6 +259,8 @@ checks and no gate reproduce ADR 0004's results exactly, so the refactor onto
   dashboards are unaffected, and `uniform` exploration behaves as before.
 - The distance gate is on by default, so the classifier answers slightly fewer inputs locally
   than ADR 0004's once it has 30 examples. `distanceGate: false` restores the old behavior.
+- In `belay.config`, a task's `local` and `cloud` are optional: `belay seed` and `belay simulate`
+  only need the schema, and `belay calibrate` says when they are missing.
 - `belay-calibrate` depends on `belay-learn`. It does not load transformers.js unless `belay seed`
   or `belay simulate` runs.
 - Snapshot files are a format: a later change to them needs a new `version` and a migration in
