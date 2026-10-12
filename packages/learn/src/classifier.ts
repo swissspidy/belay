@@ -13,8 +13,9 @@ import type {
 } from '@swissspidy/belay-core';
 import { applyPlatt, fitPlatt, type CalibrationPair, type PlattScaling } from './calibrator.js';
 import type { Embedder } from './embedder.js';
-import { knnPredict, softmaxPredict, softmaxTrain, type HeadExample, type SoftmaxModel } from './head.js';
+import { knnPredict, nearestSimilarity, quantile, softmaxPredict, softmaxTrain, type HeadExample, type SoftmaxModel } from './head.js';
 import { loadSeed, type SeedFile } from './seed.js';
+import { parseLearnedState, type LearnedState } from './state.js';
 import { memoryStore, type ExampleStore, type StoredExample, type StoredMeta } from './store.js';
 import { decodeInt8, encodeInt8 } from './vector.js';
 
@@ -62,6 +63,18 @@ export interface LearnedClassifierOptions {
      */
     halfLife?: number;
   };
+  /**
+   * Out-of-distribution check: an input whose `k`-th nearest stored example is less similar
+   * than a threshold escalates, however confident the vote among its neighbors (`raw.gate` is
+   * `'distance'`). See ADR 0005.
+   * - `{ k, quantile, minSamples }` (default `{ k: 5, quantile: 0.05, minSamples: 30 }`): the
+   *   threshold is that quantile of the same score for the stored examples, each left out in
+   *   turn (up to 300 of them, recomputed as it learns), so about 95% of inputs like those it
+   *   learned from pass. Off until there are `minSamples` stored examples.
+   * - a number: a fixed cosine similarity (with k = 5).
+   * - `false`: off.
+   */
+  distanceGate?: false | number | { k?: number; quantile?: number; minSamples?: number };
   /** Weight of a `task.feedback()` correction relative to a cloud answer. Defaults to 3. */
   feedbackWeight?: number;
   /** Ignore cloud answers whose reported confidence is below this. Defaults to 0 (learn from all). */
@@ -85,6 +98,8 @@ export interface LearnedStats {
   heads: Record<HeadKind, { pairs: number; recentAccuracy: number | null; scaling: PlattScaling | null; trained: boolean }>;
   /** Labeled inputs waiting for the embedding model. */
   pending: number;
+  /** The distance gate: its current threshold (null while off) and how many runs it sent to the cloud. */
+  gate: { threshold: number | null; samples: number; gated: number };
   /** Incremented whenever the classifier learns. */
   version: number;
 }
@@ -102,6 +117,17 @@ export type LearnedClassifier = LocalRunner<any> & {
   reset(task?: string): Promise<void>;
   /** The seed and the learned examples as a seed file, e.g. to ship what a classifier learned in development. */
   exportSeed(task?: string): Promise<SeedFile>;
+  /**
+   * Everything a task learned (not the seed) as a JSON-serializable snapshot: for backups,
+   * moving to another device, or syncing to your server. Holds embeddings, never text.
+   */
+  exportState(task?: string): Promise<LearnedState>;
+  /**
+   * Restores a snapshot from `exportState()` into the store, merging with what is there (a
+   * correction wins over a cloud answer for the same input) or, with `{ replace: true }`,
+   * replacing it. Works before the task's first run: the snapshot names its task and schema.
+   */
+  importState(state: LearnedState, options?: { replace?: boolean }): Promise<{ examples: number }>;
 };
 
 interface Prediction {
@@ -132,6 +158,9 @@ interface State {
   predictions: Map<string, Partial<Record<HeadKind, Prediction>>>;
   embeddings: Map<string, Float32Array>;
   pending: { id: string; input: string; label: number; source: 'cloud' | 'feedback' }[];
+  /** The distance gate's threshold, and the example count it was computed at. */
+  gate: { threshold: number | null; at: number; samples: number };
+  gated: number;
   version: number;
   /** Incremented by reset(): learning that started before it must not land after it. */
   generation: number;
@@ -143,6 +172,10 @@ interface State {
 }
 
 const MAX_PAIRS = 1000;
+/** Stored examples scored (left out in turn) for the distance gate's threshold. */
+const GATE_SAMPLE = 300;
+/** Recompute the gate's threshold after this share of new examples. */
+const GATE_REFRESH = 0.1;
 const MAX_CACHED = 512;
 const MAX_PENDING = 256;
 
@@ -196,6 +229,13 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
   const feedbackWeight = options.feedbackWeight ?? 3;
   const minCloudConfidence = options.minCloudConfidence ?? 0;
   const maxExamples = options.maxExamples ?? 5000;
+  const gateOption = options.distanceGate ?? {};
+  const gateQuantile = typeof gateOption === 'object' ? (gateOption.quantile ?? 0.05) : 0;
+  const gateMinSamples = typeof gateOption === 'object' ? (gateOption.minSamples ?? 30) : 0;
+  const gateK = Math.max(1, (typeof gateOption === 'object' ? gateOption.k : undefined) ?? 5);
+  /** The gate's score: similarity to the k-th nearest example (fewer examples: the farthest). */
+  const gateScore = (examples: readonly HeadExample[], v: Float32Array, skip = -1): number =>
+    nearestSimilarity(examples, v, Math.min(gateK, Math.max(1, examples.length - (skip >= 0 ? 1 : 0))), skip);
 
   const states = new Map<string, Promise<State>>();
   let firstTask: string | undefined;
@@ -266,6 +306,8 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
           predictions: new Map(),
           embeddings: new Map(),
           pending: [],
+          gate: { threshold: null, at: -1, samples: 0 },
+          gated: 0,
           version: 0,
           generation: 0,
           retrainTimer: undefined,
@@ -414,14 +456,16 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
   }
 
   /** Records how the heads did on this input before they learned it. */
-  function recordPairs(s: State, id: string, label: number): void {
+  function recordPairs(s: State, id: string, label: number, weight?: number): void {
     const prediction = s.predictions.get(id);
     if (!prediction) return;
     s.predictions.delete(id);
+    // Inverse-probability weight of an explored run, clipped so one rare pick cannot dominate.
+    const w = weight === undefined || weight === 1 ? undefined : Math.min(20, Math.max(0.05, weight));
     for (const head of ['knn', 'softmax'] as const) {
       const p = prediction[head];
       if (!p) continue;
-      s.pairs[head].push({ score: p.score, correct: p.label === label });
+      s.pairs[head].push({ score: p.score, correct: p.label === label, ...(w !== undefined ? { weight: w } : {}) });
       if (s.pairs[head].length > MAX_PAIRS) s.pairs[head].splice(0, s.pairs[head].length - MAX_PAIRS);
       refit(s, head);
     }
@@ -451,7 +495,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     if (label < 0) return;
     if (example.source === 'cloud' && example.cloudConfidence !== undefined && example.cloudConfidence < minCloudConfidence) return;
     const id = inputId(example.input);
-    recordPairs(s, id, label);
+    recordPairs(s, id, label, example.explorationWeight);
     const cached = s.embeddings.get(id);
     if (cached) {
       addExample(s, id, label, cached, example.source);
@@ -465,6 +509,26 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       if (s.pending.length > MAX_PENDING) s.pending.splice(0, s.pending.length - MAX_PENDING);
     }
     saveMeta(s);
+  }
+
+  /**
+   * The distance gate's threshold right now, or null while it is off: the `gateQuantile` of the
+   * leave-one-out score of up to GATE_SAMPLE stored examples (Sun et al.: keep ~95% of
+   * in-distribution data), recomputed once the example count moved by GATE_REFRESH.
+   */
+  function gateThreshold(s: State): number | null {
+    if (gateOption === false) return null;
+    if (typeof gateOption === 'number') return gateOption;
+    const n = size(s);
+    if (n < Math.max(2, gateMinSamples)) return null;
+    if (s.gate.at < 0 || Math.abs(n - s.gate.at) >= Math.max(5, s.gate.at * GATE_REFRESH)) {
+      const examples = allExamples(s);
+      const step = Math.max(1, Math.ceil(examples.length / GATE_SAMPLE));
+      const scores: number[] = [];
+      for (let i = 0; i < examples.length; i += step) scores.push(gateScore(examples, examples[i]!.embedding, i));
+      s.gate = { threshold: quantile(scores, gateQuantile), at: n, samples: scores.length };
+    }
+    return s.gate.threshold;
   }
 
   async function stateOf(task?: string): Promise<State | null> {
@@ -514,13 +578,24 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       const counts = countsOf(s);
       const scaling = s.scaling[head];
       const ready = size(s) >= minExamples && counts[top.label]! >= minPerLabel && scaling !== null;
-      const confidence = ready ? applyPlatt(scaling, top.score) : 0;
+      // Distance gate: nothing stored is close enough to vouch for this input.
+      const nearest = gateScore(allExamples(s), v);
+      const gateAt = gateThreshold(s);
+      const gated = ready && gateAt !== null && nearest < gateAt;
+      if (gated) s.gated++;
+      const confidence = ready && !gated ? applyPlatt(scaling, top.score) : 0;
+      // What a cloud answer would teach: low margin between the top two labels, or heads that disagree.
+      let second = 0;
+      for (let i = 0; i < p.length; i++) if (i !== top.label && p[i]! > second) second = p[i]!;
+      const disagree = recorded.knn && recorded.softmax && recorded.knn.label !== recorded.softmax.label;
+      const informativeness = disagree ? 1 : Math.min(1, Math.max(0, 1 - (top.score - second)));
       const label = s.labels[top.label]!;
       return {
         value: s.schema.type === 'binary' ? label === 'true' : label,
         confidence,
         probabilities: s.labels.map((l, i) => ({ label: l, probability: p[i]! })),
-        raw: { head, score: top.score, ready, examples: size(s), version: s.version },
+        informativeness,
+        raw: { head, score: top.score, ready, nearest, ...(gated ? { gate: 'distance' } : {}), examples: size(s), version: s.version },
       };
     },
 
@@ -546,6 +621,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
           softmax: { pairs: s.pairs.softmax.length, recentAccuracy: recentAccuracy(s, 'softmax'), scaling: s.scaling.softmax, trained: s.softmax !== null },
         },
         pending: s.pending.length,
+        gate: { threshold: gateThreshold(s), samples: s.gate.samples, gated: s.gated },
         version: s.version,
       };
     },
@@ -567,6 +643,8 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       s.softmax = null;
       s.predictions.clear();
       s.pending = [];
+      s.gate = { threshold: null, at: -1, samples: 0 };
+      s.gated = 0;
       s.dirty = false;
       s.version++;
       await write(() => store.clear(s.scope));
@@ -587,6 +665,70 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
         examples: examples.map((e) => ({ label: s.labels[e.label]!, embedding: encodeInt8(e.embedding) })),
         ...(s.pairs.knn.length ? { pairs: { knn: s.pairs.knn.slice(-window) } } : {}),
       };
+    },
+
+    async exportState(task) {
+      const s = await stateOf(task);
+      if (!s) throw new BelayError('invalid-task', 'the learned classifier has not been used for this task');
+      await this.flush();
+      return {
+        kind: 'belay-learn-state',
+        version: 1,
+        task: s.task,
+        schemaFingerprint: s.fingerprint,
+        embedder: embedder.id,
+        createdAt: new Date().toISOString(),
+        examples: [...s.learned.values()].map((e) => ({
+          id: e.id,
+          label: s.labels[e.label]!,
+          source: e.source as 'cloud' | 'feedback',
+          createdAt: e.createdAt,
+          embedding: encodeInt8(e.embedding),
+        })),
+        pairs: { knn: s.pairs.knn.slice(-MAX_PAIRS), softmax: s.pairs.softmax.slice(-MAX_PAIRS) },
+        };
+    },
+
+    async importState(value, importOptions = {}) {
+      const snapshot = parseLearnedState(value);
+      if (snapshot.embedder !== embedder.id) {
+        throw new BelayError('invalid-task', `snapshot was made with embedder "${snapshot.embedder}", not "${embedder.id}"`);
+      }
+      const scope = scopeOf(snapshot.task, snapshot.schemaFingerprint);
+      const key = `${snapshot.task}|${snapshot.schemaFingerprint}`;
+      // Settle in-flight learning, then let the task reload from the store on its next run.
+      await this.flush();
+      const loaded = states.get(key);
+      let schema: LearnedTaskSchema | undefined;
+      if (loaded) {
+        const s = await loaded.catch(() => null);
+        if (s) {
+          cancelRetrain(s);
+          await s.training?.catch(() => {});
+          s.generation++;
+          schema = s.schema;
+        }
+        states.delete(key);
+      }
+      const current = importOptions.replace ? { examples: [], meta: null } : await store.load(scope);
+      const byId = new Map(current.examples.map((e) => [e.id, e]));
+      for (const e of snapshot.examples) {
+        const existing = byId.get(e.id);
+        if (existing?.source === 'feedback' && e.source === 'cloud') continue;
+        byId.set(e.id, { id: e.id, label: e.label, source: e.source, createdAt: e.createdAt, embedding: decodeInt8(e.embedding) });
+      }
+      const meta: StoredMeta = {
+        version: 1,
+        pairs: current.meta?.pairs.knn.length ? current.meta.pairs : snapshot.pairs,
+      };
+      await write(async () => {
+        if (importOptions.replace) await store.clear(scope);
+        await store.put(scope, [...byId.values()]);
+        await store.putMeta(scope, meta);
+      });
+      // A task that was loaded reloads from the store now, so stats() and runs see the import.
+      if (schema) await stateFor({ task: snapshot.task, schema });
+      return { examples: byId.size };
     },
 
     destroy() {

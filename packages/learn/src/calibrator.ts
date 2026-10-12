@@ -6,6 +6,8 @@
 export interface CalibrationPair {
   score: number;
   correct: boolean;
+  /** Importance weight, e.g. the inverse-probability weight of an explored run. Defaults to 1. */
+  weight?: number;
 }
 
 /** `P(correct) = sigmoid(a · logit(score) + b)`. */
@@ -47,7 +49,7 @@ export interface PlattOptions {
 export function fitPlatt(pairs: readonly CalibrationPair[], options: PlattOptions = {}): PlattScaling {
   const prior = options.prior ?? 0.01;
   const n = pairs.length;
-  const w = pairs.map((_, i) => (options.halfLife ? 0.5 ** ((n - 1 - i) / options.halfLife) : 1));
+  const w = pairs.map((p, i) => (options.halfLife ? 0.5 ** ((n - 1 - i) / options.halfLife) : 1) * (p.weight ?? 1));
   let positives = 0;
   let total = 0;
   pairs.forEach((p, i) => {

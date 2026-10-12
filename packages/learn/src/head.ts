@@ -49,6 +49,37 @@ export function knnPredict(
   return p;
 }
 
+/**
+ * The cosine similarity between `v` and its `k`-th nearest example (`k` = 1: the nearest), or
+ * the farthest one when there are fewer than `k`. `skip` leaves one example out (leave-one-out).
+ * Deep k-NN out-of-distribution detection (Sun et al., ICML 2022) scores an input this way.
+ */
+export function nearestSimilarity(examples: readonly HeadExample[], v: Float32Array, k = 1, skip = -1): number {
+  const top: number[] = [];
+  for (let i = 0; i < examples.length; i++) {
+    if (i === skip) continue;
+    const s = dot(examples[i]!.embedding, v);
+    if (top.length === k && s <= top[k - 1]!) continue;
+    let j = top.length === k ? k - 1 : top.length;
+    while (j > 0 && top[j - 1]! < s) {
+      top[j] = top[j - 1]!;
+      j--;
+    }
+    top[j] = s;
+  }
+  return top.length ? top[top.length - 1]! : -Infinity;
+}
+
+/** The `q`-quantile of `values` (linear interpolation), or `null` when there are none. */
+export function quantile(values: readonly number[], q: number): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const pos = (sorted.length - 1) * Math.min(1, Math.max(0, q));
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (pos - lo);
+}
+
 /** A multinomial logistic regression (softmax) layer: `labels × dimensions` weights and a bias. */
 export interface SoftmaxModel {
   labels: number;

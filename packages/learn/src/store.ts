@@ -146,3 +146,22 @@ export function indexedDbStore(options: IndexedDbStoreOptions = {}): ExampleStor
     },
   };
 }
+
+/**
+ * Asks the browser to keep this origin's storage (IndexedDB included) instead of evicting it
+ * under storage pressure ("best-effort" by default). Browsers decide on their own: Chrome grants
+ * it to sites the user engages with or installed, Firefox may ask the user, and Safari may also
+ * clear script-written storage of sites the user hasn't visited for a while. Resolves with the
+ * outcome and the current usage and quota; `persisted` is false where the API is missing.
+ */
+export async function persistStorage(): Promise<{ persisted: boolean; usage?: number; quota?: number }> {
+  const storage = (globalThis as { navigator?: { storage?: StorageManager } }).navigator?.storage;
+  if (!storage?.persist) return { persisted: false };
+  const persisted = (await storage.persisted?.()) || (await storage.persist());
+  const estimate = await storage.estimate?.().catch(() => undefined);
+  return {
+    persisted,
+    ...(estimate?.usage !== undefined ? { usage: estimate.usage } : {}),
+    ...(estimate?.quota !== undefined ? { quota: estimate.quota } : {}),
+  };
+}

@@ -68,9 +68,49 @@ await local.stats(); // { examples, perLabel, head, ready, heads: { knn, softmax
 Learning needs the cloud's answers, so it only happens for runs that escalate: under the `never`
 policy, or when consent is denied, nothing is learned (but `feedback()` still is).
 
+New to it? The [quickstart](https://github.com/swissspidy/belay/tree/main/examples/learned-quickstart)
+is a complete app you can run in a minute, with or without an API key, and the
+[guide](https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md#get-started-in-five-minutes)
+starts with a five-minute path.
+
+## Try it on your data
+
+`belay simulate` (in [`@swissspidy/belay-calibrate`](https://www.npmjs.com/package/@swissspidy/belay-calibrate))
+streams your labeled examples through the classifier as an app would see them and prints how much
+it answers on the device, and how accurately. In code:
+
+```ts
+import { simulateLearning, transformersEmbedder } from '@swissspidy/belay-learn';
+
+const { all, last, curve } = await simulateLearning({
+  name: 'ticket-triage',
+  schema: triageSchema,
+  embedder: transformersEmbedder(),
+  stream: labeled.map((e) => ({ input: e.text, value: e.label })),
+  threshold: 0.9,
+});
+// all.localShare: share answered on the device; all.localAccuracy: how often those were right
+```
+
+## Keeping what it learns
+
+```ts
+import { persistStorage } from '@swissspidy/belay-learn';
+
+await persistStorage();                                   // ask the browser not to evict it
+const snapshot = await local.exportState('ticket-triage');  // JSON: embeddings and labels, no text
+await local.importState(snapshot);                        // merge (or { replace: true })
+```
+
+`indexedDbStore()` survives reloads, but browsers may still evict it (Safari after 7 days without
+a visit). Snapshots back it up or move it to another device; a custom `ExampleStore` can sync it
+to your server. Embeddings can be partly inverted into text: treat snapshots like the inputs.
+Details in the [guide](https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md#keeping-what-it-learns).
+
 ## Seed files
 
-Build one at build time, in Node, with the same embedder the page uses:
+Build one at build time with `npx belay seed --task ticket-triage --data examples.jsonl`, or in
+Node, with the same embedder the page uses:
 
 ```ts
 import { writeFile } from 'node:fs/promises';
@@ -104,12 +144,19 @@ another schema is rejected. `local.exportSeed()` turns what a classifier learned
 | `feedbackWeight` | 3 | |
 | `minCloudConfidence` | 0 | ignore cloud answers whose reported confidence is lower |
 | `maxExamples` | 5,000 | the oldest cloud answers are dropped first |
+| `distanceGate` | `{ k: 5, quantile: 0.05, minSamples: 30 }` | inputs farther from the stored examples than 95% of them are from each other escalate; `false` to disable |
+
+The task's `explore: { rate, strategy: 'informative' }` spot-checks the runs it is least sure
+of (margin, or its two heads disagreeing) instead of uniformly at random, and
+`costAwareThreshold()` in the core derives the threshold from what a mistake and a cloud call
+cost.
 
 How it works, when to use it and how to tune it: the
 [guide](https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md). It also
 compares it with related research ("neural caching", online cascade learning): the loop is
 established, and this package brings it to the browser. The design and its trade-offs are in
-[ADR 0004](https://github.com/swissspidy/belay/blob/main/docs/adr/0004-learning-from-escalations.md).
+[ADR 0004](https://github.com/swissspidy/belay/blob/main/docs/adr/0004-learning-from-escalations.md)
+and [ADR 0005](https://github.com/swissspidy/belay/blob/main/docs/adr/0005-choosing-what-to-ask-and-keeping-what-it-learns.md).
 
 ## License
 
