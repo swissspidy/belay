@@ -59,6 +59,7 @@ async function simulate({ name, schema, stream, embedder, teacher, seed, labels 
   // No retrain debounce: the loop flushes after every input anyway.
   const local = learnedClassifier({ embedder, softmax: { retrainDelayMs: 0 }, ...(seed ? { seed } : {}) });
   const truth = new Map(stream.map((e) => [e.input, String(e.label)]));
+  if (truth.size !== stream.length) throw new Error(`${name}: stream.jsonl has duplicate inputs`);
   const cloud = cloudAdapter(async ({ input }) => {
     const label = truth.get(input);
     if (teacher.errorRate && noise() < teacher.errorRate) {

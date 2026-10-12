@@ -35,6 +35,15 @@ it('indexedDbStore persists across instances with the same name', async () => {
 });
 
 it('indexedDbStore reports a database that cannot be opened, and retries later', async () => {
-  const broken = indexedDbStore({ indexedDB: { open: () => { throw new Error('blocked'); } } as unknown as IDBFactory });
-  await expect(broken.load('s')).rejects.toThrow('blocked');
+  let blocked = true;
+  const factory = {
+    open: (...args: Parameters<IDBFactory['open']>) => {
+      if (blocked) throw new Error('blocked');
+      return indexedDB.open(...args);
+    },
+  } as unknown as IDBFactory;
+  const store = indexedDbStore({ indexedDB: factory, name: `retry-${Math.random()}` });
+  await expect(store.load('s')).rejects.toThrow('blocked');
+  blocked = false;
+  expect(await store.load('s')).toEqual({ examples: [], meta: null });
 });

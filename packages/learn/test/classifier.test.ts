@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { task, type BelayResult, type CloudRunner } from '@swissspidy/belay-core';
-import { buildSeed, learnedClassifier, memoryStore, type LearnedClassifierOptions } from '../src/index.js';
+import { buildSeed, learnedClassifier, memoryStore, parseSeed, type LearnedClassifierOptions } from '../src/index.js';
 import { fakeEmbedder, rng, tick, triageSchema } from './helpers.js';
 
 const TOPICS = ['bug', 'billing', 'feature', 'other'];
@@ -148,6 +148,42 @@ describe('learnedClassifier with task()', () => {
     expect(await local.stats()).toMatchObject({ examples: 12, pending: 0 });
   });
 
+  it('keeps queued labels when embedding them fails, and learns them on the next try', async () => {
+    const embedder = fakeEmbedder(TOPICS, { availability: 'downloadable' });
+    const local = learnedClassifier({ embedder });
+    const t = task({ name: 'triage', schema: triageSchema, local, cloud: oracle(), threshold: 0.9 });
+    for (const text of inputs(5)) await t.run(text);
+    await local.flush();
+    const embed = embedder.embed;
+    embedder.embed = async () => Promise.reject(new Error('WebGPU device lost'));
+    await expect(t.prepare()).rejects.toThrow('WebGPU device lost');
+    expect(await local.stats()).toMatchObject({ examples: 0, pending: 5 });
+    embedder.embed = embed;
+    await t.prepare();
+    expect(await local.stats()).toMatchObject({ examples: 5, pending: 0 });
+  });
+
+  it('drops learning that was still embedding when reset() ran', async () => {
+    const embedder = fakeEmbedder(TOPICS);
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const embed = embedder.embed;
+    const local = learnedClassifier({ embedder });
+    const ctx = { task: 'triage', schema: triageSchema };
+    await local.learn!({ input: 'bug first', value: 'bug', source: 'cloud' }, ctx);
+    embedder.embed = async (texts) => {
+      await gate;
+      return embed(texts);
+    };
+    const inFlight = local.learn!({ input: 'billing late', value: 'billing', source: 'cloud' }, ctx);
+    await tick();
+    await local.reset();
+    release();
+    await inFlight;
+    await local.flush();
+    expect(await local.stats()).toMatchObject({ examples: 0 });
+  });
+
   it('never embeds while the model is not loaded', async () => {
     const embedder = fakeEmbedder(TOPICS, { availability: 'downloadable' });
     const embed = vi.spyOn(embedder, 'embed');
@@ -206,6 +242,21 @@ describe('learnedClassifier with task()', () => {
     await local.reset();
     expect(await local.stats()).toMatchObject({ examples: 60, ready: true, heads: { knn: { pairs: 60 } } });
     expect((await t.run('billing refund please')).source).toBe('local');
+  });
+
+  it('rejects malformed seed files', () => {
+    const good = { version: 1, task: 't', schemaFingerprint: 'abc', embedder: 'e', dimensions: 2, createdAt: '', examples: [{ label: 'bug', embedding: 'fwA=' }] };
+    expect(parseSeed(good)).toBe(good);
+    for (const bad of [
+      null,
+      { ...good, version: 2 },
+      { ...good, schemaFingerprint: undefined },
+      { ...good, examples: [{ label: 'bug', embedding: '' }] },
+      { ...good, examples: [{ label: 'bug', embedding: [1, 2] }] },
+      { ...good, examples: [null] },
+    ]) {
+      expect(() => parseSeed(bad)).toThrow(/not a Belay seed file/);
+    }
   });
 
   it('rejects a seed made with another embedder or for another schema', async () => {

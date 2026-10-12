@@ -133,6 +133,8 @@ interface State {
   embeddings: Map<string, Float32Array>;
   pending: { id: string; input: string; label: number; source: 'cloud' | 'feedback' }[];
   version: number;
+  /** Incremented by reset(): learning that started before it must not land after it. */
+  generation: number;
   retrainTimer: ReturnType<typeof setTimeout> | undefined;
   /** Settles the promise `flush()` waits on for the scheduled retrain. */
   releaseRetrain: (() => void) | undefined;
@@ -265,6 +267,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
           embeddings: new Map(),
           pending: [],
           version: 0,
+          generation: 0,
           retrainTimer: undefined,
           releaseRetrain: undefined,
           training: null,
@@ -426,14 +429,24 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
 
   async function drainPending(s: State): Promise<void> {
     if (!s.pending.length) return;
+    const generation = s.generation;
     const batch = s.pending.splice(0);
-    const vectors = await embedder.embed(batch.map((p) => p.input));
+    let vectors: Float32Array[];
+    try {
+      vectors = await embedder.embed(batch.map((p) => p.input));
+    } catch (err) {
+      // Keep the labels for the next attempt (unless a reset dropped them meanwhile).
+      if (generation === s.generation) s.pending.unshift(...batch);
+      throw err;
+    }
+    if (generation !== s.generation) return;
     batch.forEach((p, i) => addExample(s, p.id, p.label, vectors[i]!, p.source));
     saveMeta(s);
   }
 
   async function learnOne(example: LearnExample<unknown>, ctx: RunnerContext<TaskSchema>): Promise<void> {
     const s = await stateFor(ctx);
+    const generation = s.generation;
     const label = s.labels.indexOf(String(example.value));
     if (label < 0) return;
     if (example.source === 'cloud' && example.cloudConfidence !== undefined && example.cloudConfidence < minCloudConfidence) return;
@@ -443,7 +456,9 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     if (cached) {
       addExample(s, id, label, cached, example.source);
     } else if ((await embedder.availability()) === 'available') {
-      addExample(s, id, label, await embedOne(s, id, example.input, ctx.signal), example.source);
+      const embedding = await embedOne(s, id, example.input, ctx.signal);
+      if (generation !== s.generation) return; // reset() ran while embedding
+      addExample(s, id, label, embedding, example.source);
     } else {
       // The model is not loaded yet (e.g. before the first prepare()): learn once it is.
       s.pending.push({ id, input: example.input, label, source: example.source });
@@ -544,6 +559,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
       if (!s) return;
       cancelRetrain(s);
       await s.training?.catch(() => {});
+      s.generation++;
       s.learned.clear();
       s.pairs = { knn: [...s.seedPairs], softmax: [] };
       s.scaling = { knn: null, softmax: null };

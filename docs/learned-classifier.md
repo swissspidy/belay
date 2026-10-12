@@ -59,7 +59,8 @@ P(correct) from those records, with recent ones weighted most. So `threshold: 0.
 
 **Cold start.** Until there are 10 examples, 3 of them for the predicted label, and 30 scored
 predictions, the confidence is 0 and everything goes to the cloud. That is how it collects its
-first examples. A [seed file](#3-optional-ship-a-seed) skips this phase.
+first examples. A [seed file](#3-optional-ship-a-seed) of 30 or more labeled examples skips this
+phase.
 
 **Exploration.** Once the classifier is confident, the cloud stops seeing those inputs, so
 nothing would tell it if it were wrong. With `explore: 0.05`, 5% of confident runs still go to
@@ -139,8 +140,10 @@ The cloud side is the same as for any Belay task. See the main
 
 ### 3. Optional: ship a seed
 
-If you have labeled examples, embed them at build time. The classifier then answers from its
-first run, already calibrated:
+If you have labeled examples, embed them at build time. The seed carries a scored prediction for
+each example (leave-one-out), so with at least 30 examples, 3 or more per label, the classifier
+can answer from its first run, already calibrated. A smaller seed only shortens the cold start:
+until there are 30 scored predictions, everything still goes to the cloud.
 
 ```ts
 // scripts/build-seed.mjs, run in Node with the same model the page uses

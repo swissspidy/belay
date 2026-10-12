@@ -85,7 +85,15 @@ export async function buildSeed<S extends TaskSchema>(options: BuildSeedOptions<
 /** Checks a parsed seed file's shape. */
 export function parseSeed(value: unknown): SeedFile {
   const s = value as SeedFile;
-  if (!s || typeof s !== 'object' || s.version !== SEED_VERSION || !Array.isArray(s.examples) || typeof s.embedder !== 'string') {
+  if (
+    !s ||
+    typeof s !== 'object' ||
+    s.version !== SEED_VERSION ||
+    typeof s.embedder !== 'string' ||
+    typeof s.schemaFingerprint !== 'string' ||
+    !Array.isArray(s.examples) ||
+    !s.examples.every((e) => e && typeof e.label === 'string' && typeof e.embedding === 'string' && e.embedding.length > 0)
+  ) {
     throw new BelayError('invalid-task', `not a Belay seed file (version ${SEED_VERSION})`);
   }
   return s;

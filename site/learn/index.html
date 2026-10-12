@@ -307,6 +307,10 @@ let meter = null;
 let rows = [];
 let cursor = 0;
 let running = false;
+// One stream loop at a time: a new one starts after the previous one has finished, and a reset
+// (a new epoch) stops a loop that is still awaiting a run from adding its result.
+let loopDone = Promise.resolve();
+let epoch = 0;
 let modelReady = false;
 let noise = mulberry32(11);
 
@@ -400,12 +404,15 @@ $('load').addEventListener('click', async () => {
 $('start').addEventListener('click', () => {
   running = !running;
   $('start').textContent = running ? 'Pause' : cursor ? 'Resume' : 'Start';
-  if (running) loop();
+  if (running) loopDone = loopDone.then(() => (running ? loop(epoch) : undefined));
 });
 
 $('reset').addEventListener('click', async () => {
   running = false;
+  epoch++;
+  await loopDone;
   $('start').textContent = 'Start';
+  $('start').disabled = false;
   await local?.flush();
   await local?.reset();
   meter = null;
@@ -439,10 +446,11 @@ for (const id of ['seeded', 'persist']) {
   });
 }
 
-async function loop() {
-  while (running && cursor < stream.length) {
+async function loop(myEpoch) {
+  while (running && epoch === myEpoch && cursor < stream.length) {
     const example = stream[cursor++];
     const result = await triage.run(example.input);
+    if (epoch !== myEpoch) return;
     rows.push({
       input: example.input,
       label: example.label,

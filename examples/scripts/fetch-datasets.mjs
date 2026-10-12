@@ -240,7 +240,8 @@ if (want('stream')) {
   const moderationSeen = await readInputs('../content-moderation/examples.jsonl');
   const short = (r) => r.text.length >= 20 && r.text.length <= 400 && !moderationSeen.has(r.text.trim().toLowerCase());
   const rows = await allRows('google/civil_comments', 'validation', {
-    until: (rs) => rs.filter((r) => r.toxicity >= 0.5 && short(r)).length >= 500,
+    until: (rs) =>
+      rs.filter((r) => r.toxicity >= 0.5 && short(r)).length >= 500 && rs.filter((r) => r.toxicity <= 0.1 && short(r)).length >= 500,
   });
   const moderation = [
     pick(rows.filter((r) => r.toxicity >= 0.5 && short(r)), 500, (r) => r.text, 'moderation-stream').map((r) => ({ input: r.text, label: true, toxicity: Math.round(r.toxicity * 1000) / 1000 })),
