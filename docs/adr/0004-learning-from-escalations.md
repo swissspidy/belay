@@ -161,8 +161,8 @@ Findings of ACL 2024), [OCaTS](https://arxiv.org/abs/2310.13395) (Findings of EM
 kNN student like ours) and [Online Cascade Learning](https://proceedings.mlr.press/v235/nie24a.html)
 (ICML 2024). The [guide](../learned-classifier.md#prior-art) compares them. What is new here is
 the packaging: in the browser, stored on the device, corrections as a second teacher, shippable
-seeds, and the task's threshold, privacy policies and telemetry. Not adopted yet, but worth
-trying:
+seeds, and the task's threshold, privacy policies and telemetry. Not adopted here, and since
+adopted by [ADR 0005](0005-choosing-what-to-ask-and-keeping-what-it-learns.md):
 
 - **Which runs to explore.** Exploration picks confident runs uniformly at random. Cache &
   Distil found margin sampling and query by committee (here: the two heads disagreeing) the best

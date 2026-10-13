@@ -157,7 +157,7 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
       On intent detection it kept about a third of the runs on device at the cloud's accuracy, give or
       take one example.</li>
     <li><strong>A local model that learns from the cloud's answers takes over narrow tasks.</strong>
-      Starting from nothing, it answered 87% of 1,500 support messages on the device at 99.5%
+      Starting from nothing, it answered 86% of 1,500 support messages on the device at 99.7%
       accuracy, and it kept escalating where it couldn't tell. <a href="#learning">Details</a> ·
       <a href="learn/">demo</a>.</li>
     <li><strong>For generation, the judge is the bottleneck.</strong> Gemini Nano extracted calendar
@@ -319,14 +319,14 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
   </p>
   <ul>
     <li><strong>On narrow tasks it takes over.</strong> Starting from nothing, the device answered
-      87% of ticket-triage messages at 99.5% accuracy, and 94% of the last 300. Intents went the
+      86% of ticket-triage messages at 99.7% accuracy, and 94% of the last 300. Intents went the
       same way.</li>
     <li><strong>Where it can't tell, it doesn't guess.</strong> Embeddings separate toxic from
-      civil comments poorly; the device answered about a third of them, at 96%. With a teacher as
+      civil comments poorly; the device answered about a quarter of them, at 96%. With a teacher as
       noisy as Jev it kept nearly all of them in the cloud: it can't look more reliable than the
       labels it learns from.</li>
     <li><strong>It notices when the inputs change.</strong> Fed all the civil comments first and then
-      all the toxic ones, it lost its confidence as the toxic ones began and relearned, at 99.5%
+      all the toxic ones, it lost its confidence as the toxic ones began and relearned, at 98.9%
       accuracy on what it answered.</li>
   </ul>
 </main>
@@ -348,7 +348,8 @@ footer { padding-top: 32px; padding-bottom: 56px; margin-top: 56px; border-top: 
   <p class="small muted">
     The <a href="https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md">guide</a>
     explains how it works and how to use it; the design is in
-    <a href="https://github.com/swissspidy/belay/blob/main/docs/adr/0004-learning-from-escalations.md">ADR 0004</a>,
+    <a href="https://github.com/swissspidy/belay/blob/main/docs/adr/0004-learning-from-escalations.md">ADR 0004</a>
+    and <a href="https://github.com/swissspidy/belay/blob/main/docs/adr/0005-choosing-what-to-ask-and-keeping-what-it-learns.md">ADR 0005</a>,
     and <a href="https://github.com/swissspidy/belay/tree/main/examples#learned-classifier"><code>scripts/learn-simulate.mjs</code></a>
     reproduces these numbers.
   </p>

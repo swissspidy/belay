@@ -166,18 +166,26 @@ await triage.feedback(text, 'billing'); // a user's correction
 
 Its confidence is calibrated on its own record on inputs it had not seen yet, so `threshold: 0.9`
 still means "at least 90% likely right" as it learns. On a stream of 1,500 support messages,
-starting from nothing, it answered 87% of them on the device at 99.5% accuracy. On content
+starting from nothing, it answered 86% of them on the device at 99.7% accuracy. On content
 moderation, where embeddings can't tell toxic comments apart well, it kept most comments in the
 cloud.
-[Try it in your browser](https://swissspidy.github.io/belay/learn/), and read the
-[guide](docs/learned-classifier.md): how it works, how to add it to an app, tuning, and how it
-relates to research on learning from LLM answers.
+[Try it in your browser](https://swissspidy.github.io/belay/learn/), run the
+[quickstart](examples/learned-quickstart/) (one page and a small server; no API key needed, you
+can be the cloud), and read the [guide](docs/learned-classifier.md): getting started, how it
+works, evaluating it on your data (`belay simulate`), keeping what it learns (IndexedDB,
+persistent storage, export and import), choosing the threshold from costs, and how it relates to
+research on learning from LLM answers.
 
 Two core features work with any local runner:
 
 - **`explore`** sends a share of confident runs to the cloud anyway (escalation reason
   `exploration`). On those runs the event's `label` and `localLabel` show whether the local
-  answer agreed, so you can watch for drift. `savingsMeter()` counts them as `explored`.
+  answer agreed, so you can watch for drift. `savingsMeter()` counts them as `explored`. With
+  `strategy: 'informative'`, the runs the local runner is least sure of are checked more often,
+  and each carries an `explorationWeight` (rate / probability) that weighs them back to what
+  uniform spot checks would have seen.
+- **`costAwareThreshold({ errorCost, cloudCost, cloudAccuracy })`** turns what a mistake and a
+  cloud call cost into a threshold, for runners whose confidence is calibrated.
 - **`task.feedback(input, value)`** passes a correction to the local runner's `learn()`. It
   resolves to `false` for runners that can't learn, such as the built-in APIs.
 

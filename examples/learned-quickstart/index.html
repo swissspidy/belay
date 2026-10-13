@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Belay quickstart</title>
+<style>
+:root { color-scheme: light; --surface: #fcfcfb; --surface-2: #f3f2ef; --line: #e4e2dc; --text: #0b0b0b; --text-2: #52514e; --link: #1c5cab; --local: #1baf7a; --cloud: #2a78d6; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark; --surface: #1a1a19; --surface-2: #242422; --line: #383835; --text: #ffffff; --text-2: #c3c2b7; --link: #86b6ef; --local: #199e70; --cloud: #3987e5; }
+}
+:root[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --surface-2: #242422; --line: #383835; --text: #ffffff; --text-2: #c3c2b7; --link: #86b6ef; --local: #199e70; --cloud: #3987e5; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--surface); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+p { margin: 0 0 12px; }
+.muted { color: var(--text-2); font-size: 14px; }
+.panel { background: var(--surface-2); border-radius: 10px; padding: 16px; margin: 16px 0; }
+textarea { width: 100%; min-height: 72px; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+button, label.file { font: inherit; font-size: 14px; border-radius: 8px; padding: 6px 12px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+button.primary { background: var(--text); color: var(--surface); border-color: var(--text); font-weight: 600; }
+button:disabled { opacity: .45; cursor: default; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 0; }
+.answer { font-size: 20px; font-weight: 600; }
+.tag { font-size: 13px; font-weight: 600; }
+.tag.local { color: var(--local); }
+.tag.cloud, .tag.you { color: var(--cloud); }
+progress { width: 140px; }
+/* Visually hidden, still focusable: the label shows the focus. */
+input[type="file"] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+label.file { position: relative; }
+label.file:focus-within { outline: 2px solid var(--link); outline-offset: 2px; }
+code { background: var(--surface); padding: 1px 4px; border-radius: 4px; font-size: 14px; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "@swissspidy/belay-core": "/lib/core/index.js",
+    "@swissspidy/belay-learn": "/lib/learn/index.js",
+    "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0"
+  }
+}
+</script>
+</head>
+<body>
+<main>
+  <h1>Belay quickstart: a classifier that learns</h1>
+  <p class="muted">
+    Type a customer message. The classifier in this tab answers when it is confident; otherwise
+    the cloud answers <span id="cloud-name">(Claude, through this server)</span>, and the classifier learns
+    from that answer. What it learns stays in this browser (IndexedDB).
+  </p>
+
+  <div class="panel">
+    <div class="row" style="margin: 0">
+      <button id="load" class="primary">Load the model (34 MB, once)</button>
+      <progress id="progress" max="1" value="0" hidden></progress>
+      <label class="muted"><input id="seeded" type="checkbox"> Start from the seed (300 labeled messages)</label>
+    </div>
+    <p id="status" class="muted" role="status" style="margin: 8px 0 0"></p>
+  </div>
+
+  <div class="panel">
+    <label for="message" class="muted">Customer message</label>
+    <textarea id="message" placeholder="I was charged twice for my last order"></textarea>
+    <div class="row"><button id="send" class="primary" disabled>Classify</button></div>
+    <div id="result" aria-live="polite"></div>
+  </div>
+
+  <div class="panel">
+    <p class="muted" id="stats">Nothing learned yet.</p>
+    <div class="row">
+      <button id="export" disabled>Export what it learned</button>
+      <label class="file" id="import-label">Import…<input id="import" type="file" accept="application/json"></label>
+      <button id="reset" disabled>Forget everything</button>
+    </div>
+  </div>
+  <p class="muted">The code is in <code>examples/learned-quickstart/</code>; the guide is <code>docs/learned-classifier.md</code>.</p>
+</main>
+
+<script type="module">
+import { cloudAdapter, fetchAdapter, task } from '@swissspidy/belay-core';
+import { indexedDbStore, learnedClassifier, persistStorage, transformersEmbedder } from '@swissspidy/belay-learn';
+
+const schema = {
+  type: 'categorical',
+  prompt: 'Which team should handle this customer message?',
+  options: [
+    { label: 'account', description: 'Creating, editing, recovering or deleting a customer account; passwords and sign-in' },
+    { label: 'billing', description: 'Invoices, payments, payment methods and refunds' },
+    { label: 'order', description: 'Placing, changing, checking or cancelling an order' },
+    { label: 'shipping', description: 'Delivery options, delivery times, shipping addresses and tracking a parcel' },
+    { label: 'feedback', description: 'Complaints, claims against the company, reviews and feedback about the store or its service' },
+  ],
+};
+const labels = schema.options.map((o) => o.label);
+const $ = (id) => document.getElementById(id);
+const status = (text) => ($('status').textContent = text);
+
+// 1. The cloud: your backend (Claude), or, without credentials, you.
+const { cloud: cloudId } = await fetch('/api/config').then((r) => r.json());
+const cloud = cloudId
+  ? fetchAdapter({ url: '/api/belay', select: (json) => json.value })
+  : cloudAdapter(() => askYou(), { id: 'you' });
+
+/** The human teacher: shows the labels and resolves with the one you pick. */
+function askYou() {
+  return new Promise((resolve) => {
+    const ask = document.createElement('div');
+    ask.className = 'row';
+    ask.append('The classifier is not sure. Which team?');
+    for (const label of labels) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.onclick = () => {
+        ask.remove();
+        resolve(label);
+      };
+      ask.append(b);
+    }
+    $('result').append(ask);
+    ask.querySelector('button').focus(); // keyboard users answer right away
+  });
+}
+$('cloud-name').textContent = cloudId ? `(${cloudId}, through this server)` : '(you: no Anthropic credentials on the server)';
+
+// 2. The local runner: embeddings in this tab, examples in IndexedDB.
+let seeded = false;
+try { seeded = localStorage.getItem('quickstart:seeded') === '1'; } catch {}
+$('seeded').checked = seeded;
+$('seeded').onchange = () => {
+  try { localStorage.setItem('quickstart:seeded', $('seeded').checked ? '1' : '0'); } catch {}
+  status('Reload the page to apply.');
+};
+const local = learnedClassifier({
+  embedder: transformersEmbedder(),
+  store: indexedDbStore({ name: 'belay-quickstart' }),
+  ...(seeded ? { seed: '/belay-seed.json' } : {}),
+});
+
+// 3. The task: threshold 0.9, and 5% of confident answers still checked by the cloud.
+const triage = task({ name: 'ticket-triage', schema, local, cloud, threshold: 0.9, explore: { rate: 0.05, strategy: 'informative' } });
+
+async function ready() {
+  await triage.prepare(); // loads the model from the cache, and what IndexedDB kept
+  const kept = await persistStorage();
+  $('load').hidden = true;
+  $('progress').hidden = true;
+  $('send').disabled = $('export').disabled = $('reset').disabled = false;
+  status(kept.persisted ? 'Ready. This browser keeps what it learns.' : 'Ready. (The browser may clear what it learns under storage pressure: export it to keep a copy.)');
+  showStats();
+}
+
+$('load').onclick = async () => {
+  $('load').disabled = true;
+  $('progress').hidden = false;
+  status('Downloading the embedding model…');
+  try {
+    await triage.prepare({ onProgress: (p) => ($('progress').value = p) });
+    await ready();
+  } catch (err) {
+    $('load').disabled = false;
+    $('progress').hidden = true;
+    status(`Could not load the model: ${err.message}`);
+  }
+};
+if ((await triage.availability()) === 'available') await ready();
+
+async function showStats() {
+  const s = await local.stats('ticket-triage');
+  if (!s) return;
+  $('stats').textContent =
+    `${s.examples - s.seedExamples} learned${s.seedExamples ? ` + ${s.seedExamples} from the seed` : ''}, ` +
+    `${s.ready ? `answering on its own (${s.head} head)` : 'still learning: everything goes to the cloud'}` +
+    `${s.gate.threshold !== null ? `, distance gate at ${s.gate.threshold.toFixed(2)}` : ''}.`;
+}
+
+// 4. Run it.
+$('send').onclick = async () => {
+  const message = $('message').value.trim();
+  if (!message) return;
+  const out = $('result');
+  out.replaceChildren();
+  $('send').disabled = true;
+  try {
+    const result = await triage.run(message);
+    const who = result.source === 'local' ? 'on this device' : cloudId ? `by ${cloudId}` : 'by you';
+    const line = document.createElement('p');
+    line.innerHTML = `<span class="answer"></span> <span class="tag ${result.source === 'local' ? 'local' : 'cloud'}"></span>`;
+    line.children[0].textContent = result.value;
+    line.children[1].textContent = `answered ${who}${result.local ? `, local confidence ${result.local.confidence.toFixed(2)}` : ''}` +
+      (result.escalationReason === 'exploration' ? ' (a spot check)' : '');
+    out.append(line);
+    // 5. Corrections teach it the most.
+    const fix = document.createElement('div');
+    fix.className = 'row';
+    fix.append('Wrong? ');
+    for (const label of labels.filter((l) => l !== result.value)) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.onclick = async () => {
+        await triage.feedback(message, label);
+        fix.replaceChildren(`Taught: ${label}.`);
+        showStats();
+      };
+      fix.append(b);
+    }
+    out.append(fix);
+  } catch (err) {
+    out.textContent = `Failed: ${err.message}`;
+  } finally {
+    $('send').disabled = false;
+    if (!document.activeElement || document.activeElement === document.body) $('message').focus();
+    await local.flush();
+    showStats();
+  }
+};
+
+// 6. Keep, move or reset what it learned.
+$('export').onclick = async () => {
+  const snapshot = await local.exportState('ticket-triage');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(snapshot)], { type: 'application/json' }));
+  a.download = 'belay-learned.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+$('import').onchange = async () => {
+  const file = $('import').files[0];
+  $('import').value = ''; // so choosing the same file again imports it again
+  if (!file) return;
+  try {
+    const { examples } = await local.importState(JSON.parse(await file.text()));
+    status(`Imported: it now knows ${examples} examples.`);
+    showStats();
+  } catch (err) {
+    status(`Could not import: ${err.message}`);
+  }
+};
+$('reset').onclick = async () => {
+  await local.reset('ticket-triage');
+  status('Forgot everything it learned (the seed stays).');
+  showStats();
+};
+</script>
+</body>
+</html>

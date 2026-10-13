@@ -38,12 +38,17 @@
   ],
   "dependencies": {
     "@swissspidy/belay-core": "^0.1.1",
+    "@swissspidy/belay-learn": "^0.1.1",
     "@swissspidy/belay-web": "^0.1.1"
   },
   "peerDependencies": {
+    "@huggingface/transformers": "^4.0.0",
     "playwright-core": ">=1.45"
   },
   "peerDependenciesMeta": {
+    "@huggingface/transformers": {
+      "optional": true
+    },
     "playwright-core": {
       "optional": true
     }

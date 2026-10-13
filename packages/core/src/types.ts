@@ -96,6 +96,12 @@ export interface LocalOutput<V = unknown> {
   confidence?: number;
   /** Full distribution when the runner has one (classifier tasks). */
   probabilities?: ProbabilityEntry[];
+  /**
+   * How much a cloud answer for this input would teach the runner, in [0, 1]: e.g. one minus the
+   * margin between its top two labels, or 1 when its models disagree. Used by
+   * `explore: { strategy: 'informative' }`. Defaults to `1 - confidence`.
+   */
+  informativeness?: number;
   /** Runner-specific diagnostics; never sent to telemetry. */
   raw?: unknown;
 }
@@ -142,6 +148,12 @@ export interface LearnExample<V = unknown> {
   local?: { value: V; confidence: number };
   /** Why the run escalated (`cloud` only). */
   reason?: EscalationReason;
+  /**
+   * `exploration` only: `rate / p`, where `p` was this run's probability of being explored. 1
+   * under uniform exploration; weigh the example by it to estimate what uniform exploration
+   * would have seen (importance weighting).
+   */
+  explorationWeight?: number;
 }
 
 export interface PrepareOptions {
@@ -327,6 +339,20 @@ export interface TaskOptions<S extends TaskSchema> {
 export interface ExploreOptions {
   /** Share of confident runs to send to the cloud, in [0, 1]. */
   rate: number;
+  /**
+   * - `uniform` (default): every confident run is explored with probability `rate`.
+   * - `informative`: runs the local runner finds informative (`LocalOutput.informativeness`)
+   *   are explored more often, the rest less, at about `rate` on average: probability
+   *   `rate × informativeness / its running mean`, at least `rate × floor`. The cloud answers
+   *   of explored runs carry an inverse-probability `explorationWeight`, so a learner can weigh
+   *   them back to what uniform exploration would have seen.
+   */
+  strategy?: 'uniform' | 'informative';
+  /**
+   * `informative` only: the lowest probability, as a share of `rate`, in (0, 1]. Defaults to 0.2.
+   * Above 0 so that every confident run can be explored, which the weights rely on.
+   */
+  floor?: number;
   /** Source of randomness in [0, 1). Defaults to `Math.random`. */
   random?: () => number;
 }
@@ -372,6 +398,11 @@ export interface RunEvent {
    * `exploration` run, `label === localLabel` says whether the local answer agreed with the cloud.
    */
   localLabel?: string;
+  /**
+   * `exploration` runs only: the inverse-probability weight (`rate / p`, see
+   * `ExploreOptions.strategy`). Weigh agreement rates by it under `informative` exploration.
+   */
+  explorationWeight?: number;
   confidence: number | null;
   localConfidence: number | null;
   threshold: number;

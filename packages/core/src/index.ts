@@ -6,6 +6,8 @@ export type { SavingsMeter, SavingsMeterOptions, SavingsSummary } from './cost.j
 export { combineConfidence, topProbability, clamp01 } from './confidence.js';
 export type { ConfidenceSignals } from './confidence.js';
 export { CALIBRATION_VERSION, loadCalibration, parseCalibration, thresholdFor } from './calibration.js';
+export { costAwareThreshold } from './decision.js';
+export type { CostAwareThresholdOptions } from './decision.js';
 export {
   assertValidSchema,
   buildInstruction,

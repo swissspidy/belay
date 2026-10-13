@@ -52,6 +52,34 @@ in `.belay-cache/`, so re-running replays them and reproduces the same calibrati
 [project README](https://github.com/swissspidy/belay#calibration) for targets, cost and the file
 format.
 
+## Learned classifiers: `belay seed` and `belay simulate`
+
+For a [`@swissspidy/belay-learn`](https://www.npmjs.com/package/@swissspidy/belay-learn) local
+runner, which learns as the app runs, there is no fixed model to calibrate. Two commands help
+instead. Both read the task's schema from the same config, plus an optional `learn` section in
+the task:
+
+```js
+// belay.config.mjs: the task from above, with
+    'ticket-triage': {
+      schema: triageSchema,
+      // …local, cloud: only `belay calibrate` uses them
+      learn: { threshold: 0.9, explore: 0.05 }, // optional: embedder, classifier options
+    },
+```
+
+```sh
+npm install --save-dev @huggingface/transformers
+npx belay simulate --task ticket-triage --data stream.jsonl   # how much it would answer on device, how accurately
+npx belay seed --task ticket-triage --data examples.jsonl     # writes belay-seed.json for the page
+```
+
+`belay simulate` streams the examples in order, with their labels standing in for the cloud, and
+prints a learning curve; `--teacher-accuracy`, `--threshold`, `--explore`, `--strategy` and
+`--seed` show what each changes. `belay seed` embeds labeled examples (no text is stored) so the
+classifier answers from its first run. The page must use the same embedder options. See the
+[guide](https://github.com/swissspidy/belay/blob/main/docs/learned-classifier.md#try-it-on-your-data-first).
+
 ## License
 
 Apache-2.0

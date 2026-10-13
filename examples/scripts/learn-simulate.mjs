@@ -18,15 +18,18 @@
  * stream). Content moderation also runs `shift`: the stream sorted by label, all non-toxic
  * comments first, then all toxic ones, with the reference teacher. It tests what the calibration
  * does when the inputs change under a confident classifier. Accuracy is measured against the
- * dataset labels. Writes `learn-simulation.json` per
- * task and prints a summary.
+ * dataset labels.
+ *
+ * It runs through `simulateLearning()`, the function behind `belay simulate`, with the package
+ * defaults: uniform spot checks and the distance gate on. The `ablation` section of the output
+ * (ADR 0005) reruns the cold start with each spot-check strategy, with and without the gate.
+ * Writes `learn-simulation.json` per task and prints a summary.
  *
  * Embeddings are cached in `.belay-cache/<task>.embeddings.<model>.jsonl` (see
  * `shared/embeddings.mjs`), so a re-run needs neither the model nor the network.
  */
 import { readFile, writeFile } from 'node:fs/promises';
-import { cloudAdapter, task } from '@swissspidy/belay-core';
-import { buildSeed, learnedClassifier } from '@swissspidy/belay-learn';
+import { buildSeed, simulateLearning } from '@swissspidy/belay-learn';
 import { cachedEmbedder, readJsonl } from '../shared/embeddings.mjs';
 
 const THRESHOLD = 0.9;
@@ -38,6 +41,14 @@ const TASKS = {
   'content-moderation': { module: '../content-moderation/task.mjs', schema: 'moderationSchema' },
   'intent-detection': { module: '../intent-detection/task.mjs', schema: 'intentSchema' },
 };
+
+/** The ablation of ADR 0005: spot-check strategy × distance gate, cold start. */
+const VARIANTS = [
+  { strategy: 'uniform', gate: false },
+  { strategy: 'uniform', gate: true },
+  { strategy: 'informative', gate: false },
+  { strategy: 'informative', gate: true },
+];
 
 const only = process.argv.slice(2);
 const root = new URL('../', import.meta.url);
@@ -53,48 +64,37 @@ function rng(seed) {
   };
 }
 
-async function simulate({ name, schema, stream, embedder, teacher, seed, labels }) {
-  const random = rng(7);
+async function simulate({ name, schema, stream, embedder, teacher, seed, labels, strategy = 'uniform', gate = true }) {
   const noise = rng(11);
-  // No retrain debounce: the loop flushes after every input anyway.
-  const local = learnedClassifier({ embedder, softmax: { retrainDelayMs: 0 }, ...(seed ? { seed } : {}) });
-  const truth = new Map(stream.map((e) => [e.input, String(e.label)]));
-  if (truth.size !== stream.length) throw new Error(`${name}: stream.jsonl has duplicate inputs`);
-  const cloud = cloudAdapter(async ({ input }) => {
-    const label = truth.get(input);
-    if (teacher.errorRate && noise() < teacher.errorRate) {
-      const others = labels.filter((l) => l !== label);
-      return others[Math.floor(noise() * others.length)];
-    }
-    return label;
+  const r = await simulateLearning({
+    name,
+    schema,
+    embedder,
+    stream: stream.map((e) => ({ input: e.input, value: e.label })),
+    teacher: (_input, truth) => {
+      if (!teacher.errorRate || noise() >= teacher.errorRate) return truth;
+      const others = labels.filter((l) => l !== String(truth));
+      const wrong = others[Math.floor(noise() * others.length)];
+      return schema.type === 'binary' ? wrong === 'true' : wrong;
+    },
+    threshold: THRESHOLD,
+    explore: { rate: EXPLORE, strategy },
+    randomSeed: 7,
+    window: WINDOW,
+    classifier: gate ? {} : { distanceGate: false },
+    ...(seed ? { seed } : {}),
   });
-  const t = task({ name, schema, local, cloud, threshold: THRESHOLD, explore: { rate: EXPLORE, random } });
-
-  const rows = [];
-  for (const example of stream) {
-    const result = await t.run(example.input);
-    await local.flush();
-    rows.push({ source: result.source, explored: result.escalationReason === 'exploration', correct: String(result.value) === String(example.label) });
-  }
-  const summarize = (part) => {
-    const kept = part.filter((r) => r.source === 'local');
-    return {
-      runs: part.length,
-      localShare: kept.length / part.length,
-      localAccuracy: kept.length ? kept.filter((r) => r.correct).length / kept.length : null,
-      accuracy: part.filter((r) => r.correct).length / part.length,
-      cloudCalls: part.length - kept.length,
-      explored: part.filter((r) => r.explored).length,
-    };
-  };
-  const curve = [];
-  for (let i = 0; i < rows.length; i += WINDOW) curve.push({ from: i + 1, ...summarize(rows.slice(i, i + WINDOW)) });
-  const stats = await local.stats();
+  const { stats } = r;
   return {
-    all: summarize(rows),
-    last: summarize(rows.slice(-WINDOW * 3)),
-    curve,
-    final: { examples: stats.examples, head: stats.head, heads: { knn: stats.heads.knn.recentAccuracy, softmax: stats.heads.softmax.recentAccuracy } },
+    all: r.all,
+    last: r.last,
+    curve: r.curve,
+    final: {
+      examples: stats.examples,
+      head: stats.head,
+      heads: { knn: stats.heads.knn.recentAccuracy, softmax: stats.heads.softmax.recentAccuracy },
+      gate: stats.gate,
+    },
   };
 }
 
@@ -116,8 +116,8 @@ for (const [name, spec] of Object.entries(TASKS)) {
     { id: 'noisy', errorRate: 1 - calibration.expected.cloudAccuracy, model: cloudModel },
   ];
   const results = [];
-  if (name === 'content-moderation') {
-    const shifted = [...stream].sort((a, b) => Number(a.label) - Number(b.label));
+  const shifted = name === 'content-moderation' ? [...stream].sort((a, b) => Number(a.label) - Number(b.label)) : null;
+  if (shifted) {
     const r = await simulate({ name, schema, stream: shifted, embedder, teacher: teachers[0], seed: null, labels });
     results.push({ teacher: 'reference', teacherAccuracy: 1, seeded: false, order: 'shift', ...r });
   }
@@ -128,6 +128,20 @@ for (const [name, spec] of Object.entries(TASKS)) {
       results.push({ teacher: teacher.id, teacherAccuracy: 1 - teacher.errorRate, seeded, order: 'mixed', ...r });
       console.error(`${name} ${teacher.id}${seeded ? ' seeded' : ''}: ${((Date.now() - started) / 1000).toFixed(1)}s`);
     }
+  }
+  // The defaults (uniform, gate) are the unseeded rows of `results`; run the other three.
+  const ablation = [];
+  const runs = [
+    ...teachers.map((teacher) => ({ teacher, order: 'mixed', stream })),
+    ...(shifted ? [{ teacher: teachers[0], order: 'shift', stream: shifted }] : []),
+  ];
+  for (const { teacher, order, stream: s } of runs) {
+    for (const v of VARIANTS) {
+      const base = results.find((r) => r.teacher === teacher.id && r.order === order && !r.seeded);
+      const r = v.strategy === 'uniform' && v.gate ? base : await simulate({ name, schema, stream: s, embedder, teacher, seed: null, labels, ...v });
+      ablation.push({ teacher: teacher.id, order, strategy: v.strategy, gate: v.gate, all: r.all, last: r.last, gated: r.final.gate.gated });
+    }
+    console.error(`${name} ablation ${teacher.id} ${order}: done`);
   }
   const out = {
     task: name,
@@ -141,6 +155,7 @@ for (const [name, spec] of Object.entries(TASKS)) {
     cloudPerRun: calibration.cost?.cloudPerRun ?? null,
     cloudModel,
     results,
+    ablation,
   };
   await writeFile(new URL(`${name}/learn-simulation.json`, root), JSON.stringify(out, null, 2) + '\n');
 
@@ -149,6 +164,12 @@ for (const [name, spec] of Object.entries(TASKS)) {
   for (const r of results) {
     console.log(
       `${r.teacher.padEnd(10)} ${(r.seeded ? 'yes' : 'no').padEnd(6)} ${r.order.padEnd(5)} | ${pct(r.all.localShare)}      ${pct(r.all.localAccuracy)}     ${pct(r.all.accuracy)} |           ${pct(r.last.localShare)}     ${pct(r.last.localAccuracy)}     ${pct(r.last.accuracy)}`,
+    );
+  }
+  console.log('\nablation (no seed)                   | local share  local acc  accuracy | gated');
+  for (const r of ablation) {
+    console.log(
+      `${r.teacher.padEnd(10)} ${r.order.padEnd(5)} ${r.strategy.padEnd(11)} ${(r.gate ? 'gate' : 'no gate').padEnd(7)} | ${pct(r.all.localShare)}      ${pct(r.all.localAccuracy)}     ${pct(r.all.accuracy)} | ${r.gated}`,
     );
   }
 }

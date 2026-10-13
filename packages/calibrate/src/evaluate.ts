@@ -17,7 +17,7 @@ import {
 } from '@swissspidy/belay-core';
 import type { Sample } from './analyze.js';
 import { OutputCache } from './cache.js';
-import type { CalibrationTaskConfig } from './config.js';
+import type { RunnableTaskConfig } from './config.js';
 import type { Dataset } from './dataset.js';
 
 /** Where local inference happens: in Node (a LocalRunner object) or in a real browser. */
@@ -70,7 +70,7 @@ interface CloudRecord {
 
 export interface EvaluateOptions {
   name: string;
-  config: CalibrationTaskConfig<any>;
+  config: RunnableTaskConfig<any>;
   dataset: Dataset;
   backend: LocalBackend;
   cache: OutputCache;
@@ -88,7 +88,7 @@ export interface Evaluation {
   cached: { local: number; cloud: number };
 }
 
-function isCorrect(config: CalibrationTaskConfig<any>, value: unknown, expected: unknown): boolean {
+function isCorrect(config: RunnableTaskConfig<any>, value: unknown, expected: unknown): boolean {
   if (config.correct) return config.correct(value, expected);
   if (config.schema.type === 'structured') return canonicalJson(value) === canonicalJson(expected);
   return labelOf(config.schema, value) === labelOf(config.schema, expected);

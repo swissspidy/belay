@@ -1,15 +1,25 @@
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { browserBackend } from './browser.js';
 import { OutputCache } from './cache.js';
 import { calibrate } from './calibrate.js';
-import { isBrowserJudge, isBrowserRunner, type BelayConfig } from './config.js';
+import { isBrowserJudge, isBrowserRunner, type RunnableTaskConfig } from './config.js';
 import { loadDataset } from './dataset.js';
+import { seedCommand, simulateCommand } from './learn-cli.js';
+import { loadConfig } from './load-config.js';
 import { nodeBackend, type LocalBackend } from './evaluate.js';
 
-const HELP = `Usage: belay calibrate --task <name> --data <examples.jsonl> [options]
+const HELP = `Usage: belay <command> [options]
+
+Commands:
+  calibrate   Fit a task's threshold on labeled examples (below)
+  seed        Embed labeled examples into a seed file for @swissspidy/belay-learn
+  simulate    Stream labeled examples through a learned classifier and report how it learns
+
+Run "belay seed --help" or "belay simulate --help" for their options.
+
+belay calibrate --task <name> --data <examples.jsonl> [options]
 
 Runs labeled examples through the task's local runner (in a real Chrome) and cloud runner,
 then writes belay.calibration.json and an HTML report.
@@ -35,34 +45,6 @@ Options:
   -h, --help             Show this help
 `;
 
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function loadConfig(path: string | undefined): Promise<{ config: BelayConfig; path: string }> {
-  const candidates = path ? [path] : ['belay.config.mjs', 'belay.config.js', 'belay.config.ts'];
-  for (const candidate of candidates) {
-    const full = resolve(candidate);
-    if (!(await exists(full))) continue;
-    try {
-      const mod = (await import(pathToFileURL(full).href)) as { default?: BelayConfig };
-      if (!mod.default?.tasks) throw new Error('the config must `export default { tasks: { ... } }`');
-      return { config: mod.default, path: full };
-    } catch (err) {
-      if (full.endsWith('.ts') && (err as NodeJS.ErrnoException).code === 'ERR_UNKNOWN_FILE_EXTENSION') {
-        throw new Error(`${candidate}: this Node version cannot import TypeScript; use belay.config.mjs or Node >= 22.18`);
-      }
-      throw err;
-    }
-  }
-  throw new Error(path ? `config file not found: ${path}` : 'no belay.config.{mjs,js,ts} in the current directory (or pass --config)');
-}
-
 const pct = (v: number | null | undefined, d = 1) => (v == null ? '–' : `${(v * 100).toFixed(d)}%`);
 
 export async function main(argv: string[]): Promise<number> {
@@ -71,6 +53,8 @@ export async function main(argv: string[]): Promise<number> {
     process.stdout.write(HELP);
     return command ? 0 : 1;
   }
+  if (command === 'seed') return seedCommand(rest);
+  if (command === 'simulate') return simulateCommand(rest);
   if (command !== 'calibrate') {
     process.stderr.write(`Unknown command "${command}".\n\n${HELP}`);
     return 1;
@@ -112,8 +96,12 @@ export async function main(argv: string[]): Promise<number> {
   const names = Object.keys(config.tasks);
   const name = values.task ?? (names.length === 1 ? names[0] : undefined);
   if (!name) throw new Error(`--task is required (config has: ${names.join(', ')})`);
-  const taskConfig = config.tasks[name];
-  if (!taskConfig) throw new Error(`task "${name}" is not in ${relative(process.cwd(), configPath)} (has: ${names.join(', ')})`);
+  const found = config.tasks[name];
+  if (!found) throw new Error(`task "${name}" is not in ${relative(process.cwd(), configPath)} (has: ${names.join(', ')})`);
+  if (!found.local || !found.cloud) {
+    throw new Error(`task "${name}" has no ${found.local ? 'cloud' : 'local'} runner: belay calibrate needs both (belay seed and belay simulate don't)`);
+  }
+  const taskConfig = found as RunnableTaskConfig<any>;
 
   const target = values.target === undefined || values.target === 'cloud' || values.target === 'max' ? values.target : Number(values.target);
   if (typeof target === 'number' && !(target > 0 && target <= 1)) throw new Error('--target must be "cloud", "max" or a number in (0, 1]');

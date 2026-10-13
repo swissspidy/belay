@@ -58,7 +58,26 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
   if (explore && !(explore.rate >= 0 && explore.rate <= 1)) {
     throw new BelayError('invalid-task', `task "${name}": explore rate must be in [0, 1]`);
   }
+  if (explore?.strategy !== undefined && explore.strategy !== 'uniform' && explore.strategy !== 'informative') {
+    throw new BelayError('invalid-task', `task "${name}": explore strategy must be "uniform" or "informative"`);
+  }
+  const floor = explore?.floor ?? 0.2;
+  // Above 0, so every confident run can be explored: the importance weights need that.
+  if (!(floor > 0 && floor <= 1)) throw new BelayError('invalid-task', `task "${name}": explore floor must be in (0, 1]`);
   const random = explore?.random ?? Math.random;
+  // Running mean of the informativeness of confident runs, which `informative` exploration
+  // divides by so that it explores about `rate` of them on average.
+  let meanInformativeness: number | null = null;
+
+  /** The probability of exploring a confident run. */
+  const exploreProbability = (informativeness: number): number => {
+    const rate = explore!.rate;
+    if (explore!.strategy !== 'informative') return rate;
+    const u = Number.isFinite(informativeness) ? Math.min(1, Math.max(0, informativeness)) : 1;
+    meanInformativeness = meanInformativeness === null ? u : meanInformativeness + 0.02 * (u - meanInformativeness);
+    const scaled = meanInformativeness > 0 ? (rate * u) / meanInformativeness : rate;
+    return Math.min(1, Math.max(rate * floor, scaled));
+  };
 
   const fingerprint = schemaFingerprint(schema);
   const jsonSchema = toJsonSchema(schema);
@@ -138,6 +157,8 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
     let localConfidence: number | null = null;
     let localLatencyMs: number | null = null;
     let threshold = thresholdOf(thresholdState);
+    let informativeness: number | undefined;
+    let explorationWeight: number | undefined;
 
     const localStarted = now();
     const timeout = new AbortController();
@@ -178,6 +199,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
             );
           }
           localConfidence = confidence;
+          if (Number.isFinite(output.informativeness)) informativeness = output.informativeness;
           localLatencyMs = now() - localStarted;
           localResult = {
             value: parsed.value,
@@ -226,6 +248,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
         source: full.source,
         ...(label !== undefined ? { label } : {}),
         ...(localLabel !== undefined ? { localLabel } : {}),
+        ...(explorationWeight !== undefined && reason === 'exploration' ? { explorationWeight } : {}),
         confidence: full.confidence,
         localConfidence,
         threshold,
@@ -256,8 +279,12 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
 
     // Exploration: a random share of confident runs goes to the cloud anyway. Never under
     // `consent` (it would ask the user about an answer the cascade already trusts) or `never`.
-    if (reason === null && explore && explore.rate > 0 && policy === 'auto' && cloud && random() < explore.rate) {
-      reason = 'exploration';
+    if (reason === null && explore && explore.rate > 0 && policy === 'auto' && cloud) {
+      const p = exploreProbability(informativeness ?? 1 - (localConfidence ?? 0));
+      if (random() < p) {
+        reason = 'exploration';
+        explorationWeight = explore.rate / p;
+      }
     }
 
     if (reason === null) {
@@ -316,6 +343,7 @@ export function task<S extends TaskSchema>(options: TaskOptions<S>): Task<S> {
           value: parsed.value,
           source: 'cloud',
           ...(reason ? { reason } : {}),
+          ...(explorationWeight !== undefined ? { explorationWeight } : {}),
           ...(typeof output.confidence === 'number' ? { cloudConfidence: output.confidence } : {}),
           ...(localResult ? { local: { value: localResult.value, confidence: localResult.confidence } } : {}),
         },

@@ -22,6 +22,10 @@ Each directory has:
 
 The content-moderation dataset contains offensive language. That's the point of the task.
 
+Starting with the learned classifier? [`learned-quickstart`](learned-quickstart) is a complete app
+(one page and a small server) that learns from Claude, or from you when there's no API key. See
+[below](#learned-classifier) for how it does on these datasets.
+
 `event-extraction` is the generation example: Gemini Nano (Chrome's Prompt API) writes the JSON,
 and a Laya judge (the Classifier API) scores it. On this data the judge doesn't separate right
 from wrong extractions, so the calibration keeps almost everything in the cloud. The
@@ -130,7 +134,9 @@ verified with Chrome 154 on a CPU-only Linux VM (details in
 throwing them away. [`scripts/learn-simulate.mjs`](scripts/learn-simulate.mjs) shows what that
 does over time: each classification task's `stream.jsonl` (1,000–1,500 inputs, none of them in
 `examples.jsonl`) goes through the real `task()` and `learnedClassifier()` one input at a time,
-with real `bge-small-en-v1.5` embeddings, threshold 0.9 and `explore: 0.05`.
+with real `bge-small-en-v1.5` embeddings, threshold 0.9, `explore: 0.05` and the distance gate
+on (the package defaults). It runs through `simulateLearning()`, the function behind
+`belay simulate`.
 
 ```sh
 npm install && npm run build      # from the repository root
@@ -149,19 +155,51 @@ against the dataset's labels:
 
 | Task | Order | Teacher | Seed | On device | Accuracy on device | Accuracy | On device, last 300 | Accuracy on device, last 300 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Ticket triage (1,500) | mixed | always right | – | 87.1% | 99.5% | 99.6% | 94.3% | 99.6% |
-| Ticket triage (1,500) | mixed | always right | 300 | 95.6% | 99.0% | 99.1% | 94.3% | 98.9% |
-| Ticket triage (1,500) | mixed | 94.3% right | – | 78.2% | 100.0% | 99.0% | 96.0% | 100.0% |
-| Ticket triage (1,500) | mixed | 94.3% right | 300 | 95.6% | 99.0% | 98.8% | 94.3% | 98.9% |
-| Content moderation (1,000) | by label | always right | – | 78.9% | 99.5% | 99.6% | 93.0% | 99.3% |
-| Content moderation (1,000) | mixed | always right | – | 27.4% | 96.0% | 98.9% | 38.0% | 94.7% |
-| Content moderation (1,000) | mixed | always right | 300 | 30.9% | 97.4% | 99.2% | 38.3% | 95.7% |
-| Content moderation (1,000) | mixed | 83.7% right | – | 1.4% | 85.7% | 81.6% | 4.7% | 85.7% |
-| Content moderation (1,000) | mixed | 83.7% right | 300 | 2.8% | 100.0% | 81.9% | 9.0% | 100.0% |
-| Intent detection (1,467) | mixed | always right | – | 87.5% | 97.5% | 97.8% | 83.0% | 99.6% |
-| Intent detection (1,467) | mixed | always right | 300 | 86.4% | 99.6% | 99.7% | 86.0% | 100.0% |
-| Intent detection (1,467) | mixed | 99.7% right | – | 87.5% | 97.5% | 97.7% | 83.0% | 99.6% |
-| Intent detection (1,467) | mixed | 99.7% right | 300 | 85.5% | 99.6% | 99.5% | 82.3% | 100.0% |
+| Ticket triage (1,500) | mixed | always right | – | 85.9% | 99.7% | 99.7% | 94.0% | 100.0% |
+| Ticket triage (1,500) | mixed | always right | 300 | 91.7% | 99.7% | 99.7% | 92.0% | 99.6% |
+| Ticket triage (1,500) | mixed | 94.3% right | – | 77.3% | 99.9% | 98.9% | 95.0% | 99.6% |
+| Ticket triage (1,500) | mixed | 94.3% right | 300 | 89.1% | 99.9% | 99.3% | 91.3% | 100.0% |
+| Content moderation (1,000) | by label | always right | – | 76.1% | 98.9% | 99.2% | 87.3% | 99.6% |
+| Content moderation (1,000) | mixed | always right | – | 25.2% | 96.0% | 99.0% | 39.3% | 93.2% |
+| Content moderation (1,000) | mixed | always right | 300 | 38.8% | 93.3% | 97.4% | 49.3% | 91.2% |
+| Content moderation (1,000) | mixed | 83.7% right | – | 1.3% | 84.6% | 81.6% | 4.3% | 84.6% |
+| Content moderation (1,000) | mixed | 83.7% right | 300 | 2.7% | 100.0% | 81.9% | 8.7% | 100.0% |
+| Intent detection (1,467) | mixed | always right | – | 84.8% | 98.6% | 98.8% | 87.3% | 98.9% |
+| Intent detection (1,467) | mixed | always right | 300 | 85.2% | 99.7% | 99.7% | 85.0% | 100.0% |
+| Intent detection (1,467) | mixed | 99.7% right | – | 85.3% | 98.6% | 98.6% | 87.3% | 98.9% |
+| Intent detection (1,467) | mixed | 99.7% right | 300 | 84.6% | 99.7% | 99.6% | 82.3% | 100.0% |
+
+The ablation for [ADR 0005](../docs/adr/0005-choosing-what-to-ask-and-keeping-what-it-learns.md)
+reruns the cold start with each way of choosing spot checks, with and without the distance gate
+(the rows with uniform spot checks and the gate are the ones above). The rows without the gate and
+with uniform spot checks reproduce ADR 0004's results exactly.
+
+| Task | Teacher | Spot checks | Gate | On device | Accuracy on device | Accuracy | Gated |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Ticket triage | always right | uniform | – | 87.1% | 99.5% | 99.6% | |
+| Ticket triage | always right | uniform | ✓ | 85.9% | 99.7% | 99.7% | 20 |
+| Ticket triage | always right | informative | – | 86.7% | 99.8% | 99.9% | |
+| Ticket triage | always right | informative | ✓ | 85.6% | 99.8% | 99.8% | 25 |
+| Ticket triage | 94.3% right | uniform | – | 78.2% | 100.0% | 99.0% | |
+| Ticket triage | 94.3% right | uniform | ✓ | 77.3% | 99.9% | 98.9% | 38 |
+| Ticket triage | 94.3% right | informative | – | 81.3% | 99.9% | 99.0% | |
+| Ticket triage | 94.3% right | informative | ✓ | 72.7% | 100.0% | 98.4% | 42 |
+| Content moderation | always right | uniform | – | 27.4% | 96.0% | 98.9% | |
+| Content moderation | always right | uniform | ✓ | 25.2% | 96.0% | 99.0% | 35 |
+| Content moderation | always right | informative | – | 26.8% | 95.9% | 98.9% | |
+| Content moderation | always right | informative | ✓ | 25.0% | 96.0% | 99.0% | 36 |
+| Content moderation, by label | always right | uniform | – | 78.9% | 99.5% | 99.6% | |
+| Content moderation, by label | always right | uniform | ✓ | 76.1% | 98.9% | 99.2% | 8 |
+| Content moderation, by label | always right | informative | – | 77.5% | 99.7% | 99.8% | |
+| Content moderation, by label | always right | informative | ✓ | 74.8% | 99.1% | 99.3% | 8 |
+| Intent detection | always right | uniform | – | 87.5% | 97.5% | 97.8% | |
+| Intent detection | always right | uniform | ✓ | 84.8% | 98.6% | 98.8% | 23 |
+| Intent detection | always right | informative | – | 86.9% | 98.4% | 98.6% | |
+| Intent detection | always right | informative | ✓ | 82.3% | 99.3% | 99.4% | 22 |
+| Intent detection | 99.7% right | uniform | – | 87.5% | 97.5% | 97.7% | |
+| Intent detection | 99.7% right | uniform | ✓ | 85.3% | 98.6% | 98.6% | 22 |
+| Intent detection | 99.7% right | informative | – | 86.4% | 98.4% | 98.5% | |
+| Intent detection | 99.7% right | informative | ✓ | 80.2% | 99.3% | 99.3% | 22 |
 
 "Last 300" is the end of the stream, after the classifier has learned. The
 [demo](https://swissspidy.github.io/belay/learn/) runs the ticket-triage stream in your browser.
