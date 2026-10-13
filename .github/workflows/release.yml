@@ -53,6 +53,8 @@ jobs:
       # until it is approved.
       - name: Did this push bump a version that npm lacks?
         id: release
+        # -eo pipefail: without a shell, a step runs with bash -e only.
+        shell: bash
         env:
           BEFORE: ${{ github.event.before }}
         run: |
