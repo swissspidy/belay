@@ -554,9 +554,9 @@ over the other labels:
 const local = learnedClassifier({ embedder, teacherAccuracy: calibration.expected.cloudAccuracy });
 ```
 
-It accepts values in (0, 1]. At or below chance (`1 / labels`, where the formula's denominator
-reaches zero), the cloud's agreement says nothing about being right, and the confidence is left
-as it is. Calibration pairs scored against a reference label rather than the cloud (a seed's
+It accepts values in (0, 1]. At or below chance, the confidence is left unchanged, as a fallback:
+at exactly chance (`1 / labels`) the formula's denominator is zero, and below chance it is
+negative. Calibration pairs scored against a reference label rather than the cloud (a seed's
 examples, users' corrections) already measure being right; they are counted accordingly.
 
 In the simulations (cold start; noisy teacher = wrong as often as the calibrated cloud model, at

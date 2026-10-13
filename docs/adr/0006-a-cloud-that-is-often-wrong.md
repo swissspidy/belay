@@ -37,8 +37,7 @@ labels, so
     p = (agreement − e) / (a − e)
 
 clamped to [0, 1] (`correctForTeacher()`). It is the identity for a perfect teacher, and for one at
-or below chance (`a ≤ 1/K`, where the denominator reaches zero: agreement says nothing about being
-right). Calibration pairs scored against a reference label (a seed's leave-one-out pairs, users'
+or below chance (`a ≤ 1/K`), as a fallback: the denominator is zero at chance and negative below. Calibration pairs scored against a reference label (a seed's leave-one-out pairs, users'
 corrections) measure being right, not agreeing; the fit maps them into agreement space, a right one
 to `a` and a wrong one to `e` as soft targets, so that the one correction applies to all. The confidence
 is then calibrated against labels, not the cloud, so `costAwareThreshold()` takes
