@@ -14,9 +14,9 @@ concurrency:
 
 # Three jobs, so that the job that can publish (id-token: write) installs and runs nothing from
 # the dependency tree. See RELEASING.md.
-# 1. version: Changesets opens or updates the "Version packages" pull request. When main's
-#    packages carry versions npm does not have yet (that pull request was merged), this push is a
-#    release.
+# 1. version: Changesets opens or updates the "Version packages" pull request. When this push
+#    changed a package's version and npm does not have it yet (that pull request was merged), this
+#    push is a release.
 # 2. pack (a release only): installs, builds, lints and packs every package.
 # 3. stage (a release only): stages those tarballs on npm, then tags each package's version and
 #    creates its GitHub release. A staged version goes public only once a maintainer approves it
@@ -44,22 +44,41 @@ jobs:
           package-manager-cache: false
       - run: npm ci --ignore-scripts
       # Before changesets/action, which leaves the checkout on its version branch with the pending
-      # changesets applied: the check has to read main's manifests, not the next versions. A
-      # version that is tagged was staged already: it stays off npm until it is approved, and
-      # pushes to main in the meantime must not stage it again.
-      - name: Does npm lack any package's version?
+      # changesets applied: the check has to read main's manifests, not the next versions.
+      # A push is a release only when it changed a package's version, which is what merging the
+      # "Version packages" pull request does, and npm lacks that version. Any other push leaves
+      # releasing alone, even while a version is missing from npm: a package added at a version
+      # npm never had waits for its first version bump, and a release that failed is re-run (the
+      # re-run sees the same push). A version that is tagged was staged already: it stays off npm
+      # until it is approved.
+      - name: Did this push bump a version that npm lacks?
         id: release
+        # -eo pipefail: without a shell, a step runs with bash -e only.
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
+          # The commit main pointed to before this push; HEAD^ when GitHub has none (a new branch)
+          # or it is gone (a force push). HEAD^ is the first parent, so for a push that added
+          # several commits it is not the state before the push; pull requests are squash-merged.
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then BEFORE="$(git rev-parse HEAD^)"; fi
           release=false
           for manifest in packages/*/package.json; do
             spec="$(node -p 'const p = require("./" + process.argv[1]); p.private ? "" : `${p.name}@${p.version}`' "$manifest")"
             [ -z "$spec" ] && continue
+            version="${spec##*@}"
+            # A package this push added has no previous version. Any other failure to read it fails
+            # the job rather than skipping a release.
+            entry="$(git ls-tree --name-only "$BEFORE" -- "$manifest")"
+            [ -n "$entry" ] || continue
+            previous="$(git show "$BEFORE:$manifest" | node -p 'JSON.parse(require("fs").readFileSync(0)).version')"
+            [ "$previous" = "$version" ] && continue
             if npm view "$spec" version >/dev/null 2>&1; then continue; fi
             if git ls-remote --exit-code --tags origin "refs/tags/$spec" >/dev/null; then
               echo "$spec is tagged but not on npm: waiting for its staged version's approval"
               continue
             fi
-            echo "$spec is not on npm"
+            echo "$spec ($previous before this push) is not on npm"
             release=true
           done
           echo "release=$release" >> "$GITHUB_OUTPUT"
