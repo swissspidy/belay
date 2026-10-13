@@ -1,5 +1,12 @@
 # @swissspidy/belay-web
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [[`4e79ec3`](https://github.com/swissspidy/belay/commit/4e79ec3f3d87b082a54c7d36ae308df63aa60870), [`39d3161`](https://github.com/swissspidy/belay/commit/39d31619a3595a6de5e4b3186b3fd24cff61ae2e)]:
+  - @swissspidy/belay-core@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
