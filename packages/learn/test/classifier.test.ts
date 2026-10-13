@@ -99,6 +99,20 @@ describe('learnedClassifier with task()', () => {
     expect(kept.filter((r) => r.value === r.truth).length / kept.length).toBeGreaterThan(0.9);
   });
 
+  it('with teacherAccuracy, does not correct pairs scored against reference labels (a seed)', async () => {
+    const embedder = fakeEmbedder(TOPICS);
+    // Every fifth example mislabeled, so the seed's leave-one-out pairs are not all right.
+    const examples = inputs(60, 1000).map((input, i) => ({ input, value: i % 5 === 0 ? TOPICS[(TOPICS.indexOf(input.split(' ')[0]!) + 1) % 4]! : input.split(' ')[0]! }));
+    const seed = await buildSeed({ task: 'triage', schema: triageSchema, embedder, examples });
+    expect(seed.pairs!.knn.some((p) => !p.correct)).toBe(true);
+    const ctx = { task: 'triage', schema: triageSchema };
+    const plain = await learnedClassifier({ embedder, seed }).run('feature dark mode please', ctx);
+    const corrected = await learnedClassifier({ embedder, seed, teacherAccuracy: 0.7 }).run('feature dark mode please', ctx);
+    // The seed's pairs already measure being right: correcting them as agreement would inflate it.
+    expect(plain.confidence!).toBeLessThan(0.95);
+    expect(Math.abs(corrected.confidence! - plain.confidence!)).toBeLessThan(0.05);
+  });
+
   it('rejects a teacherAccuracy outside (0, 1]', () => {
     expect(() => learnedClassifier({ embedder: fakeEmbedder(TOPICS), teacherAccuracy: 0 })).toThrow(/teacherAccuracy/);
     expect(() => learnedClassifier({ embedder: fakeEmbedder(TOPICS), teacherAccuracy: 1.2 })).toThrow(/teacherAccuracy/);

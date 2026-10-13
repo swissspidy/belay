@@ -27,6 +27,8 @@ const notCached = async () => {
 };
 const backend = { spec: { browser: config.local, judge: null, extension: 'extension' }, info: async () => ({ runner: 'classifier-api' }), availability: notCached, prepare: notCached, run: notCached, close: async () => {} };
 const { samples } = await evaluate({ name, config: { ...config, cloud: { id: config.cloud.id, run: notCached } }, dataset, backend, cache, cloudRetries: 0, log: () => {} });
+const missing = samples.filter((s) => !s.cloud).length;
+if (missing) throw new Error(`${missing} cloud answers are not cached for ${name} (${cloudId}); run belay calibrate first`);
 
 const labels = [...new Set(dataset.examples.map((e) => String(e.truth)))];
 const emb = await (await cachedEmbedder(name)).embed(dataset.examples.map((e) => e.input));

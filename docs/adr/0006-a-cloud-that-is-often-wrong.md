@@ -36,7 +36,11 @@ labels, so
 
     p = (agreement − e) / (a − e)
 
-clamped to [0, 1] (`correctForTeacher()`). It is the identity for a perfect teacher. The confidence
+clamped to [0, 1] (`correctForTeacher()`). It is the identity for a perfect teacher, and for one at
+or below chance (`a ≤ 1/K`, where the denominator reaches zero: agreement says nothing about being
+right). Calibration pairs scored against a reference label (a seed's leave-one-out pairs, users'
+corrections) measure being right, not agreeing; the fit maps them into agreement space, a right one
+to `a` and a wrong one to `e` as soft targets, so that the one correction applies to all. The confidence
 is then calibrated against labels, not the cloud, so `costAwareThreshold()` takes
 `calibratedAgainst: 'labels'`.
 
@@ -53,24 +57,26 @@ so the two make the same mistakes. Seeds are the 300 examples of `examples.jsonl
 | --- | --- | --- | --- | --- | --- |
 | Ticket triage | noisy, 94.3% right | 0.9 | – | 77.3 / 99.9 / 98.9 | 86.3 / 98.8 / 98.2 |
 | Ticket triage | noisy | 0.95 | – | 54.7 / 99.9 / 97.3 | 77.5 / 100.0 / 98.9 |
-| Ticket triage | noisy | 0.9 | 300 | 89.1 / 99.9 / 99.3 | 90.7 / 99.7 / 99.3 |
+| Ticket triage | noisy | 0.9 | 300 | 89.1 / 99.9 / 99.3 | 91.4 / 99.9 / 99.5 |
 | Ticket triage | hard, 93.8% right | 0.9 | – | 66.8 / 100.0 / 97.2 | 81.1 / 99.2 / 97.9 |
 | Ticket triage | hard | 0.95 | – | 60.5 / 100.0 / 97.0 | 71.1 / 99.8 / 97.6 |
 | Content moderation | noisy, 83.7% right | 0.9 | – | 1.3 / 84.6 / 81.6 | 10.2 / 93.1 / 82.5 |
-| Content moderation | noisy | 0.9 | 300 | 2.7 / 100.0 / 81.9 | 22.2 / 93.7 / 83.4 |
+| Content moderation | noisy | 0.9 | 300 | 2.7 / 100.0 / 81.9 | 24.1 / 95.0 / 83.6 |
 | Content moderation | hard, 84.4% right | 0.9 | – | 12.5 / 90.4 / 83.6 | 29.5 / **80.7** / 81.8 |
-| Content moderation | hard | 0.9 | 300 | 13.0 / 96.2 / 84.3 | 43.3 / 89.8 / 85.3 |
+| Content moderation | hard | 0.9 | 300 | 13.0 / 96.2 / 84.3 | 40.8 / 89.5 / 84.7 |
 | Intent detection | noisy, 99.7% right | 0.9 | – | 85.3 / 98.6 / 98.6 | 84.7 / 98.7 / 98.8 |
 
 - With random cloud mistakes it is a large lift: on triage at 0.95, 23 more points on the device
-  with no loss of accuracy; on moderation, the share kept goes from nothing to 10–22%, more
+  with no loss of accuracy; on moderation, the share kept goes from nothing to 10–24%, more
   accurate than the cloud.
 - A threshold below the cloud's accuracy trades accuracy for share: triage at 0.9 lost 0.7 points
   overall, because 0.9 < 94.3%. At or above it, every measure improved.
 - With correlated mistakes it is overconfident: cold-start moderation with the `hard` teacher
   answered 29.5% on the device at 80.7%, below the 0.9 target and below the cloud.
-- On moderation's seeded run the share fell late in the stream (4.3% of the last 300), so seeded
-  results swing; the cold-start rows are the steadier comparison.
+- A first version corrected the seed's pairs too, as if they measured agreement with the cloud;
+  CodeRabbit's review caught it. The mix was inconsistent: seeded moderation kept 22.2% at
+  93.7% and fell to 4.3% over the last 300 inputs. Mapping those pairs into agreement space (see
+  the decision) gives 24.1% at 95.0%, and 37.3% over the last 300.
 
 **Real cloud mistakes.** `examples/scripts/teacher-independence.mjs` compares the calibration's
 cached cloud answers on `examples.jsonl` with a leave-one-out kNN. On ticket triage the kNN made
@@ -79,9 +85,10 @@ correlated: Jev is wrong 22.5% of the time where the kNN is wrong and 14.1% wher
 on the kNN's most confident half it is right 92% of the time (83.7% overall). There the correction
 estimated 93% where the kNN was right 83% of the time.
 
-So the guide says: leave it unset when the cloud is more accurate than the threshold; set the
-threshold at or above `teacherAccuracy`; on subjective tasks, check the device's accuracy against
-users' corrections or a labeled sample before relying on it.
+So the guide says: with a cloud more accurate than the threshold, it isn't needed, and it still
+lowers the agreement an answer needs (to 0.852 for a 94%-accurate cloud, two labels and a
+threshold of 0.9); set the threshold at or above `teacherAccuracy`; on subjective tasks, check the
+device's accuracy against users' corrections or a labeled sample before relying on it.
 
 ## Not adopted
 

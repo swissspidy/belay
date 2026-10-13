@@ -171,8 +171,8 @@ against the dataset's labels:
 
 With the noisy teacher, the confidence measures agreement with a cloud that is itself wrong
 16.3% (moderation) or 5.7% (triage) of the time, so it can't reach the threshold. Passing the
-cloud's accuracy as `teacherAccuracy` corrects for that: on moderation, 10.2% on device (22.2%
-seeded) at 93.1% (93.7%) accuracy, and 82.5% (83.4%) overall; on triage at a threshold of 0.95,
+cloud's accuracy as `teacherAccuracy` corrects for that: on moderation, 10.2% on device (24.1%
+seeded) at 93.1% (95.0%) accuracy, and 82.5% (83.6%) overall; on triage at a threshold of 0.95,
 77.5% on device instead of 54.7%. It assumes the cloud's mistakes are independent of the
 classifier's; see [a cloud that is often
 wrong](../docs/learned-classifier.md#a-cloud-that-is-often-wrong) for when they are not.

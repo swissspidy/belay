@@ -554,10 +554,15 @@ over the other labels:
 const local = learnedClassifier({ embedder, teacherAccuracy: calibration.expected.cloudAccuracy });
 ```
 
+It accepts values in (0, 1]. At or below chance (`1 / labels`, where the formula's denominator
+reaches zero), the cloud's agreement says nothing about being right, and the confidence is left
+as it is. Calibration pairs scored against a reference label rather than the cloud (a seed's
+examples, users' corrections) already measure being right; they are counted accordingly.
+
 In the simulations (cold start; noisy teacher = wrong as often as the calibrated cloud model, at
 random), it raised the local share on ticket triage from 54.7% to 77.5% at a threshold of 0.95
 with no loss of accuracy on the device (overall accuracy 97.3% → 98.9%), and on content moderation
-from 1.3% to 10.2% at 0.9 (22.2% with a seed, from 2.7%; overall 81.6% → 82.5%, and 83.4% with the
+from 1.3% to 10.2% at 0.9 (24.1% with a seed, from 2.7%; overall 81.6% → 82.5%, and 83.6% with the
 seed). The answers the classifier keeps are then *more* often right than the cloud's. All the
 numbers are in [ADR 0006](adr/0006-a-cloud-that-is-often-wrong.md).
 
@@ -570,10 +575,13 @@ confidence comes out too high. On the 300 moderation examples, Jev was right 92%
 the half a leave-one-out kNN was surest of (83.7% overall), so the correction estimated 93% for
 that half where the kNN was right 83% of the time. With a simulated teacher whose mistakes
 concentrate on borderline comments, the device's answers were 80.7% right at a threshold of 0.9
-(89.8% with a seed). On ticket triage the kNN made none of Claude's or Jev's real mistakes, and
+(89.5% with a seed). On ticket triage the kNN made none of Claude's or Jev's real mistakes, and
 the correction was exact. So:
 
-- Leave it unset when the cloud is right more often than your threshold; it changes little there.
+- With a cloud right more often than your threshold, you don't need it to keep answers on the
+  device, but it still lowers the agreement they need: with a 94%-accurate cloud, two labels and
+  a threshold of 0.9, an agreement of 0.852 is enough. Turn it on only if you trust the
+  independence assumption for your task.
 - Set the threshold at or above `teacherAccuracy` to keep only answers likelier right than the
   cloud's ([Chow's rule](#choosing-the-threshold)); a lower one trades accuracy for local share.
 - On subjective tasks (moderation, sentiment), watch the device's accuracy with users' corrections

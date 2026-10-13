@@ -13,6 +13,17 @@ export interface CalibrationPair {
   weight?: number;
   /** The input it was scored on, so merging two records doesn't count a prediction twice. */
   id?: string;
+  /**
+   * `'label'` when it was scored against a reference label (a seed example, a user's correction)
+   * rather than the cloud's answer. Matters only with `teacherAccuracy`, where the two measure
+   * different things (being right, agreeing with the cloud).
+   */
+  source?: 'label';
+  /**
+   * A soft target in [0, 1] in place of `correct`, e.g. the expected agreement with the cloud of a
+   * prediction known to be right or wrong. Used in fitting only, never stored.
+   */
+  target?: number;
 }
 
 /** `P(correct) = sigmoid(a · logit(score) + b)`. */
@@ -68,16 +79,18 @@ export function fitPlatt(pairs: readonly CalibrationPair[], options: PlattOption
   const prior = options.prior ?? 0.01;
   const n = pairs.length;
   const w = pairs.map((p, i) => (options.halfLife ? 0.5 ** ((n - 1 - i) / options.halfLife) : 1) * (p.weight ?? 1));
+  const y = pairs.map((p) => p.target ?? (p.correct ? 1 : 0));
   let positives = 0;
   let total = 0;
-  pairs.forEach((p, i) => {
+  pairs.forEach((_, i) => {
     total += w[i]!;
-    if (p.correct) positives += w[i]!;
+    positives += w[i]! * y[i]!;
   });
   const tPos = (positives + 1) / (positives + 2);
   const tNeg = 1 / (total - positives + 2);
   const x = pairs.map((p) => logit(p.score));
-  const t = pairs.map((p) => (p.correct ? tPos : tNeg));
+  // A soft target interpolates Platt's smoothed targets (the same as before for 0 and 1).
+  const t = y.map((v) => v * tPos + (1 - v) * tNeg);
 
   const loss = (a: number, b: number): number => {
     let l = (prior / 2) * ((a - 1) ** 2 + b * b);

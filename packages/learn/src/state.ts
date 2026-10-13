@@ -24,13 +24,14 @@ export interface LearnedState {
 
 const isPair = (p: unknown): p is CalibrationPair => {
   if (!p || typeof p !== 'object') return false;
-  const { score, correct, weight, id } = p as CalibrationPair;
+  const { score, correct, weight, id, source } = p as CalibrationPair;
   return (
     Number.isFinite(score) &&
     typeof correct === 'boolean' &&
     // Within what recorded weights are clipped to: one huge weight would swamp the fit.
     (weight === undefined || (Number.isFinite(weight) && weight > 0 && weight <= MAX_PAIR_WEIGHT)) &&
-    (id === undefined || typeof id === 'string')
+    (id === undefined || typeof id === 'string') &&
+    (source === undefined || source === 'label')
   );
 };
 

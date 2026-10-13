@@ -311,7 +311,8 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
             if (label >= 0) seed.push({ id: `seed:${i}`, label, embedding: decodeInt8(e.embedding), weight: 1, source: 'seed', createdAt: 0 });
           });
           // Ids, so that merging two records that both start from this seed counts each pair once.
-          seedPairs = (seedFile.pairs?.knn ?? []).map((p, i) => ({ ...p, id: p.id ?? `seed:${i}` }));
+          // Scored against the examples' labels, not the cloud: `source: 'label'` (see teacherAccuracy).
+          seedPairs = (seedFile.pairs?.knn ?? []).map((p, i) => ({ ...p, id: p.id ?? `seed:${i}`, source: 'label' as const }));
         }
         const learned = new Map<string, Example>();
         for (const e of saved.examples) {
@@ -370,7 +371,15 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
   }
 
   function refit(s: State, head: HeadKind): void {
-    const recent = s.pairs[head].slice(-window);
+    let recent: CalibrationPair[] = s.pairs[head].slice(-window);
+    if (teacherAccuracy !== undefined && teacherAccuracy < 1) {
+      // The fit is in agreement-with-the-cloud space, which correctForTeacher() maps back. A pair
+      // scored against a reference label says whether the head was right: a right label agrees
+      // with the cloud with probability teacherAccuracy, a wrong one with the error rate e.
+      const e = (1 - teacherAccuracy) / Math.max(1, s.labels.length - 1);
+      // At or below chance, correctForTeacher() is the identity, and so is this.
+      if (teacherAccuracy > e) recent = recent.map((p) => (p.source === 'label' ? { ...p, target: p.correct ? teacherAccuracy : e } : p));
+    }
     s.scaling[head] = recent.length >= minPairs ? fitPlatt(recent, { halfLife }) : null;
   }
 
@@ -490,7 +499,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
   }
 
   /** Records how the heads did on this input before they learned it. */
-  function recordPairs(s: State, id: string, label: number, weight?: number): void {
+  function recordPairs(s: State, id: string, label: number, weight?: number, source?: 'label'): void {
     const prediction = s.predictions.get(id);
     if (!prediction) return;
     s.predictions.delete(id);
@@ -499,7 +508,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     for (const head of ['knn', 'softmax'] as const) {
       const p = prediction[head];
       if (!p) continue;
-      s.pairs[head].push({ score: p.score, correct: p.label === label, id, ...(w !== undefined ? { weight: w } : {}) });
+      s.pairs[head].push({ score: p.score, correct: p.label === label, id, ...(w !== undefined ? { weight: w } : {}), ...(source ? { source } : {}) });
       if (s.pairs[head].length > MAX_PAIRS) s.pairs[head].splice(0, s.pairs[head].length - MAX_PAIRS);
       refit(s, head);
     }
@@ -530,7 +539,7 @@ export function learnedClassifier(options: LearnedClassifierOptions): LearnedCla
     if (label < 0) return;
     if (example.source === 'cloud' && example.cloudConfidence !== undefined && example.cloudConfidence < minCloudConfidence) return;
     const id = inputId(example.input);
-    recordPairs(s, id, label, example.explorationWeight);
+    recordPairs(s, id, label, example.explorationWeight, example.source === 'feedback' ? 'label' : undefined);
     const cached = s.embeddings.get(id);
     if (cached) {
       addExample(s, id, label, cached, example.source);

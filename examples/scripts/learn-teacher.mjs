@@ -44,6 +44,7 @@ const embedder = await cachedEmbedder(name);
 const toValue = (l) => (schema.type === 'binary' ? l === 'true' : l);
 
 // Teachers. `noisy` reproduces examples/scripts/learn-simulate.mjs exactly.
+if (!['reference', 'noisy', 'hard'].includes(teacherId)) throw new Error(`unknown teacher "${teacherId}" (reference, noisy or hard)`);
 let teacher;
 const errorRate = teacherId === 'reference' ? 0 : 1 - cloudAccuracy;
 if (teacherId === 'reference') teacher = (_i, truth) => truth;
