@@ -556,7 +556,8 @@ const local = learnedClassifier({ embedder, teacherAccuracy: calibration.expecte
 
 It accepts values in (0, 1]. At or below chance, the confidence is left unchanged, as a fallback:
 at exactly chance (`1 / labels`) the formula's denominator is zero, and below chance it is
-negative. Calibration pairs scored against a reference label rather than the cloud (a seed's
+negative. The confidence then stays the chance of agreeing with the cloud, as without the option.
+Above chance, calibration pairs scored against a reference label rather than the cloud (a seed's
 examples, users' corrections) already measure being right; they are counted accordingly.
 
 In the simulations (cold start; noisy teacher = wrong as often as the calibrated cloud model, at
@@ -566,14 +567,14 @@ from 1.3% to 10.2% at 0.9 (24.1% with a seed, from 2.7%; overall 81.6% → 82.5%
 seed). The answers the classifier keeps are then *more* often right than the cloud's. All the
 numbers are in [ADR 0006](adr/0006-a-cloud-that-is-often-wrong.md).
 
-With `teacherAccuracy` set, the confidence is a probability of being right, so derive a threshold
-from costs with `costAwareThreshold({ …, calibratedAgainst: 'labels' })`.
+With `teacherAccuracy` set above chance, the confidence is a probability of being right, so derive
+a threshold from costs with `costAwareThreshold({ …, calibratedAgainst: 'labels' })`.
 
 It is only as good as that independence assumption. Where the cloud errs mostly on ambiguous
 inputs, and is better than its average on the clear ones the classifier is sure of, the corrected
 confidence comes out too high. On the 300 moderation examples, Jev was right 92% of the time on
 the half a leave-one-out kNN was surest of (83.7% overall), so the correction estimated 93% for
-that half where the kNN was right 83% of the time. With a simulated teacher whose mistakes
+that half, on which the kNN was right 83% of the time. With a simulated teacher whose mistakes
 concentrate on borderline comments, the device's answers were 80.7% right at a threshold of 0.9
 (89.5% with a seed). On ticket triage the kNN made none of Claude's or Jev's real mistakes, and
 the correction was exact. So:

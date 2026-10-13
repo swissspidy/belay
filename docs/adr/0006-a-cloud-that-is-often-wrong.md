@@ -36,18 +36,23 @@ labels, so
 
     p = (agreement − e) / (a − e)
 
-clamped to [0, 1] (`correctForTeacher()`). It is the identity for a perfect teacher, and for one at
-or below chance (`a ≤ 1/K`), as a fallback: the denominator is zero at chance and negative below. Calibration pairs scored against a reference label (a seed's leave-one-out pairs, users'
-corrections) measure being right, not agreeing; the fit maps them into agreement space, a right one
-to `a` and a wrong one to `e` as soft targets, so that the one correction applies to all. The confidence
-is then calibrated against labels, not the cloud, so `costAwareThreshold()` takes
-`calibratedAgainst: 'labels'`.
+clamped to [0, 1] (`correctForTeacher()`). It is the identity for a perfect teacher. Calibration
+pairs scored against a reference label (a seed's leave-one-out pairs, users' corrections) measure
+being right, not agreeing; the fit maps them into agreement space, a right one to `a` and a wrong
+one to `e` as soft targets, so that the one correction applies to all. For a teacher above chance
+(`a > 1/K`), the confidence is then calibrated against labels, not the cloud, so
+`costAwareThreshold()` takes `calibratedAgainst: 'labels'`.
+
+At or below chance (`a ≤ 1/K`), the denominator is zero (at chance) or negative (below), so as a
+fallback neither the correction nor the mapping applies: the confidence stays calibrated on agreement
+with the cloud, with any reference-label pairs mixed in as they are, as without `teacherAccuracy`.
+It is not a probability of being right, and `calibratedAgainst` stays `'cloud'`.
 
 It is not the default, because the independence assumption fails exactly where it matters most.
 
 ## Results
 
-Simulated streams, threshold 0.9 unless noted; on device / accuracy on device / overall accuracy.
+Simulated streams, threshold 0.9 unless noted; on-device share / on-device accuracy / overall accuracy.
 `noisy`: wrong as often as the task's calibrated cloud model, at random. `hard`: as often (6.2% on
 triage, 15.6% on moderation), but mostly on borderline inputs, where an embedding model also errs,
 so the two make the same mistakes. Seeds are the 300 examples of `examples.jsonl`.
@@ -80,9 +85,9 @@ so the two make the same mistakes. Seeds are the 300 examples of `examples.jsonl
 **Real cloud mistakes.** `examples/scripts/teacher-independence.mjs` compares the calibration's
 cached cloud answers on `examples.jsonl` with a leave-one-out kNN. On ticket triage the kNN made
 none of Claude's (or Jev's) mistakes, and the correction was exact. On moderation the mistakes are
-correlated: Jev is wrong 22.5% of the time where the kNN is wrong and 14.1% where it is right, and
+correlated: Jev is wrong 22.5% of the time when the kNN is wrong and 14.1% when it is right, and
 on the kNN's most confident half it is right 92% of the time (83.7% overall). There the correction
-estimated 93% where the kNN was right 83% of the time.
+estimated 93% while the kNN was right 83% of the time.
 
 So the guide says: with a cloud more accurate than the threshold, it isn't needed, and it still
 lowers the agreement an answer needs (to 0.852 for a 94%-accurate cloud, two labels and a
