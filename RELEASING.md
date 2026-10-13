@@ -38,9 +38,10 @@ Approve all four packages, so they go live at the same version.
 installs and runs nothing from the dependency tree:
 
 1. `version` runs on every push to `main`. Changesets opens or updates the Version packages pull
-   request; the job installs with `--ignore-scripts` and has no OIDC token. When `main`'s packages
-   carry versions that are neither on npm nor tagged (that pull request was merged), the push is a
-   release.
+   request; the job installs with `--ignore-scripts` and has no OIDC token. When the push changed
+   a package's version to one that is neither on npm nor tagged (that pull request was merged), the
+   push is a release. No other push is: a package added at a version npm never had is released
+   with its first version bump, and a release that failed is re-run from its own workflow run.
 2. `pack` installs, builds, runs publint and packs each package. It has no OIDC token either.
 3. `stage` is the only job with `id-token: write`, in the `npm` environment. It installs nothing:
    it stages the tarballs with `npm stage publish` (npm 11.15.0 or later, which the job checks),
@@ -54,7 +55,7 @@ Each package's trusted publisher on npm names this repository, `release.yml` and
 environment, and only needs to allow staged publishes. Provenance comes from
 `publishConfig.provenance` in each package, which also means a `npm publish` from a laptop fails:
 releases go through the workflow. A new package needs its trusted publisher set up on npm before
-its first release, or the `stage` job fails for it. Don't add required reviewers to the `npm` environment; the 2FA
+its first release, or the `stage` job fails for it with `ENEEDAUTH`. Don't add required reviewers to the `npm` environment; the 2FA
 approval on npm is the review step.
 
 ## Moving to an organization
