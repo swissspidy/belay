@@ -38,7 +38,7 @@ jobs:
           persist-credentials: false
       # No dependency cache, and no install scripts next to the token this job holds: Changesets
       # needs neither.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           package-manager-cache: false
@@ -102,7 +102,7 @@ jobs:
         with:
           persist-credentials: false
       # No dependency cache: a release builds from a clean install.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           package-manager-cache: false
@@ -117,7 +117,7 @@ jobs:
             if [ "$(node -p 'require("./" + process.argv[1]).private === true' "$manifest")" = true ]; then continue; fi
             npm pack --workspace "$(dirname "$manifest")" --pack-destination release
           done
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packages
           path: release/*.tgz
@@ -146,7 +146,7 @@ jobs:
       # No registry-url, so no .npmrc: npm exchanges the job's OIDC token for a short-lived
       # credential instead. check-latest: a cached older Node 24 can bundle an npm too old to
       # stage.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           check-latest: true
