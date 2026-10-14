@@ -12,7 +12,7 @@
     "calibrate:all": "node scripts/calibrate-all.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.129.0",
+    "@anthropic-ai/sdk": "^0.132.0",
     "@swissspidy/belay-calibrate": "^0.1.1",
     "@swissspidy/belay-core": "^0.1.1",
     "@swissspidy/belay-learn": "^0.1.1",
