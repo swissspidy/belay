@@ -1,6 +1,6 @@
 {
   "name": "@swissspidy/belay-calibrate",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Calibrate Belay task thresholds on labeled data in a real Chrome: CLI, calibration file and HTML report.",
   "license": "Apache-2.0",
   "author": "Pascal Birchler",
@@ -37,9 +37,9 @@
     "src"
   ],
   "dependencies": {
-    "@swissspidy/belay-core": "^0.1.1",
-    "@swissspidy/belay-learn": "^0.1.1",
-    "@swissspidy/belay-web": "^0.1.1"
+    "@swissspidy/belay-core": "^0.2.0",
+    "@swissspidy/belay-learn": "^0.2.0",
+    "@swissspidy/belay-web": "^0.2.0"
   },
   "peerDependencies": {
     "@huggingface/transformers": "^4.0.0",
