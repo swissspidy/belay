@@ -54,7 +54,7 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.5",
     "playwright-core": "^1.64.0"
   },
   "scripts": {
