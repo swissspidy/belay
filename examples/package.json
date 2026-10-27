@@ -12,12 +12,12 @@
     "calibrate:all": "node scripts/calibrate-all.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.133.0",
+    "@anthropic-ai/sdk": "^0.136.0",
     "@swissspidy/belay-calibrate": "^0.1.1",
     "@swissspidy/belay-core": "^0.1.1",
     "@swissspidy/belay-learn": "^0.1.1",
     "@swissspidy/belay-web": "^0.1.1",
-    "@typesafe-ai/sdk": "^0.6.0",
-    "playwright-core": "^1.64.0"
+    "@typesafe-ai/sdk": "^0.7.0",
+    "playwright-core": "^1.64.1"
   }
 }
