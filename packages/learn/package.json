@@ -1,6 +1,6 @@
 {
   "name": "@swissspidy/belay-learn",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A Belay local runner that learns: on-device embeddings and a small head trained on cloud answers and user corrections.",
   "license": "Apache-2.0",
   "author": "Pascal Birchler",
@@ -37,7 +37,7 @@
   ],
   "peerDependencies": {
     "@huggingface/transformers": "^4.0.0",
-    "@swissspidy/belay-core": "^0.1.1"
+    "@swissspidy/belay-core": "^0.2.0"
   },
   "peerDependenciesMeta": {
     "@huggingface/transformers": {
