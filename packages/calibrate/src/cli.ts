@@ -1,15 +1,14 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { browserBackend } from './browser.js';
+import { createBackend } from './backend.js';
 import { OutputCache } from './cache.js';
 import { calibrate } from './calibrate.js';
-import { isBrowserJudge, isBrowserRunner, type RunnableTaskConfig } from './config.js';
+import type { RunnableTaskConfig } from './config.js';
 import { loadDataset } from './dataset.js';
 import { datasetsCommand } from './datasets-cli.js';
 import { seedCommand, simulateCommand } from './learn-cli.js';
 import { loadConfig } from './load-config.js';
-import { nodeBackend, type LocalBackend } from './evaluate.js';
 
 const HELP = `Usage: belay <command> [options]
 
@@ -18,8 +17,10 @@ Commands:
   seed        Embed labeled examples into a seed file for @swissspidy/belay-learn
   simulate    Stream labeled examples through a learned classifier and report how it learns
   datasets    Build training, validation and holdout splits from recorded traces
+  tune        Score a task's local side on a split (needs @swissspidy/belay-tune)
 
-Run "belay seed --help", "belay simulate --help" or "belay datasets --help" for their options.
+Run "belay seed --help", "belay simulate --help", "belay datasets --help" or "belay tune --help"
+for their options.
 
 belay calibrate --task <name> --data <examples.jsonl> [options]
 
@@ -58,6 +59,18 @@ export async function main(argv: string[]): Promise<number> {
   if (command === 'seed') return seedCommand(rest);
   if (command === 'simulate') return simulateCommand(rest);
   if (command === 'datasets') return datasetsCommand(rest);
+  if (command === 'tune') {
+    // @swissspidy/belay-tune builds on this package, so it is loaded by name, when asked for.
+    const name = '@swissspidy/belay-tune';
+    let tune: { tuneCommand(argv: string[]): Promise<number> };
+    try {
+      tune = (await import(name)) as typeof tune;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND') throw err;
+      throw new Error('belay tune needs @swissspidy/belay-tune: npm install --save-dev @swissspidy/belay-tune', { cause: err });
+    }
+    return tune.tuneCommand(rest);
+  }
   if (command !== 'calibrate') {
     process.stderr.write(`Unknown command "${command}".\n\n${HELP}`);
     return 1;
@@ -122,33 +135,16 @@ export async function main(argv: string[]): Promise<number> {
   const cache = await OutputCache.open(values['no-cache'] ? null : resolve(cacheDir, `${name}.outputs.jsonl`));
   if (cache.size) log(`Output cache: ${cache.size} entries`);
 
-  let backend: LocalBackend;
-  if (isBrowserRunner(taskConfig.local)) {
-    const browser = { ...config.browser };
-    if (values.extension) browser.extension = values.extension;
-    if (values.browser) browser.executablePath = values.browser;
-    if (values.headed) browser.headless = false;
-    const judge = taskConfig.judge;
-    if (judge && !isBrowserJudge(judge)) throw new Error('a browser runner needs a browser judge ({ judge: "classifier-judge" })');
-    backend = await browserBackend({
-      task: name,
-      schema: taskConfig.schema,
-      ...(taskConfig.context ? { context: taskConfig.context } : {}),
-      local: taskConfig.local,
-      ...(judge ? { judge } : {}),
-      browser,
-      cacheDir,
-      log,
-    });
-  } else {
-    const judge = taskConfig.judge;
-    if (judge && isBrowserJudge(judge)) throw new Error('a Node runner needs a judge function, not a browser judge spec');
-    backend = nodeBackend(
-      taskConfig.local,
-      { task: name, schema: taskConfig.schema, ...(taskConfig.context ? { context: taskConfig.context } : {}) },
-      judge,
-    );
-  }
+  const backend = await createBackend({
+    name,
+    taskConfig,
+    config,
+    cacheDir,
+    ...(values.extension ? { extension: values.extension } : {}),
+    ...(values.browser ? { executablePath: values.browser } : {}),
+    ...(values.headed ? { headed: true } : {}),
+    log,
+  });
 
   let lastLine = '';
   const progress = ({ phase, done, total }: { phase: string; done: number; total: number }) => {

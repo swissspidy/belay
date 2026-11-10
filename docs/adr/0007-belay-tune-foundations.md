@@ -1,8 +1,8 @@
 # ADR 0007: Belay Tune foundations: traces, local configs, the ledger and a protected evaluator
 
-- Status: Proposed. §1 and §2 are implemented (milestone M1); §3 to §7 are the design for M2 to M4 and are open for review.
+- Status: Accepted. §1 and §2 (milestone M1) and §8 (M2) are implemented; §3 to §5 and §7 are the design for M3 and M4.
 - Date: 2026-11-10
-- Scope: new `@swissspidy/belay-trace`; `belay datasets` in `@swissspidy/belay-calibrate`; planned `@swissspidy/belay-tune`
+- Scope: new `@swissspidy/belay-trace` and `@swissspidy/belay-tune`; `belay datasets`, `evaluateLocal()` and `createBackend()` in `@swissspidy/belay-calibrate`
 - Builds on: ADR 0001 (telemetry, privacy, calibration file), ADR 0002 (real-browser evaluation), ADR 0004 §3 and ADR 0005 §1 (`explore`)
 
 ## Context
@@ -210,9 +210,9 @@ It should not be the evaluator for the gate, for three reasons:
 - `evaluate()`, `analyze()`, the output cache and the cost measurement of
   `@swissspidy/belay-calibrate` already do what the gate needs.
 
-So the evaluator is `evaluate()` with `browserBackend()`. The gaps to close in M2: per-example
-latency, example weights in `analyze()`, a paired bootstrap, and a fingerprint of the local config
-in the cache key. web-ai-evals remains the right tool for the gate's support-matrix check across
+So the evaluator is the calibration harness with `browserBackend()` (§8). The gaps it had:
+example weights, an interval for the local share, and a place for the local config's fingerprint
+in the cache key (closed in M2); per-example latency and a paired bootstrap (open, for the gate). web-ai-evals remains the right tool for the gate's support-matrix check across
 browsers and backends (M5), through `BrowserSession`.
 
 ### 7. Reflector adapter (proposed)
@@ -229,6 +229,38 @@ It mirrors `cloudAdapter()`: the developer's function and key, and usage in the 
 shape, priced with the same `PriceTable`. The budget is enforced from that usage; a reflector that
 reports none is charged a configured flat price per call. The request holds redacted traces only.
 
+### 8. The evaluator and the metric (implemented)
+
+`belay tune --dry-run --task <name> --target <accuracy>` scores the current local side on a split
+(by default the validation split) and writes `.belay/tune/<task>/baseline.json`.
+
+- **No cloud call.** `evaluateLocal()`, the local half of `evaluate()`, runs the examples through
+  the task's backend: a real Chrome for browser runner specs. The cloud's half of the cascade
+  comes from the labels. For a silver label the cloud's answer is the label. For a gold label it
+  is the cloud's recorded answer, which the dataset builder now keeps as `cloud`; a gold example
+  without one counts at the cloud's accuracy on the gold examples that have one (or
+  `--cloud-accuracy`). A night's evaluations therefore cost nothing.
+- **The metric.** Of the thresholds between distinct confidences, the lowest whose cascade
+  accuracy holds the target; the local share there is the score. Examples count by their `weight`,
+  so explored runs stand for the confident runs that were not checked. If no threshold holds the
+  target, the most accurate one is reported and the command exits with 2.
+- **Interval.** A 95% percentile bootstrap over examples (1,000 resamples, seeded), with the
+  threshold fitted again on every resample, so the interval includes the uncertainty of the
+  threshold.
+- **Two numbers, not one.** Accuracy on gold labels and agreement with the cloud on silver labels
+  are reported separately, with a note when the split has fewer than 100 gold labels.
+- **Stability.** `--repeat <n>` runs the examples again without the output cache. Runs agree when
+  their local shares differ by at most one point; otherwise the command exits with 2. A real
+  model is not deterministic, so this is the check that the score can be trusted as a baseline.
+- The threshold is fitted on the examples it is scored on, as in `belay calibrate`. The gate (M3)
+  fits on validation and scores on the holdout.
+
+`@swissspidy/belay-tune` builds on `@swissspidy/belay-calibrate`, which owns the `belay` binary,
+so the binary loads it by name when `belay tune` is run.
+
+Verified with a stub Classifier in Chromium under Playwright, not yet with a built-in model: this
+environment has none.
+
 ## Open questions
 
 - May the v1 calibration file gain an optional `local.config` fingerprint (§3)? It is a type and a
@@ -240,8 +272,8 @@ reports none is charged a configured flat price per call. The request holds reda
 
 ## Consequences
 
-- A fifth package joins the fixed release group. `@swissspidy/belay-calibrate` depends on it for
-  `belay datasets`.
+- Two packages join the fixed release group. `@swissspidy/belay-calibrate` depends on
+  `@swissspidy/belay-trace` for `belay datasets`, and `@swissspidy/belay-tune` depends on both.
 - Apps that turn tracing on send inputs to their own server that they already sent to the cloud.
   Anything more is an explicit `content: 'all'`.
 - The holdout's stability now depends on a committed manifest. Without it, a split is still

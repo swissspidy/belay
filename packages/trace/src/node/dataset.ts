@@ -19,6 +19,11 @@ export interface DatasetExample {
   labelKind: LabelKind;
   origin: LabelOrigin;
   /**
+   * The cloud's answer for this input, when a run recorded one. Next to a gold label it says
+   * whether the cloud was right; for a label of origin `cloud` it is the label.
+   */
+  cloud?: unknown;
+  /**
    * How many runs this example stands for. 1 for an escalated run; `1 / rate` for a confident
    * run that exploration sent to the cloud, because only that share of confident runs is checked.
    */
@@ -206,6 +211,7 @@ interface Resolved {
   origin: LabelOrigin;
   weight: number;
   conflict: boolean;
+  cloud?: unknown;
 }
 
 /**
@@ -260,6 +266,7 @@ export function buildDatasets(traces: Iterable<Trace>, options: BuildDatasetsOpt
     earliest: number;
     weight: number;
     votes: Record<LabelKind, Map<string, Vote & { origin: LabelOrigin }>>;
+    cloud: Map<string, Vote>;
   }
   const groups = new Map<string, Group>();
   const seenTraces = new Set<string>();
@@ -284,13 +291,22 @@ export function buildDatasets(traces: Iterable<Trace>, options: BuildDatasetsOpt
     const id = sha256(normalized).slice(0, 24);
     let group = groups.get(id);
     // Of several spellings of one input, the earliest trace's is kept (then the smallest), so the text is stable.
-    if (!group) groups.set(id, (group = { input: trace.input, normalized, earliest: trace.timestamp, weight: 0, votes: { gold: new Map(), silver: new Map() } }));
+    if (!group) groups.set(id, (group = { input: trace.input, normalized, earliest: trace.timestamp, weight: 0, votes: { gold: new Map(), silver: new Map() }, cloud: new Map() }));
     else if (trace.timestamp < group.earliest || (trace.timestamp === group.earliest && trace.input < group.input)) {
       group.input = trace.input;
       group.earliest = trace.timestamp;
     }
     group.weight = Math.max(group.weight, trace.weight ?? 1);
     const key = canonicalJson(parsed.value);
+    if (trace.label.origin === 'cloud') {
+      const seen = group.cloud.get(key);
+      if (seen) {
+        seen.count++;
+        seen.latest = Math.max(seen.latest, trace.timestamp);
+      } else {
+        group.cloud.set(key, { value: parsed.value, key, count: 1, latest: trace.timestamp });
+      }
+    }
     const votes = group.votes[trace.label.kind];
     const vote = votes.get(key);
     if (vote) {
@@ -303,12 +319,24 @@ export function buildDatasets(traces: Iterable<Trace>, options: BuildDatasetsOpt
     }
   }
 
+  const ranked = <V extends Vote>(votes: Map<string, V>): V[] =>
+    [...votes.values()].sort((a, b) => b.count - a.count || b.latest - a.latest || (a.key < b.key ? -1 : 1));
   const resolved = new Map<string, Resolved>();
   for (const [id, group] of groups) {
     const labelKind: LabelKind = group.votes.gold.size ? 'gold' : 'silver';
-    const votes = [...group.votes[labelKind].values()].sort((a, b) => b.count - a.count || b.latest - a.latest || (a.key < b.key ? -1 : 1));
+    const votes = ranked(group.votes[labelKind]);
     const winner = votes[0]!;
-    resolved.set(id, { id, input: group.input, label: winner.value, labelKind, origin: winner.origin, weight: group.weight, conflict: votes.length > 1 });
+    const cloud = ranked(group.cloud)[0];
+    resolved.set(id, {
+      id,
+      input: group.input,
+      label: winner.value,
+      labelKind,
+      origin: winner.origin,
+      weight: group.weight,
+      conflict: votes.length > 1,
+      ...(cloud ? { cloud: cloud.value } : {}),
+    });
   }
   stats.inputs = resolved.size;
   for (const r of resolved.values()) if (r.conflict) stats.conflicts++;
@@ -363,7 +391,7 @@ export function buildDatasets(traces: Iterable<Trace>, options: BuildDatasetsOpt
     const split = assignments[id]!;
     // A holdout input that only has a synthetic label left (its real traces are gone) is not scored.
     if (split === 'holdout' && r.origin === 'synthetic') continue;
-    out[split].push({ id, input: r.input, label: r.label, labelKind: r.labelKind, origin: r.origin, weight: r.weight });
+    out[split].push({ id, input: r.input, label: r.label, labelKind: r.labelKind, origin: r.origin, ...('cloud' in r ? { cloud: r.cloud } : {}), weight: r.weight });
     stats.splits[split].size++;
     stats.splits[split][r.labelKind]++;
   }

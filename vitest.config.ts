@@ -8,6 +8,7 @@ export default defineConfig({
       '@swissspidy/belay-learn': new URL('./packages/learn/src/index.ts', import.meta.url).pathname,
       '@swissspidy/belay-trace/node': new URL('./packages/trace/src/node/index.ts', import.meta.url).pathname,
       '@swissspidy/belay-trace': new URL('./packages/trace/src/index.ts', import.meta.url).pathname,
+      '@swissspidy/belay-tune': new URL('./packages/tune/src/index.ts', import.meta.url).pathname,
       '@swissspidy/belay-calibrate': new URL('./packages/calibrate/src/index.ts', import.meta.url).pathname,
     },
   },

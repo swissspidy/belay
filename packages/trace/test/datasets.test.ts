@@ -131,9 +131,9 @@ describe('buildDatasets', () => {
       silver('third question on another topic', 'other', 8, 20),
     ]);
     const byInput = new Map(all(d).map((e) => [e.input, e]));
-    expect(byInput.get('a first question about things')).toMatchObject({ label: 'billing', labelKind: 'gold', origin: 'dataset' });
+    expect(byInput.get('a first question about things')).toMatchObject({ label: 'billing', labelKind: 'gold', origin: 'dataset', cloud: 'bug' });
     expect(byInput.get('second question about stuff here')).toMatchObject({ label: 'feature', labelKind: 'silver' });
-    expect(byInput.get('third question on another topic')).toMatchObject({ label: 'other' });
+    expect(byInput.get('third question on another topic')).toMatchObject({ label: 'other', cloud: 'other' });
     expect(d.stats.conflicts).toBe(2);
     expect(d.stats.splits.train.gold + d.stats.splits.validation.gold + d.stats.splits.holdout.gold).toBe(1);
   });

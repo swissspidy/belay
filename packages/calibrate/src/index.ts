@@ -4,8 +4,8 @@ export { analyze, candidateThresholds, crossValidate, niceThreshold, wilsonInter
 export type { Analysis, AnalyzeOptions, CostSummary, CrossValidation, HeadToHead, OptionStats, Sample } from './analyze.js';
 export { calibrate, resolveCreatedAt } from './calibrate.js';
 export type { CalibrateOptions, CalibrateResult } from './calibrate.js';
-export { evaluate, nodeBackend } from './evaluate.js';
-export type { EvaluateOptions, Evaluation, LocalBackend } from './evaluate.js';
+export { evaluate, evaluateLocal, nodeBackend } from './evaluate.js';
+export type { EvaluateLocalOptions, EvaluateOptions, Evaluation, LocalBackend, LocalEvaluation } from './evaluate.js';
 export { browserBackend } from './browser.js';
 export type { BrowserBackendOptions } from './browser.js';
 export { loadDataset } from './dataset.js';
@@ -14,4 +14,6 @@ export { OutputCache } from './cache.js';
 export { renderReport } from './report.js';
 export type { ReportInput } from './report.js';
 export { main } from './cli.js';
+export { createBackend } from './backend.js';
+export type { CreateBackendOptions } from './backend.js';
 export { loadConfig } from './load-config.js';

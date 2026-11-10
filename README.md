@@ -99,6 +99,7 @@ task escalates, subject to your privacy policy.
 | `@swissspidy/belay-learn`       | `learnedClassifier()`: a local runner that learns from the cloud's answers (on-device embeddings and a small trained head). |
 | `@swissspidy/belay-trace`       | `tracedTask()`: opt-in traces of runs, sent to your own sink, and the labeled datasets built from them (`belay datasets`). |
 | `@swissspidy/belay-calibrate`   | `belay calibrate` CLI: runs your labeled data in a real Chrome, writes the calibration file and an HTML report. |
+| `@swissspidy/belay-tune`        | `belay tune --dry-run`: how much of a task the device can answer at a target accuracy, measured on your traces in a real Chrome. The start of Belay Tune. |
 
 ## Schemas
 
