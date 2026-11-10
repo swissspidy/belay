@@ -1,0 +1,55 @@
+{
+  "name": "@swissspidy/belay-trace",
+  "version": "0.1.1",
+  "description": "Opt-in traces of Belay runs, sent to your own sink, and the labeled datasets built from them.",
+  "license": "Apache-2.0",
+  "author": "Pascal Birchler",
+  "homepage": "https://github.com/swissspidy/belay/tree/main/packages/trace#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swissspidy/belay.git",
+    "directory": "packages/trace"
+  },
+  "bugs": {
+    "url": "https://github.com/swissspidy/belay/issues"
+  },
+  "keywords": [
+    "ai",
+    "on-device",
+    "cascade",
+    "traces",
+    "datasets",
+    "evaluation",
+    "privacy"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "peerDependencies": {
+    "@swissspidy/belay-core": "^0.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "prepack": "tsc -b --force"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

@@ -97,6 +97,7 @@ task escalates, subject to your privacy policy.
 | `@swissspidy/belay-core`        | Tasks, cascade, confidence combination, calibration file, cloud adapters. Zero runtime dependencies. |
 | `@swissspidy/belay-web`         | Local runners for built-in AI: `classifierApi()`, `promptApi()`, and `classifierJudge()`. |
 | `@swissspidy/belay-learn`       | `learnedClassifier()`: a local runner that learns from the cloud's answers (on-device embeddings and a small trained head). |
+| `@swissspidy/belay-trace`       | `tracedTask()`: opt-in traces of runs, sent to your own sink, and the labeled datasets built from them (`belay datasets`). |
 | `@swissspidy/belay-calibrate`   | `belay calibrate` CLI: runs your labeled data in a real Chrome, writes the calibration file and an HTML report. |
 
 ## Schemas

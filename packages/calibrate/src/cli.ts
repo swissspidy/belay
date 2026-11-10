@@ -6,6 +6,7 @@ import { OutputCache } from './cache.js';
 import { calibrate } from './calibrate.js';
 import { isBrowserJudge, isBrowserRunner, type RunnableTaskConfig } from './config.js';
 import { loadDataset } from './dataset.js';
+import { datasetsCommand } from './datasets-cli.js';
 import { seedCommand, simulateCommand } from './learn-cli.js';
 import { loadConfig } from './load-config.js';
 import { nodeBackend, type LocalBackend } from './evaluate.js';
@@ -16,8 +17,9 @@ Commands:
   calibrate   Fit a task's threshold on labeled examples (below)
   seed        Embed labeled examples into a seed file for @swissspidy/belay-learn
   simulate    Stream labeled examples through a learned classifier and report how it learns
+  datasets    Build training, validation and holdout splits from recorded traces
 
-Run "belay seed --help" or "belay simulate --help" for their options.
+Run "belay seed --help", "belay simulate --help" or "belay datasets --help" for their options.
 
 belay calibrate --task <name> --data <examples.jsonl> [options]
 
@@ -55,6 +57,7 @@ export async function main(argv: string[]): Promise<number> {
   }
   if (command === 'seed') return seedCommand(rest);
   if (command === 'simulate') return simulateCommand(rest);
+  if (command === 'datasets') return datasetsCommand(rest);
   if (command !== 'calibrate') {
     process.stderr.write(`Unknown command "${command}".\n\n${HELP}`);
     return 1;

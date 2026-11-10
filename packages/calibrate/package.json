@@ -39,6 +39,7 @@
   "dependencies": {
     "@swissspidy/belay-core": "^0.1.1",
     "@swissspidy/belay-learn": "^0.1.1",
+    "@swissspidy/belay-trace": "^0.1.1",
     "@swissspidy/belay-web": "^0.1.1"
   },
   "peerDependencies": {

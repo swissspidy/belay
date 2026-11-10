@@ -1,6 +1,6 @@
 # Releasing
 
-`@swissspidy/belay-core`, `@swissspidy/belay-web`, `@swissspidy/belay-learn` and
+`@swissspidy/belay-core`, `@swissspidy/belay-web`, `@swissspidy/belay-learn`, `@swissspidy/belay-trace` and
 `@swissspidy/belay-calibrate` are released together, at the same version, with [Changesets](https://github.com/changesets/changesets) and
 [`release.yml`](.github/workflows/release.yml).
 
@@ -30,7 +30,7 @@ until you approve it with 2FA:
 - on npmjs.com, under **Staged Packages**, or
 - with `npm stage approve <stage-id>`. The release job's summary lists the stage IDs.
 
-Approve all four packages, so they go live at the same version.
+Approve all five packages, so they go live at the same version.
 
 ## How the release workflow runs
 
