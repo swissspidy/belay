@@ -111,89 +111,97 @@ is what `belay calibrate --data` reads (`id`, `input`, `label`), plus `labelKind
 The manifest is the file to commit. The split files hold input text and belong wherever the traces
 may be kept.
 
-### 3. Local config (proposed)
+### 3. Local config (implemented)
 
 Everything tunable about the local side of one task on one backend, as one JSON file:
-`belay/<task>/<backend>.local.json`, where `<backend>` names the runner and model, e.g.
-`classifier-api.laya-multilingual` or `prompt-api.gemini-nano-v3`.
+`belay/<task>/<backend>.local.json`, where `<backend>` names the runner, e.g. `classifier-api`.
 
 ```json
 {
   "version": 1,
   "task": "ticket-triage",
-  "backend": { "runner": "classifier-api", "model": "laya-multilingual", "modelVersion": "2026.09" },
+  "backend": { "runner": "classifier-api" },
   "wording": {
     "prompt": "Which team should handle this ticket?",
     "options": { "billing": "Invoices, refunds, charges, payment methods" }
   },
   "context": "Support tickets for a SaaS billing product.",
   "rules": ["A refund request is billing, even when it mentions a bug."],
-  "examples": [{ "input": "I was charged twice", "label": "billing" }],
-  "runner": { "confidence": "label-probability" },
-  "judge": { "question": "Is this answer correct and complete?", "context": "" },
-  "steps": null,
-  "calibration": "classifier-api.laya-multilingual.calibration.json"
+  "examples": [{ "input": "I was charged twice", "label": "billing" }]
 }
 ```
 
-- **Applied by a wrapper, not by the core.** `withLocalConfig(runner, config)` is a `LocalRunner`
-  that hands the wrapped runner the reworded schema and the rendered context. The task's own
-  schema, the cloud's instruction and the `schemaFingerprint` do not change, and
-  `@swissspidy/belay-core` gains no code. Option labels cannot be reworded: they are the task's
-  values.
-- **Rules and examples are rendered** into the context (Classifier API) or the system prompt
-  (Prompt API) by one function, whose output is counted with the browser's own token accounting.
-- **The threshold stays in the calibration file**, one per backend. A config's fingerprint (a hash
-  of the canonical JSON) is recorded in that file, so a threshold fitted for another config is
-  rejected like one fitted for another schema. This adds an optional field to the v1 file format:
-  the one change this work asks of the core's types.
-- **A candidate is an RFC 6902 JSON Patch** to this file plus a one-sentence hypothesis. A patch
-  may only touch `wording`, `context`, `rules`, `examples`, `runner`, `judge` and `steps`.
-- `steps` (decomposition, rung 4) is reserved, and its format is decided in M5.
+- **Applied by a wrapper, not by the core.** `withLocalConfig(runner, config)`, from the
+  browser-safe entry `@swissspidy/belay-tune/config`, is a `LocalRunner` that hands the wrapped
+  runner the reworded schema and the rendered context. The task's own schema, the cloud's
+  instruction and the `schemaFingerprint` do not change, and `@swissspidy/belay-core` gains no
+  code. Option labels cannot be reworded: they are the task's values. The evaluator applies a
+  candidate with the same function (`applyLocalConfig()`) through the backend's `derive()`.
+- **Rules and examples are rendered** into the context by one function. Its size is counted in
+  characters (`contextSize()`), not tokens: a token count needs a session per candidate, and the
+  character count orders candidates the same way.
+- **The threshold stays in the calibration file**, one per backend. The loop writes the config's
+  fingerprint into it as an extra `localConfig` field, and reads a committed threshold only when
+  that field and the `schemaFingerprint` match. The core does not check the field yet; that
+  check is the one change this work will ask of the core.
+- **A candidate is a JSON Patch** (RFC 6902: `add`, `remove`, `replace`) to this file plus a
+  one-sentence hypothesis. A patch may only touch the roots of its rung, and the patched config
+  is parsed again, so a label outside the schema or an unknown field is refused before anything
+  runs.
+- `runner`, `judge` and `steps` (rungs 4 and 5) are not in the format yet. They are decided in
+  M5; the version number is there for that.
 
-### 4. Ledger (proposed)
+### 4. Ledger (implemented)
 
 `.belay/ledger.jsonl`, append-only, one line per experiment:
 
 ```json
 {
-  "version": 1, "id": "2026-11-10.014", "run": "2026-11-10", "seq": 14, "timestamp": "2026-11-10T02:41:07Z",
-  "task": "ticket-triage", "backend": "classifier-api.laya-multilingual", "rung": "rules",
-  "hypothesis": "Refund requests that mention a bug are sent to the cloud; a rule settles them.",
-  "parent": "sha256:…", "candidate": "sha256:…", "patch": [{ "op": "add", "path": "/rules/-", "value": "…" }],
+  "version": 1, "id": "m3-acceptance.004", "run": "m3-acceptance", "seq": 4, "timestamp": "2026-11-10T22:05:41Z",
+  "task": "ticket-triage", "backend": "classifier-api", "rung": "examples",
+  "hypothesis": "Focusing on the order-shipping and order-feedback boundaries will resolve the most frequent misclassifications.",
+  "parent": "fnv1a:bf0dbdb0", "candidate": "fnv1a:d38fa892",
+  "patch": [{ "op": "add", "path": "/examples", "value": [] }],
   "stage": "validation",
-  "scores": { "accuracy": 0.951, "localShare": 0.64, "goldAccuracy": 0.948, "cloudAgreement": 0.953, "promptTokens": 212, "latencyP95Ms": 41 },
-  "baseline": { "accuracy": 0.95, "localShare": 0.6 },
-  "cost": { "currency": "USD", "reflector": 0.031, "usage": [] },
-  "verdict": "kept", "reason": "Local share up 4 points at equal accuracy.",
-  "environment": { "userAgent": "…", "modelVersion": "…" },
-  "protected": "sha256:…", "seed": "7", "previous": "sha256:…"
+  "scores": { "localShare": 0.982, "accuracy": 0.953, "threshold": 0.727, "targetMet": true, "goldAccuracy": 0.953, "cloudAgreement": null, "contextChars": 786, "examples": 284 },
+  "cost": { "currency": "USD", "reflector": 0.0063, "usage": [] },
+  "verdict": "kept", "reason": "Local share up 1.8 points on validation at the target accuracy.",
+  "environment": { "runner": "classifier-api", "userAgent": "…" },
+  "protected": "sha256:…", "seed": "0", "previous": "sha256:…"
 }
 ```
 
-`stage` is `screen`, `validation` or `gate`; `verdict` is `kept`, `discarded`, `promoted` or
-`error`. `previous` is the hash of the line before, so an edited history is detectable.
-`protected` is the lock hash of §5. The reflecting model reads the ledger, with gate scores
-reduced to pass or fail, so that the holdout cannot be learned from one night to the next.
+`rung` is `baseline`, `threshold`, `examples`, `rules` or `gate`; `stage` is `baseline`, `screen`,
+`validation` or `gate`; `verdict` is `baseline`, `kept`, `discarded`, `promoted`, `rejected` or
+`error`. `previous` is the SHA-256 of the line before, so an edited history is detectable, and
+`readLedger()` refuses a broken chain. `protected` is the lock hash of §5. `scores` are always
+validation numbers. A gate entry carries only whether it passed and the names of the failed
+checks, so the reflecting model, which is given the ledger, cannot learn the holdout from one
+night to the next. `belay ledger` prints the file as a table.
 
-### 5. Protected evaluator (proposed)
+### 5. Protected evaluator (implemented)
 
 The loop is ordinary code, not an agent with a shell, which is the first protection: the
 reflecting model returns JSON and never writes a file. On top of that:
 
 1. **A lock file.** `belay.tune.lock.json`, written by `belay tune --lock` and committed by a
-   person, holds SHA-256 hashes of the gate config (`belay.gate.json`), of `belay.tune.md`, of the
-   installed evaluator packages (`@swissspidy/belay-calibrate`, `-web`, `-core`, `-trace`), and the
-   dataset manifest's `holdoutFingerprint`. The loop checks it at the start, before the gate and
-   before it writes its outputs, and stops on a mismatch. The holdout may grow between nights: the
-   check is that every id of the locked holdout is still in it.
-2. **A path allowlist.** All of the loop's writes go through one function, which only accepts the
-   local config, the calibration file, the ledger, the report and `.belay-cache/`.
-3. **Patches are validated** against the tunable paths of §3 before anything runs.
-4. **The holdout is never in a prompt.** The reflecting model is given samples from train and
-   validation only, built by a function that cannot read the holdout file.
-5. **One gate run per night**, recorded in the ledger. `belay verify` in CI re-checks the lock and
-   re-runs the gate, and the pull request template asks for a code owner on the lock and gate files.
+   person, holds per task the SHA-256 of the gate config (`belay.gate.json`), of `belay.tune.md`,
+   of the built JavaScript of the installed evaluator packages (`-core`, `-web`, `-trace`,
+   `-calibrate`, `-tune`), and the ids of the holdout. The loop checks it at the start, before
+   the gate and before it writes its outputs, and stops on a mismatch. The holdout may grow
+   between nights: the check is that every locked id is still in it. Without a lock file the loop
+   does not start.
+2. **A path allowlist.** All of the loop's writes go through one workspace object, which only
+   accepts `belay/<task>/`, the ledger and `.belay/tune/<task>/`, and refuses a path that leaves
+   the project.
+3. **Patches are validated** against the roots of their rung (§3) before anything runs.
+4. **The holdout is never in a prompt.** The reflecting model is given examples from train and
+   validation only; the holdout file is first read when the gate starts.
+5. **One gate run per night**, on the best candidate only, recorded in the ledger.
+
+Not built yet: `belay verify` for CI, which re-checks the lock and re-runs the gate, and the pull
+request the brief asks for. A consequence of hashing the built packages: updating Belay, or
+rebuilding it in a checkout, needs a new `belay tune --lock`.
 
 ### 6. Evaluator and web-ai-evals (finding)
 
@@ -215,19 +223,26 @@ example weights, an interval for the local share, and a place for the local conf
 in the cache key (closed in M2); per-example latency and a paired bootstrap (open, for the gate). web-ai-evals remains the right tool for the gate's support-matrix check across
 browsers and backends (M5), through `BrowserSession`.
 
-### 7. Reflector adapter (proposed)
+### 7. Reflector adapter (implemented)
 
 ```ts
 const reflector = reflectorAdapter(async ({ system, prompt, jsonSchema }, { signal, reportUsage }) => {
   const res = await callYourModel({ system, prompt, jsonSchema, signal });
   reportUsage({ model: res.model, inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens });
   return res.output; // an object matching jsonSchema, or its JSON
-});
+}, 'your-model-id');
 ```
 
 It mirrors `cloudAdapter()`: the developer's function and key, and usage in the same `CloudUsage`
-shape, priced with the same `PriceTable`. The budget is enforced from that usage; a reflector that
-reports none is charged a configured flat price per call. The request holds redacted traces only.
+shape, priced with the same `PriceTable`. It is set as `tune.reflector` in `belay.config.mjs`,
+next to `tune.prices`. The budget is enforced from the reported usage; a reflector that reports
+none is charged a flat `tune.costPerCall` (0.25 by default). The request
+holds the task, the current config, the local model's mistakes and uncertain answers on a sample
+of the training split, the ledger's history and `belay.tune.md`. The answer is a list of
+candidates, each a hypothesis and a full replacement list for the rung (examples, by training
+id, or rules). Examples are referenced by id so that the model cannot invent an input or a
+label. Answers are cached, so `--resume` does not pay twice, and a request identical to an
+earlier one of the same run is not sent again.
 
 ### 8. The evaluator and the metric (implemented)
 
