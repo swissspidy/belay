@@ -15,7 +15,7 @@ export interface BrowserBackendOptions {
   browser?: BrowserConfig;
   cacheDir: string;
   log?: (message: string) => void;
-  /** Injected in tests: a script evaluated in the page before any other script (e.g. a stub `Classifier`). */
+  /** Injected in tests: a script evaluated in the page before any other script (e.g. a stub `DecisionModel`). */
   initScript?: string;
 }
 
@@ -34,7 +34,7 @@ const MIME: Record<string, string> = {
  * - `--disable-component-update`: the component updater never downloads Gemini Nano;
  * - `--disable-background-networking`: the model manifest is never fetched;
  * - `--disable-field-trial-config`: removed so Chrome behaves like a user's install;
- * - `--disable-extensions`: blocks extension polyfills such as WebAI Studio's Classifier;
+ * - `--disable-extensions`: blocks extension polyfills such as WebAI Studio's DecisionModel;
  * - `--disable-component-extensions-with-background-pages`, `--disable-default-apps`.
  * Playwright's `--disable-features` list (which turns off `OptimizationHints`, the on-device model
  * service) is overridden by a later `--disable-features` with only the harmless entries.
@@ -146,7 +146,7 @@ function unwrap<T>(result: HarnessResult<T>): T {
 
 /**
  * Runs a browser runner inside a real Chrome through a Playwright persistent context, optionally
- * with an unpacked extension (the WebAI Studio extension polyfills the Classifier API). The
+ * with an unpacked extension (the WebAI Studio extension polyfills the DecisionModel API). The
  * profile persists in the cache directory, so a downloaded model is reused across runs.
  */
 export async function browserBackend(options: BrowserBackendOptions): Promise<LocalBackend> {
@@ -160,7 +160,13 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
 
   const { server, origin } = await startServer();
   const extension = browser.extension ? resolve(browser.extension) : undefined;
-  const enable = [...(browser.enableFeatures ?? []), ...(browser.forceCpu ? ['OnDeviceModelForceCpuBackend'] : [])];
+  // Chrome's built-in classifier is behind a feature; an extension brings its own.
+  const needsDecisionModel = !extension && (options.local.runner === 'classifier-api' || options.judge?.judge === 'classifier-judge');
+  const enable = [
+    ...(needsDecisionModel ? ['AIDecisionModelAPI'] : []),
+    ...(browser.enableFeatures ?? []),
+    ...(browser.forceCpu ? ['OnDeviceModelForceCpuBackend'] : []),
+  ];
   // Chrome uses the last occurrence of a switch, so these override Playwright's own feature lists.
   const args = [`--disable-features=${KEEP_DISABLED_FEATURES.join(',')}`, ...(enable.length ? [`--enable-features=${enable.join(',')}`] : [])];
   // Google Chrome 137+ ignores --load-extension, so the extension is loaded through the DevTools
@@ -209,8 +215,8 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
     // Extensions inject their polyfill at document_start, but give a slow extension a moment.
     if (options.local.runner === 'classifier-api' || options.judge?.judge === 'classifier-judge') {
       await page
-        .waitForFunction(() => typeof (globalThis as { Classifier?: unknown }).Classifier !== 'undefined', null, { timeout: extension ? 10_000 : 1_000 })
-        .catch(() => log('window.Classifier is not defined in the calibration browser'));
+        .waitForFunction(() => typeof (globalThis as { DecisionModel?: unknown }).DecisionModel !== 'undefined', null, { timeout: extension ? 10_000 : 1_000 })
+        .catch(() => log('window.DecisionModel is not defined in the calibration browser (Chrome 157 or later, or an extension that polyfills it)'));
     }
 
     const { schema } = options;

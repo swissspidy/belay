@@ -4,7 +4,7 @@
  *
  * Set WEBAI_EXTENSION to the unpacked extension directory (the `release/` folder built from
  * https://github.com/etiennenoel/web-ai.studio/tree/master/extension). Without it, calibration
- * uses the browser's native Classifier API (Chrome with chrome://flags/#classifier-api).
+ * uses the browser's native DecisionModel API (Chrome 157 or later; the harness enables the feature).
  */
 
 /** Chooses the extension's Classifier model variant (e.g. "laya-en-s512-wfp16"). */

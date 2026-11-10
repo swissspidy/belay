@@ -41,8 +41,9 @@ export interface ClassifierApiOptions {
   /** Question id used in the Classifier schema. Defaults to "answer". */
   questionId?: string;
   /**
-   * The `Classifier` implementation. Defaults to `globalThis.Classifier` (Chrome's built-in API or
-   * the WebAI Studio extension polyfill). Injectable for tests and custom polyfills.
+   * The `DecisionModel` implementation. Defaults to `globalThis.DecisionModel` (Chrome 157+ with
+   * the `AIDecisionModelAPI` feature, or the WebAI Studio extension polyfill). Injectable for
+   * tests and custom polyfills.
    */
   classifier?: ClassifierStatic;
   /** Max number of cached sessions (one per distinct context). Defaults to 4. */
@@ -56,7 +57,7 @@ const DEFAULT_PROMPTS = {
   ordinal: 'Which level best describes the input?',
 } as const;
 
-/** Maps a Belay schema to a Classifier API schema with a single question. */
+/** Maps a Belay schema to a DecisionModel schema with a single question. */
 export function toClassifierSchema(
   schema: TaskSchema,
   options: { questionId?: string; context?: string; expectedInputs?: ClassifierExpectedInput[] } = {},
@@ -68,7 +69,7 @@ export function toClassifierSchema(
   };
   switch (schema.type) {
     case 'binary':
-      return { ...base, questions: [{ id, type: 'binary', prompt: schema.prompt }] };
+      return { ...base, questions: [{ id, type: 'boolean', prompt: schema.prompt }] };
     case 'categorical':
     case 'ordinal':
       return {
@@ -76,7 +77,7 @@ export function toClassifierSchema(
         questions: [
           {
             id,
-            type: schema.type,
+            type: schema.type === 'ordinal' ? 'score' : 'choice',
             prompt: schema.prompt ?? DEFAULT_PROMPTS[schema.type],
             options: normalizeOptions(schema.options),
           },
@@ -100,16 +101,12 @@ export function readDecision(
     throw new Error('Classifier result is missing the decision');
   }
 
-  let probabilities: ProbabilityEntry[] | undefined = Array.isArray(decision.probabilities)
-    ? decision.probabilities.filter((p) => typeof p?.label === 'string' && typeof p.probability === 'number')
-    : undefined;
-  if (schema.type === 'binary' && typeof decision.probability === 'number') {
-    const pTrue = clamp01(decision.probability);
-    probabilities = [
-      { label: 'true', probability: pTrue },
-      { label: 'false', probability: 1 - pTrue },
-    ];
-  }
+  // Keyed by label, in the order of the options.
+  const entries: ProbabilityEntry[] =
+    decision.probabilities && typeof decision.probabilities === 'object'
+      ? Object.entries(decision.probabilities).flatMap(([label, probability]) => (typeof probability === 'number' ? [{ label, probability }] : []))
+      : [];
+  const probabilities = entries.length ? entries : undefined;
 
   let label = typeof decision.label === 'string' ? decision.label : undefined;
   if (label === undefined && probabilities?.length) {
@@ -130,7 +127,8 @@ export function readDecision(
 }
 
 /**
- * Local runner backed by the Classifier API. It never triggers a model download from `run()`:
+ * Local runner backed by Chrome's built-in classifier, the DecisionModel API (Chrome 157 and
+ * later; see `classifier-types.ts`). It never triggers a model download from `run()`:
  * while the model is "downloadable" or "downloading" the task escalates with reason
  * `local-unavailable`. Call `task.prepare()` from a user gesture to download the model.
  */
@@ -140,7 +138,7 @@ export function classifierApi(options: ClassifierApiOptions = {}): LocalRunner<a
   const sessions = new Map<string, Promise<ClassifierInstance>>();
 
   const api = (): ClassifierStatic | undefined =>
-    options.classifier ?? (globalThis as { Classifier?: ClassifierStatic }).Classifier;
+    options.classifier ?? (globalThis as { DecisionModel?: ClassifierStatic }).DecisionModel;
 
   const schemaFor = (ctx: Ctx): ClassifierSchema =>
     toClassifierSchema(ctx.schema, {
@@ -153,7 +151,7 @@ export function classifierApi(options: ClassifierApiOptions = {}): LocalRunner<a
 
   function session(ctx: Ctx, prepare?: PrepareOptions): Promise<ClassifierInstance> {
     const Classifier = api();
-    if (!Classifier) return Promise.reject(new LocalUnavailableError('Classifier API is not available'));
+    if (!Classifier) return Promise.reject(new LocalUnavailableError('The DecisionModel API is not available'));
     const schema = schemaFor(ctx);
     const key = keyFor(schema);
     const cached = sessions.get(key);
@@ -210,7 +208,7 @@ export function classifierApi(options: ClassifierApiOptions = {}): LocalRunner<a
         if (state !== 'available') throw new LocalUnavailableError(`Classifier model is ${state}`);
       }
       const classifier = await session(ctx);
-      const result = await classifier.classify(input, ctx.signal ? { signal: ctx.signal } : {});
+      const result = await classifier.decide(input, ctx.signal ? { signal: ctx.signal } : {});
       const questionId = schema.questions[0]!.id;
       return readDecision(ctx.schema as ClassifierTaskSchema, result?.[questionId], mode);
     },

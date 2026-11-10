@@ -201,10 +201,12 @@ user gesture:
 button.onclick = () => triage.prepare({ onProgress: (p) => (progress.value = p) });
 ```
 
-Chrome exposes the Classifier API behind `chrome://flags/#classifier-api`. The
-[WebAI Studio extension](https://web-ai.studio/playgrounds/classifier) polyfills it with a local
-model. `classifierApi()` uses `globalThis.Classifier`, so it works with both. You can also pass
-your own implementation: `classifierApi({ classifier })`.
+`classifierApi()` runs on Chrome's built-in classifier, the DecisionModel API
+(`globalThis.DecisionModel`), in **Chrome 157 or later**. It is behind the `AIDecisionModelAPI`
+feature (`--enable-features=AIDecisionModelAPI`; `belay calibrate` and `belay tune` turn it on for
+you). The [WebAI Studio extension](https://web-ai.studio/playgrounds/classifier) polyfills the
+same API with a local model. Earlier Chrome versions, which called it the Classifier API, are not
+supported. You can also pass your own implementation: `classifierApi({ classifier })`.
 
 ## Cloud adapters
 

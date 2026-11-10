@@ -210,24 +210,24 @@ function findChrome(): string | undefined {
   return undefined;
 }
 
-/** A stand-in for the Classifier API whose confidence wobbles a little from call to call, like a real model's. */
+/** A stand-in for the DecisionModel API whose confidence wobbles a little from call to call, like a real model's. */
 const STUB_CLASSIFIER = `
 (() => {
   const hash = (s) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0) / 2 ** 32; };
   let calls = 0;
-  globalThis.Classifier = {
+  globalThis.DecisionModel = {
     async availability() { return 'available'; },
     async create(options) {
       const q = options.questions[0];
       const labels = q.options.map((o) => o.label);
       return {
-        async classify(input) {
+        async decide(input) {
           const truth = labels.find((l) => input.includes('about ' + l + ' '));
           const base = 0.3 + 0.7 * hash('conf:' + input);
           const top = Math.min(0.999, Math.max(0.26, base + (hash('noise:' + (calls++)) - 0.5) * 0.004));
           const label = hash('right:' + input) < base ? truth : labels[(labels.indexOf(truth) + 1) % labels.length];
           const rest = (1 - top) / (labels.length - 1);
-          return { [q.id]: { id: q.id, label, confidence: top, probabilities: labels.map((l) => ({ label: l, probability: l === label ? top : rest })) } };
+          return { [q.id]: { id: q.id, label, confidence: top, probabilities: Object.fromEntries(labels.map((l) => [l, l === label ? top : rest])) } };
         },
         destroy() {},
       };

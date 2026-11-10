@@ -273,11 +273,10 @@ minutes including the model load. The interval is wide because the accuracy sits
 target: a few examples decide whether a much higher threshold is needed. The loop should not read
 a change of a few points on 300 examples as a gain.
 
-Chrome 157 no longer exposes this API as `Classifier`. It is `DecisionModel` (feature
-`AIDecisionModelAPI`), with `decide()` for `classify()`, question types `boolean`, `choice` and
-`score` for `binary`, `categorical` and `ordinal`, and `probabilities` as an object keyed by label.
-`classifierApi()` reports "unavailable" there. The run above bridged the two with an init script in
-the config's `browser.setup` hook; supporting the new shape in `@swissspidy/belay-web` is open.
+Chrome 157 no longer exposes this API as `Classifier` but as `DecisionModel`, and
+`classifierApi()` reported "unavailable" there. That run bridged the two with an init script.
+ADR 0008 moves `@swissspidy/belay-web` to the new API; 40 of the examples, run again without the
+bridge, gave the same outputs.
 
 ## Open questions
 

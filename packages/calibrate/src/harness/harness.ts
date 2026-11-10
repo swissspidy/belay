@@ -62,7 +62,7 @@ let prepared: Promise<Result<void>> | null = null;
 
 const harness = {
   ready: true,
-  hasClassifier: () => typeof (globalThis as { Classifier?: unknown }).Classifier !== 'undefined',
+  hasClassifier: () => typeof (globalThis as { DecisionModel?: unknown }).DecisionModel !== 'undefined',
   // Like task.availability(): a judge that is not ready makes the local path unusable too.
   availability: (spec: HarnessSpec) =>
     wrap(async () => {

@@ -17,7 +17,7 @@ const triageSchema = {
 
 function fakeClassifier(decision: (input: string) => ClassifierDecision, initial: Availability = 'available') {
   let state: Availability = initial;
-  const instances: { classify: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> }[] = [];
+  const instances: { decide: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> }[] = [];
   const api = {
     availability: vi.fn(async () => state),
     create: vi.fn(async (options: ClassifierCreateOptions) => {
@@ -30,7 +30,7 @@ function fakeClassifier(decision: (input: string) => ClassifierDecision, initial
         state = 'available';
       }
       const instance = {
-        classify: vi.fn(async (input: string) => ({ answer: decision(input) })),
+        decide: vi.fn(async (input: string) => ({ answer: decision(input) })),
         destroy: vi.fn(),
       };
       instances.push(instance);
@@ -44,7 +44,7 @@ const categorical = (label: string, probabilities: Record<string, number>, confi
   id: 'answer',
   label,
   confidence,
-  probabilities: Object.entries(probabilities).map(([l, probability]) => ({ label: l, probability })),
+  probabilities,
 });
 
 describe('toClassifierSchema', () => {
@@ -55,7 +55,7 @@ describe('toClassifierSchema', () => {
       questions: [
         {
           id: 'answer',
-          type: 'categorical',
+          type: 'choice',
           prompt: 'Which team should handle this ticket?',
           options: [{ label: 'bug' }, { label: 'billing', description: 'Invoices and charges' }, { label: 'feature' }, { label: 'other' }],
         },
@@ -64,8 +64,8 @@ describe('toClassifierSchema', () => {
   });
 
   it('maps binary and ordinal tasks', () => {
-    expect(toClassifierSchema({ type: 'binary', prompt: 'Abusive?' }).questions).toEqual([{ id: 'answer', type: 'binary', prompt: 'Abusive?' }]);
-    expect(toClassifierSchema({ type: 'ordinal', options: ['1', '2', '3'] }).questions[0]).toMatchObject({ type: 'ordinal', prompt: expect.any(String) });
+    expect(toClassifierSchema({ type: 'binary', prompt: 'Abusive?' }).questions).toEqual([{ id: 'answer', type: 'boolean', prompt: 'Abusive?' }]);
+    expect(toClassifierSchema({ type: 'ordinal', options: ['1', '2', '3'] }).questions[0]).toMatchObject({ type: 'score', prompt: expect.any(String) });
   });
 
   it('rejects structured tasks', () => {
@@ -86,13 +86,13 @@ describe('readDecision', () => {
 
   it('falls back to confidence when probabilities are missing, and to argmax when the label is', () => {
     expect(readDecision(triageSchema, { id: 'answer', label: 'bug', confidence: 0.8 }).confidence).toBe(0.8);
-    expect(readDecision(triageSchema, { probabilities: [{ label: 'feature', probability: 0.6 }, { label: 'bug', probability: 0.4 }] } as ClassifierDecision)).toMatchObject({ value: 'feature', confidence: 0.6 });
+    expect(readDecision(triageSchema, { probabilities: { feature: 0.6, bug: 0.4 } } as unknown as ClassifierDecision)).toMatchObject({ value: 'feature', confidence: 0.6 });
   });
 
   it('binary: value is a boolean and confidence is max(P(true), P(false))', () => {
     const schema = { type: 'binary', prompt: 'Abusive?' } as const;
-    expect(readDecision(schema, { id: 'answer', label: 'true', probability: 0.97, confidence: 0.94 })).toMatchObject({ value: true, confidence: 0.97 });
-    const no = readDecision(schema, { id: 'answer', label: 'false', probability: 0.2, confidence: 0.6 });
+    expect(readDecision(schema, { id: 'answer', label: 'true', probabilities: { true: 0.97, false: 0.03 }, confidence: 0.94 })).toMatchObject({ value: true, confidence: 0.97 });
+    const no = readDecision(schema, { id: 'answer', label: 'false', probabilities: { true: 0.2, false: 0.8 }, confidence: 0.6 });
     expect(no.value).toBe(false);
     expect(no.confidence).toBeCloseTo(0.8);
   });
@@ -111,9 +111,9 @@ describe('classifierApi runner', () => {
     expect(await runner.availability(ctx)).toBe('unavailable');
   });
 
-  it('reads globalThis.Classifier (native API or extension polyfill)', async () => {
+  it('reads globalThis.DecisionModel (Chrome 157+ or an extension polyfill)', async () => {
     const { api } = fakeClassifier(() => categorical('bug', { bug: 0.9 }));
-    vi.stubGlobal('Classifier', api);
+    vi.stubGlobal('DecisionModel', api);
     try {
       expect(await classifierApi().availability(ctx)).toBe('available');
       expect(api.availability).toHaveBeenCalledWith(toClassifierSchema(triageSchema));
@@ -129,7 +129,7 @@ describe('classifierApi runner', () => {
     const out = await runner.run('b', ctx);
     expect(out).toMatchObject({ value: 'billing', confidence: 0.9 });
     expect(api.create).toHaveBeenCalledTimes(1);
-    expect(instances[0]!.classify).toHaveBeenCalledTimes(2);
+    expect(instances[0]!.decide).toHaveBeenCalledTimes(2);
   });
 
   it('never creates a session (download) from run() while downloadable', async () => {
@@ -164,12 +164,12 @@ describe('classifierApi runner', () => {
     expect(instances[2]!.destroy).toHaveBeenCalled();
   });
 
-  it('passes the abort signal to classify() but not to the cached session', async () => {
+  it('passes the abort signal to decide() but not to the cached session', async () => {
     const { api, instances } = fakeClassifier(() => categorical('bug', { bug: 0.9 }));
     const runner = classifierApi({ classifier: api });
     const { signal } = new AbortController();
     await runner.run('a', { ...ctx, signal });
-    expect(instances[0]!.classify).toHaveBeenCalledWith('a', { signal });
+    expect(instances[0]!.decide).toHaveBeenCalledWith('a', { signal });
     // Aborting one run must not destroy the session every later run shares.
     expect(api.create.mock.calls[0]![0]).not.toHaveProperty('signal');
   });
