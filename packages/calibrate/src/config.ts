@@ -50,6 +50,42 @@ export interface CalibrationTaskConfig<S extends TaskSchema = TaskSchema> {
   models?: { local?: string; cloud?: string };
   /** Settings for `belay seed` and `belay simulate` (`@swissspidy/belay-learn`). */
   learn?: LearnConfig;
+  /** Settings for `belay tune` (`@swissspidy/belay-tune`). */
+  tune?: TuneConfig;
+}
+
+/** What the reflecting model is asked: a system prompt, a prompt, and the JSON Schema of its answer. */
+export interface ReflectRequest {
+  system: string;
+  prompt: string;
+  jsonSchema: Record<string, unknown>;
+}
+
+/**
+ * The model that reads a task's failures and proposes changes (`belay tune`). Use a frontier
+ * model: small ones fail at this. `reflectorAdapter()` of `@swissspidy/belay-tune` builds one from
+ * a function. It only ever receives redacted trace content from the training split.
+ */
+export interface Reflector {
+  readonly id: string;
+  /** Resolves to an object matching `jsonSchema` (or its JSON), with the call's token usage. */
+  reflect(request: ReflectRequest, options: { signal?: AbortSignal }): Promise<{ output: unknown; usage?: import('@swissspidy/belay-core').CloudUsage | import('@swissspidy/belay-core').CloudUsage[] }>;
+}
+
+/** How `belay tune` runs for a task. The CLI flags override the numbers. */
+export interface TuneConfig {
+  reflector?: Reflector;
+  /** Prices of the reflecting model, per million tokens, to enforce the spend cap. */
+  prices?: PriceTable | TokenPrices;
+  /** Charged per call when the reflector reports no usage. Defaults to 0.25. */
+  costPerCall?: number;
+  /** The cascade accuracy to hold, in (0, 1]. */
+  target?: number;
+  /** Cloud accuracy for gold examples without a recorded cloud answer. */
+  cloudAccuracy?: number;
+  /** Cost of one cloud call, for the report's cost per 1,000 runs. */
+  cloudPerRun?: number;
+  currency?: string;
 }
 
 /**

@@ -15,6 +15,10 @@ export interface ScoredExample {
    * For a silver label it is 1: the label is the cloud's answer.
    */
   cloudCorrect: number;
+  /** The label, for per-class recall. */
+  truth?: string;
+  /** Wall-clock time of the local run, when it was measured. */
+  latencyMs?: number;
 }
 
 export interface ScoreOptions {
@@ -206,4 +210,137 @@ export function score(examples: readonly ScoredExample[], options: ScoreOptions)
     gold,
     silver: examples.length - gold,
   };
+}
+
+/** What a cascade does at a given threshold, with nothing fitted. */
+export interface FixedScore {
+  threshold: number | null;
+  localShare: number;
+  accuracy: number;
+  localAccuracy: number | null;
+  goldAccuracy: number | null;
+  cloudAgreement: number | null;
+  /** Per label: the share of its examples the cascade answers right. */
+  recall: Record<string, number>;
+  /** Expected calibration error of the local confidence, over ten bins. */
+  calibrationError: number | null;
+  /** 95th percentile of the local runs' latency, when it was measured. */
+  latencyP95Ms: number | null;
+  gold: number;
+  examples: number;
+}
+
+const keptAt = (e: ScoredExample, threshold: number | null): boolean => threshold !== null && !!e.local && e.local.confidence >= threshold;
+
+/** Scores examples at a threshold fitted elsewhere (`null`: everything goes to the cloud). */
+export function scoreAt(examples: readonly ScoredExample[], threshold: number | null): FixedScore {
+  if (!examples.length) throw new Error('no examples to score');
+  const sums = { total: 0, right: 0, kept: 0, keptRight: 0, gold: 0, goldRight: 0, silver: 0, silverRight: 0 };
+  const perLabel = new Map<string, { weight: number; right: number }>();
+  const bins = Array.from({ length: 10 }, () => ({ weight: 0, confidence: 0, right: 0 }));
+  const latencies: number[] = [];
+  let gold = 0;
+  for (const e of examples) {
+    const local = keptAt(e, threshold);
+    const right = local ? (e.local!.correct ? 1 : 0) : e.cloudCorrect;
+    sums.total += e.weight;
+    sums.right += e.weight * right;
+    if (local) {
+      sums.kept += e.weight;
+      sums.keptRight += e.weight * right;
+    }
+    if (e.labelKind === 'gold') {
+      gold++;
+      sums.gold += e.weight;
+      sums.goldRight += e.weight * right;
+    } else {
+      sums.silver += e.weight;
+      sums.silverRight += e.weight * right;
+    }
+    if (e.truth !== undefined) {
+      const entry = perLabel.get(e.truth) ?? { weight: 0, right: 0 };
+      entry.weight += e.weight;
+      entry.right += e.weight * right;
+      perLabel.set(e.truth, entry);
+    }
+    if (e.local) {
+      const bin = bins[Math.min(9, Math.floor(e.local.confidence * 10))]!;
+      bin.weight += e.weight;
+      bin.confidence += e.weight * e.local.confidence;
+      bin.right += e.weight * (e.local.correct ? 1 : 0);
+    }
+    if (typeof e.latencyMs === 'number') latencies.push(e.latencyMs);
+  }
+  const binned = bins.reduce((n, b) => n + b.weight, 0);
+  latencies.sort((a, b) => a - b);
+  return {
+    threshold,
+    localShare: sums.kept / sums.total,
+    accuracy: sums.right / sums.total,
+    localAccuracy: sums.kept > 0 ? sums.keptRight / sums.kept : null,
+    goldAccuracy: sums.gold > 0 ? sums.goldRight / sums.gold : null,
+    cloudAgreement: sums.silver > 0 ? sums.silverRight / sums.silver : null,
+    recall: Object.fromEntries([...perLabel].sort(([a], [b]) => (a < b ? -1 : 1)).map(([label, v]) => [label, v.right / v.weight])),
+    calibrationError: binned > 0 ? bins.reduce((n, b) => n + (b.weight > 0 ? Math.abs(b.right - b.confidence) : 0), 0) / binned : null,
+    latencyP95Ms: latencies.length ? percentile(latencies, 0.95) : null,
+    gold,
+    examples: examples.length,
+  };
+}
+
+export interface PairedDifference {
+  /** Candidate minus baseline, on the examples as they are. */
+  accuracy: number;
+  localShare: number;
+  /** 95% intervals of the differences. */
+  accuracyInterval: [number, number];
+  localShareInterval: [number, number];
+}
+
+/**
+ * A paired bootstrap of candidate minus baseline: both ran the same examples (same order), so
+ * each resample draws the same examples for both, and what the two share cancels out.
+ */
+export function pairedBootstrap(
+  baseline: { examples: readonly ScoredExample[]; threshold: number | null },
+  candidate: { examples: readonly ScoredExample[]; threshold: number | null },
+  options: { seed?: string | number; resamples?: number } = {},
+): PairedDifference {
+  const n = baseline.examples.length;
+  if (n !== candidate.examples.length || baseline.examples.some((e, i) => e.id !== candidate.examples[i]!.id)) {
+    throw new Error('a paired comparison needs the same examples in the same order');
+  }
+  const rows = baseline.examples.map((b, i) => {
+    const c = candidate.examples[i]!;
+    const bKept = keptAt(b, baseline.threshold);
+    const cKept = keptAt(c, candidate.threshold);
+    return {
+      weight: b.weight,
+      accuracy: (cKept ? (c.local!.correct ? 1 : 0) : c.cloudCorrect) - (bKept ? (b.local!.correct ? 1 : 0) : b.cloudCorrect),
+      share: (cKept ? 1 : 0) - (bKept ? 1 : 0),
+    };
+  });
+  const total = rows.reduce((sum, r) => sum + r.weight, 0);
+  const point = { accuracy: rows.reduce((sum, r) => sum + r.weight * r.accuracy, 0) / total, share: rows.reduce((sum, r) => sum + r.weight * r.share, 0) / total };
+  const resamples = options.resamples ?? 1000;
+  const random = mulberry32(seedOf(options.seed ?? 0));
+  const accuracies: number[] = [];
+  const shares: number[] = [];
+  for (let r = 0; r < resamples; r++) {
+    let weight = 0;
+    let accuracy = 0;
+    let share = 0;
+    for (let i = 0; i < n; i++) {
+      const row = rows[Math.floor(random() * n)]!;
+      weight += row.weight;
+      accuracy += row.weight * row.accuracy;
+      share += row.weight * row.share;
+    }
+    accuracies.push(accuracy / weight);
+    shares.push(share / weight);
+  }
+  accuracies.sort((a, b) => a - b);
+  shares.sort((a, b) => a - b);
+  const interval = (sorted: number[], fallback: number): [number, number] => (sorted.length ? [percentile(sorted, 0.025), percentile(sorted, 0.975)] : [fallback, fallback]);
+  return { accuracy: point.accuracy, localShare: point.share, accuracyInterval: interval(accuracies, point.accuracy), localShareInterval: interval(shares, point.share) };
 }

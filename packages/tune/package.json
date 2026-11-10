@@ -27,6 +27,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/local-config.d.ts",
+      "import": "./dist/local-config.js"
     }
   },
   "files": [

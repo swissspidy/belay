@@ -17,10 +17,11 @@ Commands:
   seed        Embed labeled examples into a seed file for @swissspidy/belay-learn
   simulate    Stream labeled examples through a learned classifier and report how it learns
   datasets    Build training, validation and holdout splits from recorded traces
-  tune        Score a task's local side on a split (needs @swissspidy/belay-tune)
+  tune        Make a task need the cloud less: propose, measure and gate changes to its
+              local side (needs @swissspidy/belay-tune)
+  ledger      Print the experiment history of belay tune
 
-Run "belay seed --help", "belay simulate --help", "belay datasets --help" or "belay tune --help"
-for their options.
+Run "belay <command> --help" for their options.
 
 belay calibrate --task <name> --data <examples.jsonl> [options]
 
@@ -59,17 +60,17 @@ export async function main(argv: string[]): Promise<number> {
   if (command === 'seed') return seedCommand(rest);
   if (command === 'simulate') return simulateCommand(rest);
   if (command === 'datasets') return datasetsCommand(rest);
-  if (command === 'tune') {
+  if (command === 'tune' || command === 'ledger') {
     // @swissspidy/belay-tune builds on this package, so it is loaded by name, when asked for.
     const name = '@swissspidy/belay-tune';
-    let tune: { tuneCommand(argv: string[]): Promise<number> };
+    let tune: { tuneCommand(argv: string[]): Promise<number>; ledgerCommand(argv: string[]): Promise<number> };
     try {
       tune = (await import(name)) as typeof tune;
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND') throw err;
       throw new Error('belay tune needs @swissspidy/belay-tune: npm install --save-dev @swissspidy/belay-tune', { cause: err });
     }
-    return tune.tuneCommand(rest);
+    return command === 'tune' ? tune.tuneCommand(rest) : tune.ledgerCommand(rest);
   }
   if (command !== 'calibrate') {
     process.stderr.write(`Unknown command "${command}".\n\n${HELP}`);

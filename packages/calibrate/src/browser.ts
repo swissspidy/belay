@@ -219,25 +219,25 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
         .catch(() => log('window.DecisionModel is not defined in the calibration browser (Chrome 157 or later, or an extension that polyfills it)'));
     }
 
-    const { schema } = options;
-    const spec = {
+    type Spec = { task: string; schema: TaskSchema; context?: string; local: BrowserRunnerSpec; judge?: BrowserJudgeSpec };
+    const specFor = (task: { schema: TaskSchema; context?: string }): Spec => ({
       task: options.task,
       // Functions (structured `validate`) cannot cross into the page; the runners don't need them.
-      schema: JSON.parse(JSON.stringify(schema)) as TaskSchema,
-      ...(options.context ? { context: options.context } : {}),
+      schema: JSON.parse(JSON.stringify(task.schema)) as TaskSchema,
+      ...(task.context ? { context: task.context } : {}),
       local: options.local,
       ...(options.judge ? { judge: options.judge } : {}),
-    };
+    });
     type H = {
-      availability(s: typeof spec): Promise<HarnessResult<Availability>>;
-      run(s: typeof spec, input: string): Promise<HarnessResult<LocalOutput>>;
-      judge(s: typeof spec, input: string, value: unknown): Promise<HarnessResult<number>>;
-      arm(s: typeof spec): void;
+      availability(s: Spec): Promise<HarnessResult<Availability>>;
+      run(s: Spec, input: string): Promise<HarnessResult<LocalOutput>>;
+      judge(s: Spec, input: string, value: unknown): Promise<HarnessResult<number>>;
+      arm(s: Spec): void;
       prepareResult(): Promise<HarnessResult<void>> | null;
     };
     const timeoutMs = browser.timeoutMs ?? 60_000;
 
-    return {
+    const make = (spec: Spec, owner: boolean): LocalBackend => ({
       spec: { browser: options.local, judge: options.judge ?? null, extension: extension ? 'extension' : null },
       async info() {
         const userAgent = await page.evaluate(() => navigator.userAgent);
@@ -282,8 +282,10 @@ export async function browserBackend(options: BrowserBackendOptions): Promise<Lo
               ),
           }
         : {}),
-      close,
-    };
+      derive: (task) => make(specFor(task), false),
+      close: owner ? close : async () => {},
+    });
+    return make(specFor({ schema: options.schema, ...(options.context ? { context: options.context } : {}) }), true);
   } catch (err) {
     await close();
     throw err;

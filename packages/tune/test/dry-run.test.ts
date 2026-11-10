@@ -170,7 +170,7 @@ export default {
       process.chdir(dir);
       await expect(tuneCommand(['--dry-run', '--target', '0.95'])).rejects.toThrow(/belay datasets --task ticket-triage/);
       await expect(tuneCommand(['--dry-run', '--data', 'validation.jsonl'])).rejects.toThrow(/--target is required/);
-      await expect(tuneCommand(['--target', '0.95'])).rejects.toThrow(/--dry-run/);
+      await expect(tuneCommand(['--target', '0.95'])).rejects.toThrow(/tune.reflector/);
       await expect(tuneCommand(['--dry-run', '--data', 'validation.jsonl', '--target', '2'])).rejects.toThrow(/--target/);
       await expect(tuneCommand(['--dry-run', '--data', 'validation.jsonl', '--target', '0.9', '--repeat', '0'])).rejects.toThrow(/--repeat/);
 
@@ -190,7 +190,7 @@ export default {
       expect(existsSync(join(dir, 'out/score.json'))).toBe(true);
       stdout.mockClear();
       expect(await tuneCommand(['--help'])).toBe(0);
-      expect(String(stdout.mock.calls[0]![0])).toMatch(/Usage: belay tune --dry-run/);
+      expect(String(stdout.mock.calls[0]![0])).toMatch(/Usage: belay tune --task/);
     } finally {
       process.chdir(cwd);
     }

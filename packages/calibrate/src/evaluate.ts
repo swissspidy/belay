@@ -30,6 +30,11 @@ export interface LocalBackend {
   prepare(onProgress?: (loaded: number) => void): Promise<void>;
   run(input: string): Promise<LocalOutput>;
   judge?(input: string, value: unknown): Promise<number>;
+  /**
+   * The same runner and model, given another schema and context: how `belay tune` runs a changed
+   * local side without starting a second browser. Closing the derived backend does nothing.
+   */
+  derive?(task: { schema: TaskSchema; context?: string }): LocalBackend;
   close(): Promise<void>;
 }
 
@@ -39,26 +44,28 @@ export function nodeBackend(
   ctx: { task: string; schema: TaskSchema; context?: string },
   judge?: Judge<any>,
 ): LocalBackend {
-  return {
+  const make = (c: typeof ctx, owner: boolean): LocalBackend => ({
     // The judge's score is cached with the local output, so the judge is part of the key.
     spec: { node: runner.id, judge: judge ? judge.name || 'judge' : null },
     async info() {
       return { runner: runner.id };
     },
-    availability: () => runner.availability(ctx),
+    availability: () => runner.availability(c),
     async prepare(onProgress) {
-      await runner.prepare?.(ctx, onProgress ? { onProgress } : {});
+      await runner.prepare?.(c, onProgress ? { onProgress } : {});
     },
-    run: (input) => runner.run(input, ctx),
-    ...(judge ? { judge: (input: string, value: unknown) => judge({ input, value, task: ctx.task }) } : {}),
+    run: (input) => runner.run(input, c),
+    ...(judge ? { judge: (input: string, value: unknown) => judge({ input, value, task: c.task }) } : {}),
+    derive: (task) => make({ task: c.task, schema: task.schema, ...(task.context ? { context: task.context } : {}) }, false),
     async close() {
-      runner.destroy?.();
+      if (owner) runner.destroy?.();
     },
-  };
+  });
+  return make(ctx, true);
 }
 
 type LocalRecord =
-  | { ok: true; value: unknown; confidence?: number; judge?: number }
+  | { ok: true; value: unknown; confidence?: number; judge?: number; /** Wall-clock time of the run (and its judge), in ms. */ latencyMs?: number }
   | { ok: false; reason: string };
 
 /** A cached cloud output. Entries from before usage was recorded have only `value`. */
@@ -169,6 +176,7 @@ async function runLocal(options: EvaluateLocalOptions): Promise<LocalEvaluation 
       cached++;
     } else {
       try {
+        const started = performance.now();
         const output = await backend.run(example.input);
         const parsed = parseValue(schema, output.value);
         let judged: number | undefined;
@@ -176,6 +184,7 @@ async function runLocal(options: EvaluateLocalOptions): Promise<LocalEvaluation 
         record = {
           ok: true,
           value: output.value,
+          latencyMs: Math.round((performance.now() - started) * 100) / 100,
           ...(typeof output.confidence === 'number' ? { confidence: output.confidence } : {}),
           ...(judged !== undefined ? { judge: judged } : {}),
         };
@@ -205,6 +214,7 @@ async function runLocal(options: EvaluateLocalOptions): Promise<LocalEvaluation 
           confidence,
           correct: isCorrect(config, parsed.value, example.expected),
           value: parsed.value,
+          ...(typeof record.latencyMs === 'number' ? { latencyMs: record.latencyMs } : {}),
         };
       }
     }
