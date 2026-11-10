@@ -258,8 +258,26 @@ reports none is charged a configured flat price per call. The request holds reda
 `@swissspidy/belay-tune` builds on `@swissspidy/belay-calibrate`, which owns the `belay` binary,
 so the binary loads it by name when `belay tune` is run.
 
-Verified with a stub Classifier in Chromium under Playwright, not yet with a built-in model: this
-environment has none.
+**Verified with a built-in model.** Google Chrome 157.0.8103.50 on a 4-core, 16 GB Linux VM
+without a GPU (`forceCpu`, headful under Xvfb), with Chrome's built-in classifier, on the 300
+labeled ticket-triage examples (`examples/ticket-triage/examples.jsonl`), target 95%, cloud
+accuracy set to the calibrated 94.3%, `--repeat 2 --refresh`:
+
+| Run | Threshold | Local share | Accuracy | Kept local |
+| --- | --- | --- | --- | --- |
+| 1 | 0.959 | 91.0% (95% CI 54.0% to 98.7%) | 95.2% | 95.2% accurate |
+| 2 | 0.959 | 91.0% | 95.2% | 95.2% accurate |
+
+The two runs gave identical outputs (spread 0.0 points), with no local failures; 600 runs took 26
+minutes including the model load. The interval is wide because the accuracy sits just above the
+target: a few examples decide whether a much higher threshold is needed. The loop should not read
+a change of a few points on 300 examples as a gain.
+
+Chrome 157 no longer exposes this API as `Classifier`. It is `DecisionModel` (feature
+`AIDecisionModelAPI`), with `decide()` for `classify()`, question types `boolean`, `choice` and
+`score` for `binary`, `categorical` and `ordinal`, and `probabilities` as an object keyed by label.
+`classifierApi()` reports "unavailable" there. The run above bridged the two with an init script in
+the config's `browser.setup` hook; supporting the new shape in `@swissspidy/belay-web` is open.
 
 ## Open questions
 
