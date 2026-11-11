@@ -1,6 +1,6 @@
 # ADR 0007: Belay Tune foundations: traces, local configs, the ledger and a protected evaluator
 
-- Status: Accepted and implemented (milestones M1 to M4, and M5 in part). §6 is a finding; §11 says what of rung 4 is not built.
+- Status: Accepted and implemented (milestones M1 to M5). §6 is a finding; §11 says what of rung 4 is not built.
 - Date: 2026-11-10
 - Scope: new `@swissspidy/belay-trace` and `@swissspidy/belay-tune`; `belay datasets`, `evaluateLocal()` and `createBackend()` in `@swissspidy/belay-calibrate`
 - Builds on: ADR 0001 (telemetry, privacy, calibration file), ADR 0002 (real-browser evaluation), ADR 0004 §3 and ADR 0005 §1 (`explore`)
@@ -450,7 +450,7 @@ Not verified: the two workflow templates have not run on GitHub's runners. They 
 the `belay` commands in them were run here; the cache, push and `gh` steps were not. Whether a hosted runner can load Chrome's built-in
 model (it needs about 4 GB of download and, without a GPU, 16 GB of memory) is also untested.
 
-### 11. Rung 4 and per-backend configs (implemented, in part)
+### 11. Rung 4 and per-backend configs (implemented; decomposition not built)
 
 **Wording.** The fourth rung asks the reflecting model to reword what the local model is asked:
 the question, the descriptions of labels, or both. A candidate is one `add /wording` patch.
@@ -476,9 +476,39 @@ config names its backend, and the loop refuses to start from a config of another
 verify` runs every backend that has a config file, and fails on a config file whose backend the
 config does not name.
 
-**Verified** so far with stub models: a wording candidate is promoted, two backends of one task
-are tuned and verified side by side, and a config handed to another backend is refused. A run
-with two real backends (Chrome's classifier and its Prompt API with a judge) is not done yet.
+**Verified with stub models:** a wording candidate is promoted, two backends of one task are
+tuned and verified side by side, and a config handed to another backend is refused.
+
+**Verified in Chrome 157** with the ticket-triage project of sections 9 and 10 (915 training,
+284 validation and 301 holdout examples, all with gold labels). Its first backend, Chrome's
+classifier, already held a promoted config. The second, `prompt-api` (Gemini Nano through the
+Prompt API with a classifier as judge, on CPU), was tuned with `belay tune --backend
+prompt-api`, six experiments a run. A run took about three and a half hours and cost about
+0.10 USD in reflector calls.
+
+| Run | Validation, local share at accuracy | Holdout, local share and accuracy | Gate |
+| --- | --- | --- | --- |
+| Baseline | 52.5% at 95.2% | 57.1%, 96.6% | |
+| 1 | 100.0% at 97.2% | 100.0%, 95.7% | rejected: recall of "order" down 6.1 points; accuracy inconclusive |
+| 2 | 100.0% at 95.8% | 100.0%, 94.4% | rejected: recall of "order" down 12.4 points; accuracy inconclusive |
+| 3 | 100.0% at 96.5% | 100.0%, 97.3% | passed: recall of "order" down 2.9 points; accuracy +0.8 points (95% CI -1.4 to +3.0) |
+
+Runs 1 and 2 showed a gap between the loop and the gate. The loop fitted a threshold on the
+accuracy over all labels, found few-shot examples that let the local model answer everything,
+and proposed a config that had given up part of one label, which the gate's recall check then
+refused. Between runs 2 and 3 the fit was changed to hold every label's recall within half of
+`maxRecallDrop` of the baseline's on validation (step 3 in section 9). Run 3 is one run: it
+shows the change can work, not how often it does.
+
+After run 3 the task holds two configs, `classifier-api` and `prompt-api`, each with its
+calibration file and gate record, and `belay verify` passes for both: the classifier answers
+all 301 holdout inputs as it did at its gate; the Prompt API answers 8 of them differently in
+the same browser (the same accuracy, 97.3%), which verify reports as a note.
+
+Two limits of this check. The gate was the widened one of section 10 (`accuracyMargin` 0.02,
+`maxLatencyIncrease` 0.3); under the default margin of one point, run 3 would have been
+inconclusive, because 301 holdout examples cannot settle it. And both backends ran on one
+machine, in one Chrome version.
 
 ## Open questions
 
