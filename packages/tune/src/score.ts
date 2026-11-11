@@ -28,6 +28,11 @@ export interface ScoreOptions {
   seed?: string | number;
   /** Bootstrap resamples for the 95% intervals. Defaults to 1000; 0 turns them off. */
   resamples?: number;
+  /**
+   * Per label, the lowest recall the cascade may have. A threshold that takes a label below its
+   * floor does not hold the target, however accurate the cascade is over all labels.
+   */
+  recallFloor?: Readonly<Record<string, number>>;
 }
 
 export interface Score {
@@ -88,21 +93,34 @@ interface Fit {
 
 /**
  * Fits the threshold: of the cut points between distinct confidences, the one that keeps the most
- * on the device while the cascade accuracy holds the target; if none does, the most accurate one.
+ * on the device while the cascade accuracy holds the target (and no label is below its recall
+ * floor, when floors are given); if none does, the most accurate one.
  * `order` lists the examples with a local answer by falling confidence; `times` is how often each
  * example counts (its multiplicity in a bootstrap resample).
  */
-function fit(examples: readonly ScoredExample[], order: readonly number[], times: ArrayLike<number> | null, target: number): Fit {
+function fit(examples: readonly ScoredExample[], order: readonly number[], times: ArrayLike<number> | null, target: number, floor?: Readonly<Record<string, number>>): Fit {
   let total = 0;
   let cloudRight = 0;
+  // Per label with a floor: the weight of its examples, and of those the cascade answers right.
+  const labels = new Map<string, { weight: number; right: number; floor: number }>();
   for (let i = 0; i < examples.length; i++) {
     const w = examples[i]!.weight * (times ? times[i]! : 1);
     total += w;
     cloudRight += w * examples[i]!.cloudCorrect;
+    const truth = examples[i]!.truth;
+    if (floor && truth !== undefined && floor[truth] !== undefined) {
+      const label = labels.get(truth) ?? { weight: 0, right: 0, floor: floor[truth]! };
+      label.weight += w;
+      label.right += w * examples[i]!.cloudCorrect;
+      labels.set(truth, label);
+    }
   }
   if (!(total > 0)) return { kept: 0, met: false, share: 0, accuracy: 0 };
   const eps = 1e-9;
-  let best: Fit = { kept: 0, met: cloudRight / total >= target - eps, share: 0, accuracy: cloudRight / total };
+  const below = (label: { weight: number; right: number; floor: number }): boolean => label.weight > 0 && label.right / label.weight < label.floor - eps;
+  let violations = 0;
+  for (const label of labels.values()) if (below(label)) violations++;
+  let best: Fit = { kept: 0, met: cloudRight / total >= target - eps && violations === 0, share: 0, accuracy: cloudRight / total };
   let keptWeight = 0;
   let gain = 0;
   for (let k = 0; k < order.length; k++) {
@@ -110,11 +128,17 @@ function fit(examples: readonly ScoredExample[], order: readonly number[], times
     const w = example.weight * (times ? times[order[k]!]! : 1);
     keptWeight += w;
     gain += w * ((example.local!.correct ? 1 : 0) - example.cloudCorrect);
+    const label = example.truth === undefined ? undefined : labels.get(example.truth);
+    if (label) {
+      const was = below(label);
+      label.right += w * ((example.local!.correct ? 1 : 0) - example.cloudCorrect);
+      violations += Number(below(label)) - Number(was);
+    }
     // A threshold cannot separate equal confidences.
     const next = order[k + 1];
     if (next !== undefined && examples[next]!.local!.confidence === example.local!.confidence) continue;
     const accuracy = (cloudRight + gain) / total;
-    const met = accuracy >= target - eps;
+    const met = accuracy >= target - eps && violations === 0;
     if (met ? true : !best.met && accuracy > best.accuracy + eps) {
       best = { kept: k + 1, met, share: keptWeight / total, accuracy };
     }
@@ -145,7 +169,7 @@ export function score(examples: readonly ScoredExample[], options: ScoreOptions)
     .filter((i) => i >= 0)
     .sort((a, b) => examples[b]!.local!.confidence - examples[a]!.local!.confidence || (examples[a]!.id < examples[b]!.id ? -1 : 1));
 
-  const best = fit(examples, order, null, target);
+  const best = fit(examples, order, null, target, options.recallFloor);
   const kept = new Set(order.slice(0, best.kept));
   const sums = { keptWeight: 0, keptRight: 0, gold: 0, goldRight: 0, silver: 0, silverRight: 0, wrong: 0, caught: 0, total: 0, cloudRight: 0 };
   let gold = 0;
@@ -183,7 +207,7 @@ export function score(examples: readonly ScoredExample[], options: ScoreOptions)
     for (let r = 0; r < resamples; r++) {
       times.fill(0);
       for (let i = 0; i < examples.length; i++) times[Math.floor(random() * examples.length)]!++;
-      const f = fit(examples, order, times, target);
+      const f = fit(examples, order, times, target, options.recallFloor);
       shares.push(f.share);
       accuracies.push(f.accuracy);
     }

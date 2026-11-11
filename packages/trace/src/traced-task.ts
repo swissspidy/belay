@@ -102,14 +102,18 @@ export function tracedTask<S extends TaskSchema>(options: TaskOptions<S>, trace:
 
   // Run events carry what the result does not (the exploration weight, the cloud call's usage).
   // An event is emitted in the same turn its run resolves in, and matched to the result by its
-  // latency, which both hold as the same number.
+  // latency, which both hold as the same number. Runs take their events in the order the events
+  // were emitted, so of two events that look alike the first is the right one, as long as none
+  // was dropped: the queue holds one event per run that is still under way, however many there are.
   const events: RunEvent[] = [];
+  let underWay = 0;
   const inner = task<S>({
     ...options,
     onEvent(event: BelayEvent) {
       if (event.type === 'run') {
         events.push(event);
-        if (events.length > 256) events.shift();
+        // More events than runs under way: the oldest belongs to a run that failed after it.
+        if (events.length > underWay) events.shift();
       }
       options.onEvent?.(event);
     },
@@ -164,9 +168,17 @@ export function tracedTask<S extends TaskSchema>(options: TaskOptions<S>, trace:
   const basePolicy: EscalationPolicy = options.cloud ? (options.privacy?.escalation ?? 'auto') : 'never';
 
   async function run(input: string, runOptions: RunOptions = {}): Promise<BelayResult<ValueOf<S>>> {
-    const result = await inner.run(input, runOptions);
+    underWay++;
+    let result: BelayResult<ValueOf<S>>;
+    let event: RunEvent | undefined;
+    try {
+      result = await inner.run(input, runOptions);
+      event = takeEvent(result);
+    } finally {
+      // Nothing is under way: what is left belongs to no run.
+      if (--underWay === 0) events.length = 0;
+    }
     const timestamp = Date.now();
-    const event = takeEvent(result);
     let policy = basePolicy;
     if (runOptions.escalation && STRICTNESS[runOptions.escalation] > STRICTNESS[policy]) policy = runOptions.escalation;
 

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "task": "ticket-triage",
+  "backend": {
+    "runner": "classifier-api",
+    "model": "Chrome 157 built-in DecisionModel, CPU"
+  },
+  "examples": [
+    {
+      "input": "where do i see the termination penalties",
+      "label": "order"
+    },
+    {
+      "input": "can you help me to see the withdrawal fees?",
+      "label": "order"
+    },
+    {
+      "input": "can you help me see my compensation status?",
+      "label": "billing"
+    },
+    {
+      "input": "I want assistance demanding a compensation",
+      "label": "billing"
+    },
+    {
+      "input": "I can't update my address",
+      "label": "shipping"
+    },
+    {
+      "input": "could Iplace an order from {{Delivery City}}?",
+      "label": "shipping"
+    }
+  ]
+}

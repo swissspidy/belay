@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "task": "ticket-triage",
+  "schemaFingerprint": "fnv1a:76ea9e62",
+  "createdAt": "2026-11-11T11:47:13.202Z",
+  "local": {
+    "runner": "prompt-api",
+    "model": "Chrome 157 built-in Gemini Nano (Prompt API) with a DecisionModel judge, CPU",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+  },
+  "cloud": null,
+  "dataset": {
+    "size": 284,
+    "fingerprint": "fnv1a:b5af4d01"
+  },
+  "target": {
+    "metric": "accuracy",
+    "value": 0.95,
+    "mode": "fixed"
+  },
+  "threshold": 0.23185165226459503,
+  "expected": {
+    "accuracy": 0.9647887323943662,
+    "localShare": 1,
+    "localAccuracy": 0.9647887323943662,
+    "cloudAccuracy": 0.9430000000000044
+  },
+  "curve": [
+    {
+      "threshold": 0,
+      "accuracy": 0.9647887323943662,
+      "localShare": 1,
+      "localAccuracy": 0.9647887323943662
+    },
+    {
+      "threshold": 0.05,
+      "accuracy": 0.9647887323943662,
+      "localShare": 1,
+      "localAccuracy": 0.9647887323943662
+    },
+    {
+      "threshold": 0.1,
+      "accuracy": 0.9647887323943662,
+      "localShare": 1,
+      "localAccuracy": 0.9647887323943662
+    },
+    {
+      "threshold": 0.15,
+      "accuracy": 0.9647887323943662,
+      "localShare": 1,
+      "localAccuracy": 0.9647887323943662
+    },
+    {
+      "threshold": 0.2,
+      "accuracy": 0.9647887323943662,
+      "localShare": 1,
+      "localAccuracy": 0.9647887323943662
+    },
+    {
+      "threshold": 0.25,
+      "accuracy": 0.964588028169014,
+      "localShare": 0.9964788732394366,
+      "localAccuracy": 0.9646643109540636
+    },
+    {
+      "threshold": 0.3,
+      "accuracy": 0.9643873239436621,
+      "localShare": 0.9929577464788732,
+      "localAccuracy": 0.9645390070921985
+    },
+    {
+      "threshold": 0.35,
+      "accuracy": 0.9641866197183101,
+      "localShare": 0.9894366197183099,
+      "localAccuracy": 0.9644128113879004
+    },
+    {
+      "threshold": 0.4,
+      "accuracy": 0.9641866197183101,
+      "localShare": 0.9894366197183099,
+      "localAccuracy": 0.9644128113879004
+    },
+    {
+      "threshold": 0.45,
+      "accuracy": 0.9639859154929579,
+      "localShare": 0.9859154929577465,
+      "localAccuracy": 0.9642857142857143
+    },
+    {
+      "threshold": 0.5,
+      "accuracy": 0.9637852112676057,
+      "localShare": 0.9823943661971831,
+      "localAccuracy": 0.96415770609319
+    },
+    {
+      "threshold": 0.55,
+      "accuracy": 0.9635845070422536,
+      "localShare": 0.9788732394366197,
+      "localAccuracy": 0.9640287769784173
+    },
+    {
+      "threshold": 0.6,
+      "accuracy": 0.9633838028169016,
+      "localShare": 0.9753521126760564,
+      "localAccuracy": 0.9638989169675091
+    },
+    {
+      "threshold": 0.65,
+      "accuracy": 0.9631830985915496,
+      "localShare": 0.971830985915493,
+      "localAccuracy": 0.9637681159420289
+    },
+    {
+      "threshold": 0.7,
+      "accuracy": 0.9623802816901411,
+      "localShare": 0.9577464788732394,
+      "localAccuracy": 0.9632352941176471
+    },
+    {
+      "threshold": 0.75,
+      "accuracy": 0.961978873239437,
+      "localShare": 0.9507042253521126,
+      "localAccuracy": 0.9629629629629629
+    },
+    {
+      "threshold": 0.8,
+      "accuracy": 0.9682183098591555,
+      "localShare": 0.9366197183098591,
+      "localAccuracy": 0.9699248120300752
+    },
+    {
+      "threshold": 0.85,
+      "accuracy": 0.9695316901408456,
+      "localShare": 0.897887323943662,
+      "localAccuracy": 0.9725490196078431
+    },
+    {
+      "threshold": 0.9,
+      "accuracy": 0.9710457746478879,
+      "localShare": 0.8626760563380281,
+      "localAccuracy": 0.9755102040816327
+    },
+    {
+      "threshold": 0.95,
+      "accuracy": 0.9680528169014098,
+      "localShare": 0.6866197183098591,
+      "localAccuracy": 0.9794871794871794
+    },
+    {
+      "threshold": 1,
+      "accuracy": 0.9430000000000044,
+      "localShare": 0,
+      "localAccuracy": null
+    }
+  ],
+  "confidenceHistogram": {
+    "edges": [
+      0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1
+    ],
+    "counts": [
+      0,
+      0,
+      2,
+      1,
+      2,
+      2,
+      5,
+      6,
+      21,
+      245
+    ]
+  },
+  "localConfig": "fnv1a:6cef205b"
+}

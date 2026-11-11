@@ -287,6 +287,10 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     })
   ).id;
 
+  // The gate lets no label's recall drop by more than a margin. A candidate is fitted so that it
+  // holds half of that margin on validation: the other half is room for the holdout to differ.
+  const recallFloor = Object.fromEntries(Object.entries(scoreAt(baseValidation, base.threshold).recall).map(([label, recall]) => [label, recall - gate.maxRecallDrop / 2]));
+
   let population: Member[] = [base];
   const seen = new Set<string>([base.fingerprint]);
   const counts = { run: 0, kept: 0, discarded: 0, errors: 0, screenedOut: 0 };
@@ -296,10 +300,12 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   // ---- Rung 1: the threshold, fitted again on fresh traces ---------------------------
   if (baseAt) {
     counts.run++;
+    // Like every candidate, the new threshold may not cost a label more recall than the floors allow.
+    const refitted = score(baseValidation, { target, seed, resamples: 0, recallFloor });
     // Drift: the committed threshold no longer holds the target, and a new one does.
-    const repairs = baseFit.targetMet && !base.targetMet;
-    const kept = repairs || (baseFit.targetMet && baseFit.localShare >= base.localShare + settings.minGain);
-    const refit: Member = { ...base, rung: 'threshold', hypothesis: 'The threshold, fitted again on the current validation split.', threshold: baseFit.threshold, localShare: baseFit.localShare, accuracy: baseFit.accuracy, targetMet: baseFit.targetMet };
+    const repairs = refitted.targetMet && !base.targetMet;
+    const kept = repairs || (refitted.targetMet && refitted.localShare >= base.localShare + settings.minGain);
+    const refit: Member = { ...base, rung: 'threshold', hypothesis: 'The threshold, fitted again on the current validation split.', threshold: refitted.threshold, localShare: refitted.localShare, accuracy: refitted.accuracy, targetMet: refitted.targetMet };
     refit.id = (
       await record({
         rung: 'threshold',
@@ -310,7 +316,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
         stage: 'validation',
         scores: scoresOf(refit),
         verdict: kept ? 'kept' : 'discarded',
-        reason: repairs ? 'The committed threshold no longer holds the target accuracy; this one does.' : kept ? `Local share up ${((baseFit.localShare - base.localShare) * 100).toFixed(1)} points at the target accuracy.` : 'The committed threshold is as good as a new one.',
+        reason: repairs ? 'The committed threshold no longer holds the target accuracy; this one does.' : kept ? `Local share up ${((refitted.localShare - base.localShare) * 100).toFixed(1)} points at the target accuracy.` : 'The committed threshold is as good as a new one.',
       })
     ).id;
     if (kept) {
@@ -351,7 +357,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
           config[key] !== undefined ? [{ op: 'add', path: `/${key}`, value: config[key] }] : baseConfig[key] !== undefined ? [{ op: 'remove', path: `/${key}` }] : [],
         );
         const validation = await evaluate(config, options.validation, 'carried over');
-        const fit = score(validation, { target, seed, resamples: 0 });
+        const fit = score(validation, { target, seed, resamples: 0, recallFloor });
         const member: Member = { id: '', rung: pending.rung as ProposalRung, hypothesis: pending.hypothesis, config, fingerprint, chars, validation, threshold: fit.threshold, localShare: fit.localShare, accuracy: fit.accuracy, targetMet: fit.targetMet };
         const gain = fit.localShare - base.localShare;
         const kept = fit.targetMet && gain >= settings.minGain;
@@ -535,7 +541,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
           }
         }
         const validation = await evaluate(config, options.validation, `validate ${counts.run}`);
-        const fit = score(validation, { target, seed, resamples: 0 });
+        const fit = score(validation, { target, seed, resamples: 0, recallFloor });
         const member: Member = { id: '', rung: proposal.rung, hypothesis: proposal.hypothesis, config, fingerprint, chars, validation, threshold: fit.threshold, localShare: fit.localShare, accuracy: fit.accuracy, targetMet: fit.targetMet };
         const gain = fit.localShare - parent.localShare;
         // A parent that does not hold the target is beaten by any candidate that does.
@@ -553,7 +559,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
                 : 'Holds the target accuracy on validation, which its parent does not.'
               : fit.targetMet
                 ? `Local share ${gain >= 0 ? 'up' : 'down'} ${(Math.abs(gain) * 100).toFixed(1)} points on validation: not a gain.`
-                : 'The target accuracy was not met on validation.',
+                : 'No threshold holds the target accuracy on validation without a label losing too much recall.',
           })
         ).id;
         if (kept) {

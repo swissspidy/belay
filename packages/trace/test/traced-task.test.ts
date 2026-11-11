@@ -157,6 +157,29 @@ describe('tracedTask', () => {
     for (const trace of sink.traces) expect(trace.cloud!.usage).toEqual([{ model: 'm', inputTokens: trace.input!.length, outputTokens: 1 }]);
   });
 
+  it('keeps every event of a large batch that resolves at once, even when the runs look alike', async () => {
+    // Every run reports the same latency, source and threshold: only the order tells them apart.
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0);
+    try {
+      let release!: () => void;
+      const gate = new Promise<void>((r) => (release = r));
+      const cloud = cloudAdapter<typeof triageSchema>(async ({ input }, { reportUsage }) => {
+        await gate;
+        reportUsage({ model: 'm', inputTokens: input.length, outputTokens: 1 });
+        return 'billing';
+      });
+      const { t, sink } = setup({ cloud });
+      const runs = Array.from({ length: 600 }, (_, i) => t.run('x'.repeat(i + 1)));
+      release();
+      await Promise.all(runs);
+      await t.flush();
+      expect(sink.traces).toHaveLength(600);
+      for (const trace of sink.traces) expect(trace.cloud!.usage).toEqual([{ model: 'm', inputTokens: trace.input!.length, outputTokens: 1 }]);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   it('records feedback as a gold label only under content "all"', async () => {
     const off = setup();
     expect(await off.t.feedback('where is my invoice', 'billing')).toBe(false);

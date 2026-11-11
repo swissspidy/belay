@@ -34,7 +34,8 @@ const next = (label: string) => LABELS[(LABELS.indexOf(label as (typeof LABELS)[
  * - a rule or example mentioning "GOOD" makes it surer and nearly always right;
  * - "BAD" makes it wrong about half the time, while staying sure;
  * - "OVERFIT" helps on every input but those marked "holdout";
- * - "MAYBE" makes it sure and right about as often as the whole cascade was before.
+ * - "MAYBE" makes it sure and right about as often as the whole cascade was before;
+ * - "SKEW" makes it sure and right on every label but "bug", where it is unsure and often wrong.
  */
 function contextLocal(): LocalRunner<any> & { contexts: Set<string>; updated: boolean } {
   const contexts = new Set<string>();
@@ -55,6 +56,9 @@ function contextLocal(): LocalRunner<any> & { contexts: Set<string>; updated: bo
       if (this.updated) {
         confidence = 0.97;
         right = hash01(`updated:${input}`) < 0.75;
+      } else if (context.includes('SKEW')) {
+        confidence = truth === 'bug' ? 0.6 : 0.97;
+        right = truth === 'bug' ? hash01(`skew:${input}`) < 0.7 : hash01(`right:${input}`) < 0.99;
       } else if (context.includes('MAYBE')) {
         confidence = 0.97;
         right = hash01(`maybe:${input}`) < 0.94;
@@ -152,6 +156,18 @@ async function options(overrides: Partial<TuneOptions> = {}): Promise<TuneOption
 const GOOD_RULES = [[{ hypothesis: 'Naming the pattern settles the unsure tickets.', rules: ['GOOD: a ticket "about X" belongs to X.'] }, { hypothesis: 'A vague rule.', rules: ['BAD: think carefully.'] }]];
 
 describe('tune', () => {
+  it('does not let a candidate reach its local share by giving up one label', async () => {
+    await lock();
+    const { reflector } = scripted({ rules: [[{ hypothesis: 'Sure of everything but bugs.', rules: ['SKEW'] }]] });
+    const report = await tune(await options({ reflector }));
+    // Answering everything locally would hold the 90% target (about 92%), with "bug" right 70% of the time.
+    const skew = report.entries.find((e) => e.hypothesis === 'Sure of everything but bugs.' && e.stage === 'validation')!;
+    expect(skew.verdict).toBe('kept');
+    expect(skew.scores!.threshold).toBeGreaterThan(0.6);
+    expect(skew.scores!.localShare).toBeCloseTo(0.75, 1);
+    expect(report.gate!.checks.find((c) => c.name === 'recall')!.passed).toBe(true);
+  });
+
   it('promotes a candidate that passes the gate, and leaves a full record', async () => {
     await lock();
     const { reflector, requests } = scripted({

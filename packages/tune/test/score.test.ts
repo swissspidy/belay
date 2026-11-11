@@ -56,6 +56,25 @@ describe('score', () => {
     expect(score(examples.map((e) => ({ ...e, weight: 1 })), { target: 0.99, resamples: 0 }).localShare).toBeCloseTo(1 / 21);
   });
 
+  it('holds a recall floor per label, even where the accuracy over all labels allows more', () => {
+    // 90 easy "x" (all right) and 10 "y", of which the local side gets 4 wrong at low confidence.
+    const examples = [
+      ...Array.from({ length: 90 }, (_, i) => ex(`x${i}`, 0.9, true, { truth: 'x' })),
+      ...Array.from({ length: 6 }, (_, i) => ex(`y${i}`, 0.8, true, { truth: 'y' })),
+      ...Array.from({ length: 4 }, (_, i) => ex(`z${i}`, 0.3, false, { truth: 'y' })),
+    ];
+    // 96% holds a 95% target with everything local, but "y" is then right only 6 times in 10.
+    expect(score(examples, { target: 0.95, resamples: 0 })).toMatchObject({ targetMet: true, localShare: 1, threshold: 0.3 });
+    const floored = score(examples, { target: 0.95, resamples: 0, recallFloor: { x: 0.9, y: 0.9 } });
+    expect(floored).toMatchObject({ targetMet: true, threshold: 0.8, accuracy: 1 });
+    expect(floored.localShare).toBeCloseTo(0.96);
+    // A floor nothing can hold: the target is not met.
+    expect(score(examples, { target: 0.95, resamples: 0, recallFloor: { y: 1.1 } }).targetMet).toBe(false);
+    // The bootstrap fits under the same floor.
+    expect(score(examples, { target: 0.85, seed: 1, resamples: 200 }).localShareInterval).toEqual([1, 1]);
+    expect(score(examples, { target: 0.85, seed: 1, resamples: 200, recallFloor: { y: 0.9 } }).localShareInterval![0]).toBeLessThan(1);
+  });
+
   it('gains accuracy where the local side is right and the cloud is wrong', () => {
     const examples = [
       ex('a', 0.9, true, { labelKind: 'gold', cloudCorrect: 0 }),

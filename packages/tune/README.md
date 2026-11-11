@@ -12,9 +12,11 @@ cascade stays as accurate as you require.
 
 > **Status:** experimental (0.x). Built so far: the score, the loop on four rungs (threshold,
 > examples, rules, wording), a config per backend, the ledger, the gate and the lock, the pull
-> request text, `belay verify` and the repair of a config that drifted. Not yet: splitting a task
-> into two steps, weights. The GitHub Action templates have not been run on GitHub's runners yet. See
-> [ADR 0007](https://github.com/swissspidy/belay/blob/main/docs/adr/0007-belay-tune-foundations.md).
+> request text, `belay verify` and the repair of a config that drifted. Not built: splitting a task
+> into two steps, and tuning weights (a spike is recorded in
+> [ADR 0009](https://github.com/swissspidy/belay/blob/main/docs/adr/0009-weights-spike.md)). The GitHub Action templates have not been run on GitHub's runners yet. See
+> [ADR 0007](https://github.com/swissspidy/belay/blob/main/docs/adr/0007-belay-tune-foundations.md), and
+> [five runs on ticket triage, with their ledger](https://github.com/swissspidy/belay/tree/main/docs/reports/ticket-triage).
 
 ## Use
 
@@ -68,7 +70,8 @@ of the cascade is read from your traces, not called again.
    prompt stay as they are.
 3. **Screen, then validate.** Each candidate runs on 60 validation examples; the ones that are not
    clearly worse run on all of them, and their threshold is fitted again, because a changed prompt
-   shifts the confidences.
+   shifts the confidences. The fit also holds every label's recall to within half of the gate's
+   limit of the baseline's, so a candidate does not reach its local share by giving up one label.
 4. **Gate.** The best candidate and the baseline run on the holdout, once. All checks must pass:
 
    | Check | Default |
