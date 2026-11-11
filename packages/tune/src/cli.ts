@@ -6,8 +6,9 @@ import { readManifest } from '@swissspidy/belay-trace/node';
 import { dryRun } from './dry-run.js';
 import { readLedger } from './ledger.js';
 import { tune } from './loop.js';
-import { currentState, writeLock, GATE_FILE, INSTRUCTIONS_FILE, LOCK_FILE } from './protect.js';
+import { currentState, readLock, writeLock, GATE_FILE, INSTRUCTIONS_FILE, LOCK_FILE } from './protect.js';
 import { loadSplit } from './split.js';
+import { renderVerify, verify } from './verify.js';
 
 const HELP = `Usage: belay tune --task <name> [options]
 
@@ -335,7 +336,7 @@ async function runLoop(args: LoopArgs): Promise<number> {
         `Protected       ${report.protected.unchanged ? 'unchanged' : 'CHANGED'} (gate config, instructions, evaluator, holdout)`,
         ...report.notes.map((n) => `Note            ${n}`),
         '',
-        `Wrote ${[report.files.config, report.files.calibration, report.files.report].filter(Boolean).join(', ')}`,
+        `Wrote ${[report.files.config, report.files.calibration, report.files.record, report.files.pullRequest, report.files.report].filter(Boolean).join(', ')}`,
       ];
       process.stdout.write(lines.join('\n') + '\n');
     }
@@ -390,4 +391,132 @@ export async function ledgerCommand(argv: string[]): Promise<number> {
   }
   if (!ledger.intact) process.stderr.write(`belay: ${path} is not intact: a line was changed or removed\n`);
   return ledger.intact ? 0 : 2;
+}
+
+const VERIFY_HELP = `Usage: belay verify [--task <name>] [options]
+
+For CI. Checks that the gate config, the instructions, the evaluator and the holdout still match
+belay.tune.lock.json and that the ledger is intact. For a task with a tuned config it then runs
+that config on the holdout in the current browser, without the output cache, and compares it
+input by input with what it did when it passed the gate (belay/<task>/<backend>.gate.json).
+It fails when accuracy, local share, a label's recall or the calibration error is worse than
+then by more than the gate's margins: a browser update changed the local model.
+
+Makes no cloud call and needs no reflector. Without --task, every task of the config that has a
+lock is verified.
+
+Options:
+  --task <name>          Only this task
+  --datasets <dir>       Splits and manifest (default: .belay/datasets/<task>)
+  --backend <name>       Names the config files (default: the runner's id)
+  --cloud-accuracy <a>   Cloud accuracy for gold examples without a recorded cloud answer
+  --seed <seed>          Seed of the bootstrap interval (default: 0)
+  --config <file>        Config file (default: belay.config.{mjs,js,ts} in the current directory)
+  --cache-dir <dir>      Chrome profile (default: .belay-cache). Outputs are never cached
+  --extension <dir>      Unpacked Chrome extension to load
+  --browser <path>       Chrome executable (default: installed Chrome; env BELAY_CHROME)
+  --headed               Show the browser window
+  --quiet                Only print errors
+  -h, --help             Show this help
+
+Writes .belay/tune/<task>/verify.md and verify.json.
+Exit codes: 0 when every check passes, 1 otherwise.
+`;
+
+/** `belay verify`. Returns the exit code: 0, or 1 when a check failed. */
+export async function verifyCommand(argv: string[]): Promise<number> {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      task: { type: 'string' },
+      datasets: { type: 'string' },
+      backend: { type: 'string' },
+      'cloud-accuracy': { type: 'string' },
+      seed: { type: 'string' },
+      config: { type: 'string' },
+      'cache-dir': { type: 'string' },
+      extension: { type: 'string' },
+      browser: { type: 'string' },
+      headed: { type: 'boolean' },
+      quiet: { type: 'boolean' },
+      help: { type: 'boolean', short: 'h' },
+    },
+    strict: true,
+  });
+  if (values.help) {
+    process.stdout.write(VERIFY_HELP);
+    return 0;
+  }
+  const quiet = values.quiet ?? false;
+  const log = (message: string) => {
+    if (!quiet) process.stderr.write(`${message}\n`);
+  };
+  const { config, path: configPath } = await loadConfig(values.config);
+  const lock = await readLock(process.cwd());
+  const names = values.task ? [values.task] : Object.keys(config.tasks).filter((n) => lock?.tasks[n]);
+  if (!names.length) throw new Error(`no task of ${relative(process.cwd(), configPath)} has a lock in ${LOCK_FILE}: nothing to verify (belay tune --lock)`);
+  if (values.datasets && names.length > 1) throw new Error('--datasets needs --task: each task has its own datasets');
+  const cacheDir = resolve(values['cache-dir'] ?? config.cacheDir ?? '.belay-cache');
+
+  let failed = false;
+  for (const name of names) {
+    const taskConfig = config.tasks[name];
+    if (!taskConfig) throw new Error(`task "${name}" is not in ${relative(process.cwd(), configPath)} (has: ${Object.keys(config.tasks).join(', ')})`);
+    const local = taskConfig.local;
+    if (!local) throw new Error(`task "${name}" has no local runner`);
+    const datasetsDir = values.datasets ?? `.belay/datasets/${name}`;
+    const manifest = await readManifest(datasetsDir);
+    if (!manifest) throw new Error(`${datasetsDir}/manifest.json not found: belay verify needs the datasets the lock was written for`);
+    const cloudAccuracy = values['cloud-accuracy'] !== undefined ? Number(values['cloud-accuracy']) : taskConfig.tune?.cloudAccuracy;
+    if (cloudAccuracy !== undefined && !(cloudAccuracy >= 0 && cloudAccuracy <= 1)) throw new Error('--cloud-accuracy must be in [0, 1]');
+    // The files are named after the runner, which is known without opening a browser.
+    const backendName = values.backend ?? (typeof (local as { runner?: unknown }).runner === 'string' ? (local as { runner: string }).runner : ((local as { id?: string }).id ?? 'local'));
+    let last = '';
+    const report = await verify({
+      name,
+      taskConfig,
+      root: process.cwd(),
+      backend: () =>
+        createBackend({
+          name,
+          taskConfig: { ...taskConfig, local },
+          config,
+          cacheDir,
+          ...(values.extension ? { extension: values.extension } : {}),
+          ...(values.browser ? { executablePath: values.browser } : {}),
+          ...(values.headed ? { headed: true } : {}),
+          log,
+        }),
+      backendName,
+      holdout: () => loadSplit(`${datasetsDir}/holdout.jsonl`, taskConfig.schema),
+      manifest,
+      ...(cloudAccuracy !== undefined ? { cloudAccuracy } : {}),
+      ...(values.seed !== undefined ? { seed: values.seed } : {}),
+      log,
+      onProgress: ({ done, total }) => {
+        if (quiet) return;
+        const line = `verify ${name} ${Math.floor((done / total) * 4) * 25}%`;
+        if (line !== last) process.stderr.write(`${line}\n`);
+        last = line;
+      },
+    });
+    const dir = resolve(`.belay/tune/${name}`);
+    await mkdir(dir, { recursive: true });
+    await writeFile(resolve(dir, 'verify.json'), JSON.stringify(report, null, 2) + '\n');
+    await writeFile(resolve(dir, 'verify.md'), renderVerify(report));
+    if (!report.passed) failed = true;
+    if (!quiet || !report.passed) {
+      const lines = [
+        '',
+        `Task            ${name}`,
+        `Result          ${report.passed ? (report.tuned ? 'the tuned config still holds' : 'the protected files match the lock') : 'FAILED'}`,
+        ...(report.environment ? [`Browser         ${report.environment.current.userAgent ?? report.environment.current.runner}${report.environment.changed ? ' (changed since the gate)' : ''}`] : []),
+        ...report.checks.map((c) => `Check ${c.name.padEnd(12)}${c.skipped ? 'info   ' : c.passed ? 'pass   ' : 'FAIL   '} ${c.detail}`),
+        ...report.notes.map((n) => `Note            ${n}`),
+        '',
+      ];
+      (report.passed ? process.stdout : process.stderr).write(lines.join('\n') + '\n');
+    }
+  }
+  return failed ? 1 : 0;
 }

@@ -15,5 +15,7 @@ export { buildReflectRequest, parseProposals, proposalSchema, reflectorAdapter }
 export type { Proposal, ProposalRung, ReflectContext, ReflectExample, ReflectFn } from './reflector.js';
 export { DEFAULT_SETTINGS, tune } from './loop.js';
 export type { StopReason, TuneOptions, TuneOutcome, TuneReport, TuneSettings } from './loop.js';
-export { renderReport } from './report.js';
-export { ledgerCommand, tuneCommand } from './cli.js';
+export { renderPullRequest, renderReport } from './report.js';
+export { GATE_RECORD_VERSION, gateRecordOf, parseGateRecord, renderVerify, verify } from './verify.js';
+export type { GateRecord, VerifyCheck, VerifyOptions, VerifyReport } from './verify.js';
+export { ledgerCommand, tuneCommand, verifyCommand } from './cli.js';

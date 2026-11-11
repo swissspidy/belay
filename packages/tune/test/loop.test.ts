@@ -18,6 +18,9 @@ import {
   reflectorAdapter,
   tune,
   tuneCommand,
+  verify,
+  verifyCommand,
+  parseGateRecord,
   writeLock,
   type TuneOptions,
 } from '../src/index.js';
@@ -33,11 +36,13 @@ const next = (label: string) => LABELS[(LABELS.indexOf(label as (typeof LABELS)[
  * - "OVERFIT" helps on every input but those marked "holdout";
  * - "MAYBE" makes it sure and right about as often as the whole cascade was before.
  */
-function contextLocal(): LocalRunner<any> & { contexts: Set<string> } {
+function contextLocal(): LocalRunner<any> & { contexts: Set<string>; updated: boolean } {
   const contexts = new Set<string>();
   return {
     id: 'context-local',
     contexts,
+    /** A browser update: the model stays as sure, and is wrong far more often. */
+    updated: false,
     availability: async () => 'available',
     async run(input, ctx) {
       const context = ctx.context ?? '';
@@ -45,7 +50,10 @@ function contextLocal(): LocalRunner<any> & { contexts: Set<string> } {
       const truth = truthOf(input);
       let confidence = 0.3 + 0.7 * hash01(`conf:${input}`);
       let right = hash01(`right:${input}`) < confidence;
-      if (context.includes('MAYBE')) {
+      if (this.updated) {
+        confidence = 0.97;
+        right = hash01(`updated:${input}`) < 0.75;
+      } else if (context.includes('MAYBE')) {
         confidence = 0.97;
         right = hash01(`maybe:${input}`) < 0.94;
       } else if (context.includes('BAD')) {
@@ -262,6 +270,108 @@ describe('tune', () => {
     expect(ledger.intact).toBe(true);
   });
 
+  it('writes the pull request and the gate record, and verify passes until the model changes', async () => {
+    await lock();
+    const o = await options({ reflector: scripted({ rules: GOOD_RULES }).reflector });
+    const report = await tune(o);
+    expect(report.outcome).toBe('promoted');
+    expect(report.files).toMatchObject({ record: 'belay/ticket-triage/context-local.gate.json', pullRequest: '.belay/tune/ticket-triage/pull-request.md' });
+
+    const title = await readFile(join(dir, '.belay/tune/ticket-triage/pull-request-title.txt'), 'utf8');
+    expect(title).toMatch(/^Belay Tune: ticket-triage keeps \d+\.\d points more local at 90% accuracy\n$/);
+    const body = await readFile(join(dir, '.belay/tune/ticket-triage/pull-request.md'), 'utf8');
+    expect(body).toMatch(/\*\*Change\*\* \(rules\): Naming the pattern/);
+    expect(body).toMatch(/\| After, holdout \|/);
+    expect(body).toMatch(/\| accuracy \| pass \|/);
+    expect(body).toMatch(/belay verify --task ticket-triage/);
+    expect(body).not.toMatch(/BAD|vague/i); // discarded experiments stay in the ledger
+
+    const record = parseGateRecord(JSON.parse(await readFile(join(dir, 'belay/ticket-triage/context-local.gate.json'), 'utf8')), 'ticket-triage');
+    expect(Object.keys(record.outcomes)).toHaveLength(200);
+    expect(record.threshold).toBe(report.best.threshold);
+    expect(JSON.stringify(record)).not.toMatch(/ticket #/); // no input text
+
+    const check = (local = o.local) =>
+      verify({
+        name: 'ticket-triage',
+        taskConfig: o.taskConfig,
+        root: dir,
+        backend: async () => nodeBackend(local, { task: 'ticket-triage', schema, context: 'Support tickets.' }),
+        backendName: 'context-local',
+        holdout: o.holdout,
+        manifest,
+        evaluatorRoots: [evaluator],
+      });
+
+    // The same model: every input is answered as at the gate.
+    const same = await check();
+    expect(same).toMatchObject({ passed: true, tuned: true, added: 0 });
+    expect(same.checks.map((c) => c.name)).toEqual(['lock', 'ledger', 'files', 'prompt-size', 'accuracy', 'local-share', 'recall', 'calibration', 'latency']);
+    expect(same.current!.accuracy).toBe(same.recorded!.accuracy);
+    expect(same.notes).toEqual([]);
+
+    // A browser update makes the model worse without making it less sure.
+    const updated = contextLocal();
+    updated.updated = true;
+    const drifted = await check(updated);
+    expect(drifted.passed).toBe(false);
+    expect(drifted.checks.filter((c) => !c.passed).map((c) => c.name)).toContain('accuracy');
+    expect(drifted.notes.join(' ')).toMatch(/answered differently than at the gate/);
+    expect(drifted.notes.join(' ')).toMatch(/Run "belay tune --task ticket-triage"/);
+
+    // A config edited by hand has not passed the gate: the model is not even run.
+    const configPath = join(dir, 'belay/ticket-triage/context-local.local.json');
+    const original = await readFile(configPath, 'utf8');
+    await writeFile(configPath, original.replace('GOOD:', 'GOOD, and more:'));
+    const edited = await check();
+    expect(edited.passed).toBe(false);
+    expect(edited.checks.at(-1)).toMatchObject({ name: 'files', passed: false });
+    expect(edited.checks.at(-1)!.detail).toMatch(/fitted for another config/);
+    await writeFile(configPath, original);
+
+    // A changed gate config no longer matches the lock.
+    await writeFile(join(dir, 'belay.gate.json'), JSON.stringify({ version: 1, accuracyMargin: 0.5 }));
+    const unlocked = await check();
+    expect(unlocked.checks[0]).toMatchObject({ name: 'lock', passed: false });
+    expect(unlocked.passed).toBe(false);
+  });
+
+  it('verifies only the lock for a task without a tuned config', async () => {
+    await lock();
+    const o = await options();
+    let opened = false;
+    const report = await verify({ name: 'ticket-triage', taskConfig: o.taskConfig, root: dir, backend: async () => ((opened = true), o.backend), backendName: 'context-local', holdout: o.holdout, manifest, evaluatorRoots: [evaluator] });
+    expect(report).toMatchObject({ passed: true, tuned: false });
+    expect(report.checks.map((c) => c.name)).toEqual(['lock', 'ledger']);
+    expect(opened).toBe(false);
+  });
+
+  it('repairs a config that a browser update broke, without asking for a gain', async () => {
+    await lock();
+    const first = await options({ reflector: scripted({ rules: GOOD_RULES }).reflector });
+    expect((await tune(first)).outcome).toBe('promoted');
+
+    // The next night the model is worse and as sure: the committed threshold lets mistakes through.
+    const local = contextLocal();
+    local.updated = true;
+    const second = await tune(await options({ run: 'night-2', backend: nodeBackend(local, { task: 'ticket-triage', schema, context: 'Support tickets.' }), cache: await OutputCache.open(null) }));
+    expect(second.baseline.targetMet).toBe(false);
+    expect(second.repair).toBe(true);
+    expect(second.entries[1]).toMatchObject({ rung: 'threshold', verdict: 'kept' });
+    expect(second.entries[1]!.reason).toMatch(/no longer holds the target/);
+    expect(second.outcome).toBe('promoted');
+    expect(second.best.targetMet).toBe(true);
+    expect(second.best.localShare).toBeLessThan(second.baseline.localShare);
+    expect(second.gate!.checks.find((c) => c.name === 'local-share')).toMatchObject({ passed: true, skipped: true });
+    expect(second.notes[0]).toMatch(/no longer held the target accuracy/);
+    expect(await readFile(join(dir, '.belay/tune/ticket-triage/pull-request-title.txt'), 'utf8')).toBe('Belay Tune: restore 90% accuracy for ticket-triage\n');
+
+    // And the repaired config verifies in the updated browser.
+    const o = await options();
+    const verified = await verify({ name: 'ticket-triage', taskConfig: o.taskConfig, root: dir, backend: async () => nodeBackend(local, { task: 'ticket-triage', schema, context: 'Support tickets.' }), backendName: 'context-local', holdout: o.holdout, manifest, evaluatorRoots: [evaluator] });
+    expect(verified.passed).toBe(true);
+  });
+
   it('stops at the spend cap and at the experiment cap', async () => {
     await lock();
     const many = { examples: (ids: string[]) => [1, 2, 3, 4].map((n) => ({ hypothesis: `Set ${n}.`, examples: ids.slice(n, n + 3) })), rules: [] };
@@ -419,11 +529,20 @@ export default {
       expect(await ledgerCommand(['--json', '--run', 'n1'])).toBe(0);
       expect(printed().trim().split('\n').map((l) => JSON.parse(l).run)).toContain('n1');
 
+      // CI: the committed config still does what it did at the gate.
+      stdout.mockClear();
+      expect(await verifyCommand([])).toBe(0);
+      expect(printed()).toMatch(/Result\s+the tuned config still holds/);
+      expect(printed()).toMatch(/Check accuracy\s+pass/);
+      expect(await readFile(join(dir, '.belay/tune/ticket-triage/verify.md'), 'utf8')).toMatch(/The tuned config still holds/);
+      expect(await verifyCommand(['--help'])).toBe(0);
+
       // An edited ledger is noticed, by the command and by the next run.
       const path = join(dir, '.belay/ledger.jsonl');
       await writeFile(path, (await readFile(path, 'utf8')).replace('"verdict":"discarded"', '"verdict":"kept"').replace('A rule that helps.', 'Edited.'));
       expect(await ledgerCommand([])).toBe(2);
       await expect(tuneCommand(['--run', 'n2'])).rejects.toThrow(/not intact/);
+      expect(await verifyCommand(['--quiet'])).toBe(1);
       expect(await ledgerCommand(['--help'])).toBe(0);
     } finally {
       process.chdir(cwd);

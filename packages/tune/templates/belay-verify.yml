@@ -1,0 +1,78 @@
+# Belay verify: fails when a tuned config no longer does, in the current Chrome, what it did
+# when it passed the gate, or when the gate, the evaluator or the holdout no longer match
+# belay.tune.lock.json.
+#
+# Copy to .github/workflows/belay-verify.yml and fill in the "Fetch traces" step. It runs on
+# pull requests that touch a config or a protected file, and weekly, because Chrome updates the
+# built-in model without a change to your repository. It makes no cloud call.
+name: Belay verify
+
+on:
+  pull_request:
+    paths:
+      - 'belay/**'
+      - 'belay.gate.json'
+      - 'belay.tune.md'
+      - 'belay.tune.lock.json'
+      - 'belay.config.*'
+      - 'package-lock.json'
+  schedule:
+    - cron: '43 4 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: belay-verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chrome
+        run: |
+          curl -fsSLo chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./chrome.deb xvfb
+          rm chrome.deb
+          google-chrome --version
+
+      # The profile holds the downloaded model. A new Chrome may fetch a new model into it.
+      - name: Restore the Chrome profile
+        uses: actions/cache@v5 # pin to a commit, as your policy asks
+        with:
+          path: .belay-cache/chrome-profile
+          key: belay-chrome-profile-v1
+
+      # verify needs the holdout the lock was written for: the same traces, built the same way.
+      - name: Fetch traces
+        run: |
+          echo "Download the traces from your sink into ./traces (JSONL), then remove this line." && exit 1
+
+      - name: Build datasets
+        run: |
+          for task in $(node -e 'console.log(Object.keys(JSON.parse(require("fs").readFileSync("belay.tune.lock.json","utf8")).tasks).join(" "))'); do
+            npx belay datasets --task "$task" --traces ./traces
+          done
+
+      - name: Verify
+        run: |
+          code=0
+          xvfb-run -a npx belay verify || code=$?
+          cat .belay/tune/*/verify.md >> "$GITHUB_STEP_SUMMARY" || true
+          exit "$code"

@@ -1,7 +1,7 @@
 {
   "name": "@swissspidy/belay-tune",
   "version": "0.1.1",
-  "description": "Belay Tune: score a task's local side on recorded traces (local share at a target accuracy), in a real Chrome.",
+  "description": "Belay Tune: an overnight loop that makes a Belay task need the cloud less, measured in a real Chrome and gated on a holdout.",
   "license": "Apache-2.0",
   "author": "Pascal Birchler",
   "homepage": "https://github.com/swissspidy/belay/tree/main/packages/tune#readme",
@@ -35,7 +35,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "templates"
   ],
   "devDependencies": {
     "@types/node": "^26.6.5"

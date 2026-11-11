@@ -94,7 +94,13 @@ const pct = (v: number, d = 1): string => `${(v * 100).toFixed(d)}%`;
 const points = (v: number): string => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)} points`;
 
 /** Runs every check. A candidate ships only if all of them pass. */
-export function runGate(baseline: GateSide, candidate: GateSide, gate: GateConfig, options: { seed?: string | number } = {}): GateResult {
+export function runGate(
+  baseline: GateSide,
+  candidate: GateSide,
+  gate: GateConfig,
+  /** `repair`: the baseline no longer holds the target, so the candidate need not gain local share. */
+  options: { seed?: string | number; repair?: boolean } = {},
+): GateResult {
   const b = scoreAt(baseline.examples, baseline.threshold);
   const c = scoreAt(candidate.examples, candidate.threshold);
   const difference = pairedBootstrap(baseline, candidate, { resamples: gate.resamples, ...(options.seed !== undefined ? { seed: options.seed } : {}) });
@@ -116,8 +122,11 @@ export function runGate(baseline: GateSide, candidate: GateSide, gate: GateConfi
   const equalAndSmaller = difference.localShare >= -0.005 && candidate.contextChars < baseline.contextChars;
   checks.push({
     name: 'local-share',
-    passed: gained || equalAndSmaller,
-    detail: `${pct(c.localShare)} vs ${pct(b.localShare)} (${points(difference.localShare)}, 95% CI ${points(difference.localShareInterval[0])} to ${points(difference.localShareInterval[1])}); needs ${points(gate.minLocalShareGain)}, or no loss with a smaller prompt${equalAndSmaller && !gained ? ' (met: smaller prompt)' : ''}`,
+    passed: gained || equalAndSmaller || options.repair === true,
+    ...(options.repair && !gained && !equalAndSmaller ? { skipped: true } : {}),
+    detail: options.repair && !gained && !equalAndSmaller
+      ? `${pct(c.localShare)} vs ${pct(b.localShare)} (${points(difference.localShare)}); not required: the committed config no longer holds the target, and this one restores it`
+      : `${pct(c.localShare)} vs ${pct(b.localShare)} (${points(difference.localShare)}, 95% CI ${points(difference.localShareInterval[0])} to ${points(difference.localShareInterval[1])}); needs ${points(gate.minLocalShareGain)}, or no loss with a smaller prompt${equalAndSmaller && !gained ? ' (met: smaller prompt)' : ''}`,
   });
 
   const drops = Object.keys(b.recall)

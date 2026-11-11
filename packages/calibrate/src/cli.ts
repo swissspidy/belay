@@ -20,6 +20,7 @@ Commands:
   tune        Make a task need the cloud less: propose, measure and gate changes to its
               local side (needs @swissspidy/belay-tune)
   ledger      Print the experiment history of belay tune
+  verify      For CI: check that a tuned config still holds in the current browser
 
 Run "belay <command> --help" for their options.
 
@@ -60,17 +61,17 @@ export async function main(argv: string[]): Promise<number> {
   if (command === 'seed') return seedCommand(rest);
   if (command === 'simulate') return simulateCommand(rest);
   if (command === 'datasets') return datasetsCommand(rest);
-  if (command === 'tune' || command === 'ledger') {
+  if (command === 'tune' || command === 'ledger' || command === 'verify') {
     // @swissspidy/belay-tune builds on this package, so it is loaded by name, when asked for.
     const name = '@swissspidy/belay-tune';
-    let tune: { tuneCommand(argv: string[]): Promise<number>; ledgerCommand(argv: string[]): Promise<number> };
+    let tune: { tuneCommand(argv: string[]): Promise<number>; ledgerCommand(argv: string[]): Promise<number>; verifyCommand(argv: string[]): Promise<number> };
     try {
       tune = (await import(name)) as typeof tune;
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND') throw err;
-      throw new Error('belay tune needs @swissspidy/belay-tune: npm install --save-dev @swissspidy/belay-tune', { cause: err });
+      throw new Error(`belay ${command} needs @swissspidy/belay-tune: npm install --save-dev @swissspidy/belay-tune`, { cause: err });
     }
-    return command === 'tune' ? tune.tuneCommand(rest) : tune.ledgerCommand(rest);
+    return command === 'tune' ? tune.tuneCommand(rest) : command === 'ledger' ? tune.ledgerCommand(rest) : tune.verifyCommand(rest);
   }
   if (command !== 'calibrate') {
     process.stderr.write(`Unknown command "${command}".\n\n${HELP}`);

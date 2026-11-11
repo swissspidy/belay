@@ -199,8 +199,7 @@ reflecting model returns JSON and never writes a file. On top of that:
    validation only; the holdout file is first read when the gate starts.
 5. **One gate run per night**, on the best candidate only, recorded in the ledger.
 
-Not built yet: `belay verify` for CI, which re-checks the lock and re-runs the gate, and the pull
-request the brief asks for. A consequence of hashing the built packages: updating Belay, or
+`belay verify` and the pull request are §10. A consequence of hashing the built packages: updating Belay, or
 rebuilding it in a checkout, needs a new `belay tune --lock`.
 
 ### 6. Evaluator and web-ai-evals (finding)
@@ -330,7 +329,7 @@ the output cache and the cached reflector answers.
 With fewer than 100 gold labels on the holdout the gate measures agreement with the cloud and
 says so. Against the brief: the size limit is in characters, not tokens (§3); the latency check
 has a 5 ms allowance, because on fast runners 10% is below the timer's noise; and the report is
-Markdown and JSON, with no HTML and no pull request yet.
+Markdown and JSON, with no HTML.
 
 **Verified with a built-in model.** Same machine and Chrome as §8, ticket triage with the
 1,500-input stream as gold-labeled traces (915 train, 284 validation, 301 holdout), target 95%,
@@ -386,12 +385,72 @@ promotion is the next baseline, the allowance could be spent every night: a ratc
 - Widening stays a person's choice: `accuracyMargin` in `belay.gate.json`, then
   `belay tune --lock`.
 
+### 10. Pull request, verify and drift (implemented)
+
+**The gate record.** A promoted config is written with a third file,
+`belay/<task>/<backend>.gate.json`: for every holdout input, the local confidence and whether the
+local answer was right, with the threshold, the environment and the aggregate scores. It holds
+ids, not input text. It is the only place holdout results are kept, and the loop never reads it,
+so the rule of §4 stands: the reflecting model cannot learn the holdout.
+
+**The pull request.** A promotion also writes `.belay/tune/<task>/pull-request.md` and
+`pull-request-title.txt`: the hypothesis, the numbers on validation and on the holdout, the
+gate's checks, the kept experiments and a reviewer's checklist. `templates/belay-tune.yml` runs
+the loop nightly and opens the pull request with `gh`, from the workflow's own token. The
+ledger, a pending candidate and the output cache live in the Actions cache between nights, since
+most nights end without a merge; the pull request carries the ledger as it stood. The traces
+are the developer's to fetch: the template has an empty step for it.
+
+**`belay verify`.** The brief's "re-run the gate on current browser versions" cannot be taken
+literally: the gate compares a candidate with the config before it, and after a merge there is
+no candidate. What CI needs to know is whether the merged config still does what it was promoted
+for. So verify:
+
+1. checks the lock and the ledger's chain;
+2. checks that config, calibration file and gate record carry the same config fingerprint and
+   threshold, so a hand-edited config fails without a model run;
+3. runs the config on the holdout in the current browser, without the output cache, and pairs
+   each input with its line in the gate record. It fails on a drop beyond the gate's margins:
+   accuracy (`accuracyMargin`), local share (`minLocalShareGain`: the gain the gate asked for is
+   gone), a label's recall, the calibration error.
+
+Two differences from the gate, both deliberate. Verify judges the measured difference, not the
+lower end of its interval: runs in one browser are repeatable (§8), so a difference is a change
+of the model or the runner, and a CI check that could never fail on a small holdout would be no
+check. And latency is reported but not judged, because the CI machine is not the tuning machine.
+Verify needs the holdout, so CI must be able to build the datasets: the same traces and the
+committed manifest.
+
+**Drift.** When verify fails, the remedy is `belay tune` in the new browser. A run whose
+committed config no longer holds the target on validation is a repair:
+
+- rung 1 keeps a refitted threshold that holds the target although it keeps less local, and on
+  the other rungs a candidate that holds the target beats a parent that does not;
+- the gate is run with the local-share check not required, since the comparison is with a config
+  that is broken. Accuracy, recall, calibration, latency and prompt size apply as always.
+
+The alternative, a `verify --update` that records today's behaviour as the new reference, was
+rejected: it would let a config through that never passed a gate in the browser it runs in.
+
+**Verified.** Tests with a stub model cover a promotion with its record and pull request text,
+verify passing on the same model, failing after a simulated model update, on an edited config and
+on a changed gate config, and a repair run that ends in a "restore" pull request which then
+verifies. On Chrome 157 (the setup of §9), the rejected candidate of §9 was carried over as a
+pending candidate and promoted under a scratch gate widened to 2 points of accuracy and 30% of
+latency, from cached outputs, which produced the three files and the pull request text.
+
+Not verified: the two workflow templates have not run on GitHub's runners. They parse as YAML, and
+the `belay` commands in them were run here; the cache, push and `gh` steps were not. Whether a hosted runner can load Chrome's built-in
+model (it needs about 4 GB of download and, without a GPU, 16 GB of memory) is also untested.
+
 ## Open questions
 
 - Should the core check the calibration file's `localConfig` fingerprint (§3)? Today only the
   loop reads it.
 - Should `BelayResult` carry `explorationWeight`? It would replace the event matching of §1.
 - Whether built-in models accept adapters (rung 5) is still unconfirmed.
+- Can a GitHub-hosted runner load Chrome's built-in model (§10)? If not, the nightly loop needs a
+  self-hosted runner.
 
 ## Consequences
 

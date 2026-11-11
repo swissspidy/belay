@@ -11,7 +11,8 @@ import { holdoutPower, runGate, type GateResult } from './gate.js';
 import { appendLedger, readLedger, type LedgerEntry, type LedgerRung, type LedgerScores } from './ledger.js';
 import { applyConfigPatch, applyLocalConfig, contextSize, emptyLocalConfig, localConfigFingerprint, parseLocalConfig, TUNABLE_ROOTS, type ConfigPatchOp, type LocalConfig } from './local-config.js';
 import { createWorkspace, currentState, lockHash, readLock, verifyLock, LOCK_FILE } from './protect.js';
-import { renderReport } from './report.js';
+import { renderPullRequest, renderReport } from './report.js';
+import { gateRecordOf, NO_LOCAL_THRESHOLD, type GateRecord } from './verify.js';
 import { buildReflectRequest, parseProposals, type ProposalRung, type ReflectExample } from './reflector.js';
 import { score, scoreAt, type ScoredExample } from './score.js';
 import type { SplitFile } from './split.js';
@@ -113,7 +114,9 @@ export interface TuneReport {
   /** Why nothing shipped, and what to try next. */
   notes: string[];
   entries: LedgerEntry[];
-  files: { config?: string; calibration?: string; ledger: string; report: string };
+  files: { config?: string; calibration?: string; record?: string; pullRequest?: string; ledger: string; report: string };
+  /** `true` when the committed config no longer held the target, so that restoring it was enough to pass the gate. */
+  repair?: boolean;
 }
 
 interface Member {
@@ -149,6 +152,10 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   const files = {
     config: `belay/${name}/${options.backendName}.local.json`,
     calibration: `belay/${name}/${options.backendName}.calibration.json`,
+    /** What the promoted config did on the holdout: the reference of `belay verify`. */
+    record: `belay/${name}/${options.backendName}.gate.json`,
+    pullRequest: `.belay/tune/${name}/pull-request.md`,
+    pullRequestTitle: `.belay/tune/${name}/pull-request-title.txt`,
     ledger: '.belay/ledger.jsonl',
     report: `.belay/tune/${name}/report.md`,
     reportJson: `.belay/tune/${name}/report.json`,
@@ -277,7 +284,9 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   // ---- Rung 1: the threshold, fitted again on fresh traces ---------------------------
   if (baseAt) {
     counts.run++;
-    const kept = baseFit.targetMet && baseFit.localShare >= base.localShare + settings.minGain;
+    // Drift: the committed threshold no longer holds the target, and a new one does.
+    const repairs = baseFit.targetMet && !base.targetMet;
+    const kept = repairs || (baseFit.targetMet && baseFit.localShare >= base.localShare + settings.minGain);
     const refit: Member = { ...base, rung: 'threshold', hypothesis: 'The threshold, fitted again on the current validation split.', threshold: baseFit.threshold, localShare: baseFit.localShare, accuracy: baseFit.accuracy, targetMet: baseFit.targetMet };
     refit.id = (
       await record({
@@ -289,7 +298,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
         stage: 'validation',
         scores: scoresOf(refit),
         verdict: kept ? 'kept' : 'discarded',
-        reason: kept ? `Local share up ${((baseFit.localShare - base.localShare) * 100).toFixed(1)} points at the target accuracy.` : 'The committed threshold is as good as a new one.',
+        reason: repairs ? 'The committed threshold no longer holds the target accuracy; this one does.' : kept ? `Local share up ${((baseFit.localShare - base.localShare) * 100).toFixed(1)} points at the target accuracy.` : 'The committed threshold is as good as a new one.',
       })
     ).id;
     if (kept) {
@@ -516,7 +525,8 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
         const fit = score(validation, { target, seed, resamples: 0 });
         const member: Member = { id: '', rung: proposal.rung, hypothesis: proposal.hypothesis, config, fingerprint, chars, validation, threshold: fit.threshold, localShare: fit.localShare, accuracy: fit.accuracy, targetMet: fit.targetMet };
         const gain = fit.localShare - parent.localShare;
-        const kept = fit.targetMet && gain >= settings.minGain;
+        // A parent that does not hold the target is beaten by any candidate that does.
+        const kept = fit.targetMet && (gain >= settings.minGain || !parent.targetMet);
         member.id = (
           await record({
             ...common,
@@ -525,7 +535,9 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
             scores: scoresOf(member),
             verdict: kept ? 'kept' : 'discarded',
             reason: kept
-              ? `Local share up ${(gain * 100).toFixed(1)} points on validation at the target accuracy.`
+              ? gain >= settings.minGain
+                ? `Local share up ${(gain * 100).toFixed(1)} points on validation at the target accuracy.`
+                : 'Holds the target accuracy on validation, which its parent does not.'
               : fit.targetMet
                 ? `Local share ${gain >= 0 ? 'up' : 'down'} ${(Math.abs(gain) * 100).toFixed(1)} points on validation: not a gain.`
                 : 'The target accuracy was not met on validation.',
@@ -556,7 +568,11 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
 
   // ---- Gate ---------------------------------------------------------------------------
   const winner = best();
-  const improved = winner !== base && winner.targetMet && winner.localShare >= base.localShare + settings.minGain;
+  // A committed config that no longer holds the target (a browser update, new traces) is repaired
+  // by any candidate that does: it need not gain local share.
+  const repair = !base.targetMet && committedThreshold !== undefined;
+  const improved = winner !== base && winner.targetMet && (repair || winner.localShare >= base.localShare + settings.minGain);
+  let gateRecord: GateRecord | undefined;
   let outcome: TuneOutcome = 'plateau';
   let gateResult: GateResult | undefined;
   let holdoutSize: number | null = null;
@@ -570,7 +586,8 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     const baseHoldout = await evaluate(base.config, holdout, 'gate baseline');
     const winnerHoldout = winner.fingerprint === base.fingerprint ? baseHoldout : await evaluate(winner.config, holdout, 'gate candidate');
     // Both thresholds were fitted on validation: the holdout only scores.
-    gateResult = runGate({ examples: baseHoldout, threshold: base.threshold, contextChars: base.chars }, { examples: winnerHoldout, threshold: winner.threshold, contextChars: winner.chars }, gate, { seed });
+    gateResult = runGate({ examples: baseHoldout, threshold: base.threshold, contextChars: base.chars }, { examples: winnerHoldout, threshold: winner.threshold, contextChars: winner.chars }, gate, { seed, ...(repair ? { repair: true } : {}) });
+    if (gateResult.passed) gateRecord = gateRecordOf({ task: name, backend: options.backendName, config: winner.config, threshold: winner.threshold, target, run, createdAt: now().toISOString(), environment, examples: winnerHoldout });
     holdoutGold = gateResult.candidate.gold;
     outcome = gateResult.passed ? 'promoted' : gateResult.inconclusive ? 'inconclusive' : 'rejected';
     // The ledger is read by the reflecting model: it learns pass or fail, never a holdout number.
@@ -608,6 +625,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   } else if (outcome === 'rejected') {
     notes.push('The best candidate on validation did not pass every check of the gate on the holdout (see the table). Nothing was written. The candidate stays in the ledger as rejected, so it is not proposed again.');
   }
+  if (repair) notes.unshift(`The committed config no longer held the target accuracy on validation (${(base.accuracy * 100).toFixed(1)}% against ${(target * 100).toFixed(1)}%): the local model or the traffic changed. This run looked for a config that restores it; such a config need not gain local share to pass the gate.`);
   if (cloudOf(options.validation).assumed) notes.push(`The cloud's accuracy on ${cloudOf(options.validation).assumed} validation examples without a recorded cloud answer is assumed to be ${(cloudOf(options.validation).assumedAccuracy * 100).toFixed(1)}%.`);
 
   const report: TuneReport = {
@@ -636,10 +654,15 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     protected: { start: lockHash(state.lock), end: lockHash(end.lock), unchanged: verifyLock(state.lock, end.lock).length === 0 && verifyLock(end.lock, state.lock).length === 0 },
     notes,
     entries,
-    files: { ...(outcome === 'promoted' ? { config: files.config, calibration: files.calibration } : {}), ledger: files.ledger, report: files.report },
+    files: { ...(outcome === 'promoted' ? { config: files.config, calibration: files.calibration, record: files.record, pullRequest: files.pullRequest } : {}), ledger: files.ledger, report: files.report },
+    ...(repair ? { repair: true } : {}),
   };
 
   if (outcome === 'promoted') {
+    await workspace.write(files.record, JSON.stringify(gateRecord, null, 2) + '\n');
+    const pr = renderPullRequest(report);
+    await workspace.write(files.pullRequest, pr.body);
+    await workspace.write(files.pullRequestTitle, pr.title + '\n');
     await workspace.write(files.config, JSON.stringify(winner.config, null, 2) + '\n');
     await workspace.write(files.calibration, JSON.stringify(calibrationOf(winner, { name, schema, environment, target, createdAt: report.createdAt, fingerprint: options.validation.dataset.fingerprint }), null, 2) + '\n');
   }
@@ -648,6 +671,11 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     await workspace.write(files.pending, JSON.stringify({ version: 1, run, id: winner.id, rung: winner.rung, hypothesis: winner.hypothesis, config: winner.config, ...(carried ? { carried } : {}) }, null, 2) + '\n');
   } else {
     await workspace.remove(files.pending);
+  }
+  // A pull request text from an earlier night must not be picked up for this one.
+  if (outcome !== 'promoted') {
+    await workspace.remove(files.pullRequest);
+    await workspace.remove(files.pullRequestTitle);
   }
   await workspace.write(files.reportJson, JSON.stringify(report, null, 2) + '\n');
   await workspace.write(files.report, renderReport(report));
@@ -679,7 +707,7 @@ function calibrationOf(
     dataset: { size: examples.length, fingerprint: info.fingerprint },
     target: { metric: 'accuracy', value: info.target, mode: 'fixed' },
     // Above 1, nothing is accepted locally.
-    threshold: member.threshold ?? 1.01,
+    threshold: member.threshold ?? NO_LOCAL_THRESHOLD,
     expected: { accuracy: at.accuracy, localShare: at.localShare, localAccuracy: at.localAccuracy, cloudAccuracy: cloudOnly.accuracy },
     curve,
     confidenceHistogram: { edges: Array.from({ length: 11 }, (_, i) => i / 10), counts },
