@@ -437,7 +437,11 @@ verify passing on the same model, failing after a simulated model update, on an 
 on a changed gate config, and a repair run that ends in a "restore" pull request which then
 verifies. On Chrome 157 (the setup of §9), the rejected candidate of §9 was carried over as a
 pending candidate and promoted under a scratch gate widened to 2 points of accuracy and 30% of
-latency, from cached outputs, which produced the three files and the pull request text.
+latency, from cached outputs, which produced the three files and the pull request text. `belay verify` then ran the 301 holdout
+inputs again in that Chrome without the cache and passed with no difference: 97.3% accuracy and
+100.0% local share, as at the gate, and no note of an input answered differently. That is the
+repeatability the point-estimate rule relies on. A failing verify was only shown with the stub
+model: there was no second Chrome version to drift to.
 
 Not verified: the two workflow templates have not run on GitHub's runners. They parse as YAML, and
 the `belay` commands in them were run here; the cache, push and `gh` steps were not. Whether a hosted runner can load Chrome's built-in
