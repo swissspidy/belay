@@ -3,7 +3,7 @@
 On-device runners for [Belay](https://github.com/swissspidy/belay#readme), built on the
 browser's built-in AI:
 
-- `classifierApi()`: classification with Chrome's Classifier API. The calibrated probability of
+- `classifierApi()`: classification with Chrome's built-in classifier (the DecisionModel API, Chrome 157 or later). The calibrated probability of
   the returned label is the confidence.
 - `promptApi()`: structured (JSON) generation with Chrome's Prompt API.
 - `classifierJudge()`: scores a generated answer with a Classifier API question ("is this answer

@@ -54,9 +54,9 @@ function fakeJudgeClassifier(pTrue: (text: string) => number) {
     create: vi.fn(async (options: ClassifierCreateOptions) => {
       created.push(options);
       return {
-        classify: async (text: string) => {
+        decide: async (text: string) => {
           const p = pTrue(text);
-          return { judgement: { id: 'judgement', label: p >= 0.5 ? 'true' : 'false', probability: p, confidence: Math.max(p, 1 - p) } };
+          return { judgement: { id: 'judgement', label: p >= 0.5 ? 'true' : 'false', probabilities: { true: p, false: 1 - p }, confidence: Math.max(p, 1 - p) } };
         },
         destroy: () => {},
       };
@@ -92,6 +92,27 @@ describe('promptApi runner', () => {
     await runner.run('second', ctx);
     expect(api.create).toHaveBeenCalledTimes(1); // one base session
     expect(destroyed).toHaveLength(2); // each clone destroyed after its run
+  });
+
+  it('tries once more when the browser fails a prompt with UnknownError', async () => {
+    const unknown = () => Object.assign(new Error('An unknown error occurred: kErrorUnknown'), { name: 'UnknownError' });
+    let calls = 0;
+    const flaky = fakeLanguageModel(() => {
+      if (++calls === 1) throw unknown();
+      return '{"title":"ok","urgent":false}';
+    });
+    const runner = promptApi({ languageModel: flaky.api });
+    expect((await runner.run('ticket', ctx)).value).toEqual({ title: 'ok', urgent: false });
+    expect(flaky.prompts).toHaveLength(2);
+    expect(flaky.destroyed).toHaveLength(2); // the failed clone is destroyed too
+
+    // A second failure in a row, and any other error, reach the caller.
+    const broken = promptApi({ languageModel: fakeLanguageModel(() => { throw unknown(); }).api });
+    await expect(broken.run('ticket', ctx)).rejects.toThrow(/kErrorUnknown/);
+    let other = 0;
+    const quota = fakeLanguageModel(() => { other++; throw Object.assign(new Error('too long'), { name: 'QuotaExceededError' }); });
+    await expect(promptApi({ languageModel: quota.api }).run('ticket', ctx)).rejects.toThrow(/too long/);
+    expect(other).toBe(1);
   });
 
   it('does not tie the cached base session to a per-run signal', async () => {
@@ -146,7 +167,7 @@ describe('classifierJudge', () => {
     expect(p).toBe(0.83);
     expect(created[0]).toMatchObject({
       context: 'Ticket summaries',
-      questions: [{ id: 'judgement', type: 'binary', prompt: DEFAULT_JUDGE_QUESTION }],
+      questions: [{ id: 'judgement', type: 'boolean', prompt: DEFAULT_JUDGE_QUESTION }],
     });
     expect(await judge.availability!()).toBe('available');
   });
@@ -194,7 +215,7 @@ describe('generation task: Prompt API + schema validation + classifier judge', (
       availability: async () => judgeState.value,
       create: vi.fn(async () => {
         judgeState.value = 'available';
-        return { classify: async () => ({}), destroy: () => {} };
+        return { decide: async () => ({}), destroy: () => {} };
       }),
     };
     const t = task({ name: 's', schema: summarySchema, local: promptApi({ languageModel: api }), judge: classifierJudge({ classifier }), threshold: 0.5 });

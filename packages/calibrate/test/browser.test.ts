@@ -21,7 +21,7 @@ function findChrome(): string | undefined {
 }
 
 /**
- * A deterministic stand-in for the Classifier API, shaped like the explainer: it answers with the
+ * A deterministic stand-in for the DecisionModel API, shaped like Chrome 157's: it answers with the
  * label mentioned in the input and a confidence derived from the input text. It starts
  * "downloadable" to exercise the user-gesture download path.
  */
@@ -29,7 +29,7 @@ const STUB_CLASSIFIER = `
 (() => {
   let state = 'downloadable';
   const hash = (s) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0) / 2 ** 32; };
-  globalThis.Classifier = {
+  globalThis.DecisionModel = {
     async availability() { return state; },
     async create(options) {
       if (state !== 'available') {
@@ -42,13 +42,13 @@ const STUB_CLASSIFIER = `
       const q = options.questions[0];
       const labels = q.options.map((o) => o.label);
       return {
-        async classify(input) {
+        async decide(input) {
           const truth = labels.find((l) => input.includes('about ' + l + ' '));
           const top = 0.3 + 0.7 * hash('conf:' + input);
           const right = hash('right:' + input) < top;
           const label = right ? truth : labels[(labels.indexOf(truth) + 1) % labels.length];
           const rest = (1 - top) / (labels.length - 1);
-          const probabilities = labels.map((l) => ({ label: l, probability: l === label ? top : rest }));
+          const probabilities = Object.fromEntries(labels.map((l) => [l, l === label ? top : rest]));
           return { [q.id]: { id: q.id, label, confidence: top, probabilities } };
         },
         destroy() {},
@@ -150,7 +150,7 @@ describe.skipIf(!chrome)('browser backend with an unpacked extension (real Chrom
       log: (m) => logs.push(m),
     });
     expect(logs.some((m) => m.startsWith('Loaded extension '))).toBe(true);
-    expect(logs).not.toContain('window.Classifier is not defined in the calibration browser');
+    expect(logs).not.toContain('window.DecisionModel is not defined in the calibration browser (Chrome 157 or later, or an extension that polyfills it)');
     expect(await backend.availability()).toBe('downloadable');
   }, 60_000);
 });

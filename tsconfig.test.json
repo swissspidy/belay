@@ -9,7 +9,10 @@
     "paths": {
       "@swissspidy/belay-core": ["./packages/core/src/index.ts"],
       "@swissspidy/belay-web": ["./packages/web/src/index.ts"],
-      "@swissspidy/belay-learn": ["./packages/learn/src/index.ts"]
+      "@swissspidy/belay-learn": ["./packages/learn/src/index.ts"],
+      "@swissspidy/belay-trace": ["./packages/trace/src/index.ts"],
+      "@swissspidy/belay-trace/node": ["./packages/trace/src/node/index.ts"],
+      "@swissspidy/belay-calibrate": ["./packages/calibrate/src/index.ts"]
     }
   },
   "include": ["packages/*/src", "packages/*/test", "vitest.config.ts"]

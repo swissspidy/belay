@@ -1,0 +1,140 @@
+# Belay Tune, nightly: looks for a local config that keeps more runs on the device, and opens a
+# pull request when one passes the gate.
+#
+# Copy to .github/workflows/belay-tune.yml, then:
+#   1. Set TASK, and fill in the "Fetch traces" step: Belay stores no traces, your sink does.
+#   2. Add the secret your tune.reflector reads (REFLECTOR_API_KEY below).
+#   3. Commit belay.tune.lock.json (belay tune --lock), belay.gate.json if you have one, and
+#      .belay/datasets/<task>/manifest.json, which keeps the holdout fixed. Do not commit the
+#      split files unless your traces may live in the repository.
+#   4. Allow Actions to open pull requests: Settings, Actions, General, Workflow permissions.
+#
+# A pull request opened with the workflow's own token does not start other workflows, so
+# belay-verify.yml will not run on it by itself. Pass a GitHub App token or a fine-grained
+# personal access token as GH_TOKEN in the last step if you want it to.
+name: Belay Tune
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: belay-tune
+  cancel-in-progress: false
+
+env:
+  TASK: ticket-triage
+
+jobs:
+  tune:
+    name: Tune
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    permissions:
+      contents: write # push the branch of the pull request
+      pull-requests: write # open it
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # The built-in model needs a current Chrome with a window: Xvfb provides one.
+      - name: Install Chrome
+        run: |
+          curl -fsSLo chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./chrome.deb xvfb
+          rm chrome.deb
+          google-chrome --version
+
+      # The ledger, a candidate waiting for a larger holdout, and the output cache carry over from
+      # night to night. The newest copy wins over the one in the repository.
+      - name: Restore last night's state
+        uses: actions/cache/restore@v5 # pin to a commit, as your policy asks
+        with:
+          path: |
+            .belay/ledger.jsonl
+            .belay/tune
+            .belay-cache
+            !.belay-cache/chrome-profile
+          key: belay-tune-${{ env.TASK }}-${{ github.run_id }}
+          restore-keys: belay-tune-${{ env.TASK }}-
+
+      # Chrome's profile holds the downloaded model (several GB): keep it apart, under one key.
+      - name: Restore the Chrome profile
+        id: profile
+        uses: actions/cache@v5 # pin to a commit, as your policy asks
+        with:
+          path: .belay-cache/chrome-profile
+          key: belay-chrome-profile-v1
+
+      - name: Fetch traces
+        run: |
+          echo "Download the traces of $TASK from your sink into ./traces (JSONL), then remove this line." && exit 1
+
+      - name: Build datasets
+        run: npx belay datasets --task "$TASK" --traces ./traces
+
+      # Exit code 2 means nothing was promoted: that is a normal night, not a failure.
+      - name: Tune
+        id: tune
+        env:
+          REFLECTOR_API_KEY: ${{ secrets.REFLECTOR_API_KEY }}
+        run: |
+          # For another backend of the task (tune.backends in the config), add: --backend <name>
+          # A pull request text restored from another night or backend must not open one tonight.
+          rm -f .belay/tune/"$TASK"/*.pull-request.md .belay/tune/"$TASK"/*.pull-request-title.txt
+          code=0
+          xvfb-run -a npx belay tune --task "$TASK" --budget 5usd --max-experiments 40 --max-minutes 240 --run "$(date -u +%F)" --resume || code=$?
+          cat .belay/tune/"$TASK"/*.report.md >> "$GITHUB_STEP_SUMMARY" || true
+          if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
+          if ls .belay/tune/"$TASK"/*.pull-request.md > /dev/null 2>&1; then echo "promoted=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Save tonight's state
+        if: always()
+        uses: actions/cache/save@v5 # pin to a commit, as your policy asks
+        with:
+          path: |
+            .belay/ledger.jsonl
+            .belay/tune
+            .belay-cache
+            !.belay-cache/chrome-profile
+          key: belay-tune-${{ env.TASK }}-${{ github.run_id }}
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: belay-tune-report
+          path: .belay/tune/${{ env.TASK }}/*.report.*
+          if-no-files-found: ignore
+
+      - name: Open the pull request
+        if: steps.tune.outputs.promoted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # One pull request per backend that was promoted tonight.
+          for body in .belay/tune/"$TASK"/*.pull-request.md; do
+            backend="$(basename "$body" .pull-request.md)"
+            branch="belay-tune/$TASK/$backend"
+            title="$(cat ".belay/tune/$TASK/$backend.pull-request-title.txt")"
+            git switch -C "$branch" "$GITHUB_SHA"
+            git add "belay/$TASK/$backend".* .belay/ledger.jsonl ".belay/datasets/$TASK/manifest.json"
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "$title"
+            git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
+            if gh pr view "$branch" --json state --jq .state 2>/dev/null | grep -q OPEN; then
+              gh pr edit "$branch" --title "$title" --body-file "$body"
+            else
+              gh pr create --head "$branch" --title "$title" --body-file "$body"
+            fi
+          done

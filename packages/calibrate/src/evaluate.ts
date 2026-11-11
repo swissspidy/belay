@@ -17,7 +17,7 @@ import {
 } from '@swissspidy/belay-core';
 import type { Sample } from './analyze.js';
 import { OutputCache } from './cache.js';
-import type { RunnableTaskConfig } from './config.js';
+import type { CalibrationTaskConfig, RunnableTaskConfig } from './config.js';
 import type { Dataset } from './dataset.js';
 
 /** Where local inference happens: in Node (a LocalRunner object) or in a real browser. */
@@ -30,6 +30,11 @@ export interface LocalBackend {
   prepare(onProgress?: (loaded: number) => void): Promise<void>;
   run(input: string): Promise<LocalOutput>;
   judge?(input: string, value: unknown): Promise<number>;
+  /**
+   * The same runner and model, given another schema and context: how `belay tune` runs a changed
+   * local side without starting a second browser. Closing the derived backend does nothing.
+   */
+  derive?(task: { schema: TaskSchema; context?: string }): LocalBackend;
   close(): Promise<void>;
 }
 
@@ -39,26 +44,28 @@ export function nodeBackend(
   ctx: { task: string; schema: TaskSchema; context?: string },
   judge?: Judge<any>,
 ): LocalBackend {
-  return {
+  const make = (c: typeof ctx, owner: boolean): LocalBackend => ({
     // The judge's score is cached with the local output, so the judge is part of the key.
     spec: { node: runner.id, judge: judge ? judge.name || 'judge' : null },
     async info() {
       return { runner: runner.id };
     },
-    availability: () => runner.availability(ctx),
+    availability: () => runner.availability(c),
     async prepare(onProgress) {
-      await runner.prepare?.(ctx, onProgress ? { onProgress } : {});
+      await runner.prepare?.(c, onProgress ? { onProgress } : {});
     },
-    run: (input) => runner.run(input, ctx),
-    ...(judge ? { judge: (input: string, value: unknown) => judge({ input, value, task: ctx.task }) } : {}),
+    run: (input) => runner.run(input, c),
+    ...(judge ? { judge: (input: string, value: unknown) => judge({ input, value, task: c.task }) } : {}),
+    derive: (task) => make({ task: c.task, schema: task.schema, ...(task.context ? { context: task.context } : {}) }, false),
     async close() {
-      runner.destroy?.();
+      if (owner) runner.destroy?.();
     },
-  };
+  });
+  return make(ctx, true);
 }
 
 type LocalRecord =
-  | { ok: true; value: unknown; confidence?: number; judge?: number }
+  | { ok: true; value: unknown; confidence?: number; judge?: number; /** Wall-clock time of the run (and its judge), in ms. */ latencyMs?: number }
   | { ok: false; reason: string };
 
 /** A cached cloud output. Entries from before usage was recorded have only `value`. */
@@ -88,7 +95,7 @@ export interface Evaluation {
   cached: { local: number; cloud: number };
 }
 
-function isCorrect(config: RunnableTaskConfig<any>, value: unknown, expected: unknown): boolean {
+function isCorrect(config: CalibrationTaskConfig<any>, value: unknown, expected: unknown): boolean {
   if (config.correct) return config.correct(value, expected);
   if (config.schema.type === 'structured') return canonicalJson(value) === canonicalJson(expected);
   return labelOf(config.schema, value) === labelOf(config.schema, expected);
@@ -107,21 +114,47 @@ async function pool<T>(items: readonly T[], concurrency: number, fn: (item: T, i
   await Promise.all(workers);
 }
 
-/**
- * Runs every example through the local runner (sequentially; one model, one device) and the
- * cloud runner (concurrently), with an output cache in front of both.
- */
-export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
+export interface EvaluateLocalOptions {
+  name: string;
+  /** Only the schema, context and `correct` are used: the local side is the backend. */
+  config: CalibrationTaskConfig<any>;
+  dataset: Dataset;
+  backend: LocalBackend;
+  cache: OutputCache;
+  /** Ignore cached local outputs (fresh outputs are still written). */
+  refresh?: boolean;
+  /** Added to the cache key, e.g. the fingerprint of a local config the backend applies. */
+  cacheKey?: unknown;
+  onProgress?: (event: { phase: 'prepare' | 'local'; done: number; total: number }) => void;
+  log?: (message: string) => void;
+}
+
+export interface LocalEvaluation {
+  /** One sample per example, with `cloud: null`. */
+  samples: Sample[];
+  local: { runner: string; model?: string; userAgent?: string };
+  /** Examples answered from the output cache. */
+  cached: number;
+}
+
+async function runLocal(options: EvaluateLocalOptions): Promise<LocalEvaluation & { records: LocalRecord[] }> {
   const { name, config, dataset, backend, cache, onProgress, log = () => {} } = options;
   const { schema } = config;
   const fingerprint = schemaFingerprint(schema);
   const total = dataset.examples.length;
-  const cached = { local: 0, cloud: 0 };
+  let cached = 0;
   const localKey = (input: string) =>
-    OutputCache.key({ side: 'local', task: name, backend: backend.spec, schema: fingerprint, context: config.context ?? null, input });
+    OutputCache.key({
+      side: 'local',
+      task: name,
+      backend: backend.spec,
+      schema: fingerprint,
+      context: config.context ?? null,
+      input,
+      ...(options.cacheKey !== undefined ? { extra: options.cacheKey } : {}),
+    });
 
-  // ---- Local ---------------------------------------------------------------
-  const needsLocal = options.refresh?.local || dataset.examples.some((e) => !cache.has(localKey(e.input)));
+  const needsLocal = options.refresh || dataset.examples.some((e) => !cache.has(localKey(e.input)));
   if (needsLocal) {
     const state = await backend.availability();
     if (state === 'unavailable') {
@@ -138,11 +171,12 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
   const records: LocalRecord[] = [];
   for (const [i, example] of dataset.examples.entries()) {
     const key = localKey(example.input);
-    let record = options.refresh?.local ? undefined : cache.get<LocalRecord>(key);
+    let record = options.refresh ? undefined : cache.get<LocalRecord>(key);
     if (record) {
-      cached.local++;
+      cached++;
     } else {
       try {
+        const started = performance.now();
         const output = await backend.run(example.input);
         const parsed = parseValue(schema, output.value);
         let judged: number | undefined;
@@ -150,6 +184,7 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
         record = {
           ok: true,
           value: output.value,
+          latencyMs: Math.round((performance.now() - started) * 100) / 100,
           ...(typeof output.confidence === 'number' ? { confidence: output.confidence } : {}),
           ...(judged !== undefined ? { judge: judged } : {}),
         };
@@ -179,11 +214,44 @@ export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
           confidence,
           correct: isCorrect(config, parsed.value, example.expected),
           value: parsed.value,
+          ...(typeof record.latencyMs === 'number' ? { latencyMs: record.latencyMs } : {}),
         };
       }
     }
     return { id: example.id, input: example.input, truth: example.truth, local, cloud: null };
   });
+  return { samples, local: info, cached, records };
+}
+
+/**
+ * Runs every example through the local runner only (sequentially; one model, one device), with
+ * the output cache in front. No cloud call is made: for scoring against labels already known.
+ */
+export async function evaluateLocal(options: EvaluateLocalOptions): Promise<LocalEvaluation> {
+  const { samples, local, cached } = await runLocal(options);
+  return { samples, local, cached };
+}
+
+/**
+ * Runs every example through the local runner (sequentially; one model, one device) and the
+ * cloud runner (concurrently), with an output cache in front of both.
+ */
+export async function evaluate(options: EvaluateOptions): Promise<Evaluation> {
+  const { name, config, dataset, cache, onProgress, log = () => {} } = options;
+  const { schema } = config;
+  const fingerprint = schemaFingerprint(schema);
+  const total = dataset.examples.length;
+  const { samples, records, local: info, cached: cachedLocal } = await runLocal({
+    name,
+    config,
+    dataset,
+    backend: options.backend,
+    cache,
+    ...(options.refresh?.local ? { refresh: true } : {}),
+    ...(onProgress ? { onProgress } : {}),
+    log,
+  });
+  const cached = { local: cachedLocal, cloud: 0 };
 
   // ---- Cloud ---------------------------------------------------------------
   const jsonSchema = toJsonSchema(schema);

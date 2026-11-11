@@ -7,7 +7,7 @@ export interface Sample {
   /** Ground-truth label (for classifier tasks, the label string; "true"/"false" for binary). */
   truth: string;
   /** Local prediction, or `null` if the local runner failed / was unavailable (always escalated). */
-  local: { label: string; confidence: number; correct: boolean; /** The parsed local answer. */ value?: unknown } | null;
+  local: { label: string; confidence: number; correct: boolean; /** The parsed local answer. */ value?: unknown; /** Wall-clock time of the local run, when it was measured. */ latencyMs?: number } | null;
   /** Cloud prediction, or `null` if the cloud runner failed (counted as wrong). */
   cloud: {
     label: string;

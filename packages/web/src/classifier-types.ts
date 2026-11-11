@@ -1,14 +1,16 @@
 /**
- * Types for the proposed Classifier API (`window.Classifier`), as described in the explainer
- * (https://github.com/michaelwasserman/classifier-api, the current revision of
- * explainers-by-googlers/classifier-api) and implemented by Chrome behind `#classifier-api` and by
- * the WebAI Studio extension polyfill (https://web-ai.studio/docs/classifier). The proposal is in
- * flux: only the members Belay relies on are typed, and result fields are checked at runtime.
+ * Types for Chrome's built-in classifier, the DecisionModel API (`window.DecisionModel`), as
+ * Chrome 157 implements it behind the `AIDecisionModelAPI` feature and as the WebAI Studio
+ * extension polyfills it (https://web-ai.studio/docs/classifier). It was proposed as the
+ * Classifier API (https://github.com/michaelwasserman/classifier-api); Belay's names
+ * (`classifierApi()`, these types) still say so. Only the members Belay relies on are typed, and
+ * result fields are checked at runtime. See ADR 0008.
  */
 
 import type { Availability } from '@swissspidy/belay-core';
 
-export type ClassifierQuestionType = 'binary' | 'categorical' | 'ordinal';
+/** `boolean`: yes/no. `choice`: one of the options. `score`: one of the ordered options. */
+export type ClassifierQuestionType = 'boolean' | 'choice' | 'score';
 
 export interface ClassifierOption {
   label: string;
@@ -19,6 +21,7 @@ export interface ClassifierQuestion {
   id: string;
   type: ClassifierQuestionType;
   prompt: string;
+  /** Not allowed on `boolean` questions. */
   options?: ClassifierOption[];
 }
 
@@ -51,24 +54,25 @@ export interface ClassifierProbability {
 
 export interface ClassifierDecision {
   id: string;
+  /** The chosen option; "true" or "false" for a `boolean` question. */
   label: string;
-  /** Calibrated confidence in [0, 1]. */
+  /** Calibrated confidence in [0, 1]: the probability of `label`. */
   confidence: number;
-  /** Binary questions only: calibrated P(true). */
-  probability?: number;
-  /** Ordinal questions only: E[S]. */
+  /** `score` questions only: E[S]. */
   expectedScore?: number;
-  probabilities?: ClassifierProbability[];
+  /** Probability per label, keyed by label ("true" and "false" for a `boolean` question). */
+  probabilities?: Record<string, number>;
 }
 
 /** Keyed by question `id`. */
 export type ClassifierResult = Record<string, ClassifierDecision>;
 
 export interface ClassifierInstance {
-  classify(input: string, options?: ClassifierClassifyOptions): Promise<ClassifierResult>;
+  decide(input: string, options?: ClassifierClassifyOptions): Promise<ClassifierResult>;
   destroy(): void;
 }
 
+/** The shape of `globalThis.DecisionModel`. */
 export interface ClassifierStatic {
   availability(options?: ClassifierSchema): Promise<Availability>;
   create(options: ClassifierCreateOptions): Promise<ClassifierInstance>;

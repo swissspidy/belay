@@ -52,6 +52,19 @@ in `.belay-cache/`, so re-running replays them and reproduces the same calibrati
 [project README](https://github.com/swissspidy/belay#calibration) for targets, cost and the file
 format.
 
+## Datasets from traces: `belay datasets`
+
+```sh
+npx belay datasets --task ticket-triage --traces ./traces --seed 7
+```
+
+Builds `train.jsonl`, `validation.jsonl`, `holdout.jsonl` and `manifest.json` in
+`.belay/datasets/<task>/` from traces recorded with
+[`@swissspidy/belay-trace`](https://github.com/swissspidy/belay/tree/main/packages/trace#readme).
+No input is in two splits, near-duplicates share one, and with the committed manifest the holdout
+only grows. `--gold examples.jsonl` adds labeled examples as gold labels. The split files are in
+the format `--data` reads.
+
 ## Learned classifiers: `belay seed` and `belay simulate`
 
 For a [`@swissspidy/belay-learn`](https://www.npmjs.com/package/@swissspidy/belay-learn) local

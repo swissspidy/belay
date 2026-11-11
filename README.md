@@ -97,7 +97,9 @@ task escalates, subject to your privacy policy.
 | `@swissspidy/belay-core`        | Tasks, cascade, confidence combination, calibration file, cloud adapters. Zero runtime dependencies. |
 | `@swissspidy/belay-web`         | Local runners for built-in AI: `classifierApi()`, `promptApi()`, and `classifierJudge()`. |
 | `@swissspidy/belay-learn`       | `learnedClassifier()`: a local runner that learns from the cloud's answers (on-device embeddings and a small trained head). |
+| `@swissspidy/belay-trace`       | `tracedTask()`: opt-in traces of runs, sent to your own sink, and the labeled datasets built from them (`belay datasets`). |
 | `@swissspidy/belay-calibrate`   | `belay calibrate` CLI: runs your labeled data in a real Chrome, writes the calibration file and an HTML report. |
+| `@swissspidy/belay-tune`        | `belay tune`: an overnight loop that makes a task need the cloud less. It proposes few-shot examples and rules, measures them on your traces in a real Chrome, and gates the best one on a holdout. `belay verify` checks in CI that a tuned config still holds. |
 
 ## Schemas
 
@@ -199,10 +201,12 @@ user gesture:
 button.onclick = () => triage.prepare({ onProgress: (p) => (progress.value = p) });
 ```
 
-Chrome exposes the Classifier API behind `chrome://flags/#classifier-api`. The
-[WebAI Studio extension](https://web-ai.studio/playgrounds/classifier) polyfills it with a local
-model. `classifierApi()` uses `globalThis.Classifier`, so it works with both. You can also pass
-your own implementation: `classifierApi({ classifier })`.
+`classifierApi()` runs on Chrome's built-in classifier, the DecisionModel API
+(`globalThis.DecisionModel`), in **Chrome 157 or later**. It is behind the `AIDecisionModelAPI`
+feature (`--enable-features=AIDecisionModelAPI`; `belay calibrate` and `belay tune` turn it on for
+you). The [WebAI Studio extension](https://web-ai.studio/playgrounds/classifier) polyfills the
+same API with a local model. Earlier Chrome versions, which called it the Classifier API, are not
+supported. You can also pass your own implementation: `classifierApi({ classifier })`.
 
 ## Cloud adapters
 
