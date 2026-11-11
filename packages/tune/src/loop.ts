@@ -13,7 +13,7 @@ import { applyConfigPatch, applyLocalConfig, contextSize, emptyLocalConfig, loca
 import { createWorkspace, currentState, lockHash, readLock, verifyLock, LOCK_FILE } from './protect.js';
 import { renderPullRequest, renderReport } from './report.js';
 import { gateRecordOf, NO_LOCAL_THRESHOLD, type GateRecord } from './verify.js';
-import { buildReflectRequest, parseProposals, type ProposalRung, type ReflectExample } from './reflector.js';
+import { buildReflectRequest, parseProposals, PROPOSAL_RUNGS, type ProposalRung, type ReflectExample } from './reflector.js';
 import { score, scoreAt, type ScoredExample } from './score.js';
 import type { SplitFile } from './split.js';
 
@@ -154,11 +154,11 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     calibration: `belay/${name}/${options.backendName}.calibration.json`,
     /** What the promoted config did on the holdout: the reference of `belay verify`. */
     record: `belay/${name}/${options.backendName}.gate.json`,
-    pullRequest: `.belay/tune/${name}/pull-request.md`,
-    pullRequestTitle: `.belay/tune/${name}/pull-request-title.txt`,
+    pullRequest: `.belay/tune/${name}/${options.backendName}.pull-request.md`,
+    pullRequestTitle: `.belay/tune/${name}/${options.backendName}.pull-request-title.txt`,
     ledger: '.belay/ledger.jsonl',
-    report: `.belay/tune/${name}/report.md`,
-    reportJson: `.belay/tune/${name}/report.json`,
+    report: `.belay/tune/${name}/${options.backendName}.report.md`,
+    reportJson: `.belay/tune/${name}/${options.backendName}.report.json`,
     /** A candidate the gate could not settle, kept for the next run. */
     pending: `.belay/tune/${name}/${options.backendName}.pending.json`,
   };
@@ -182,7 +182,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   const ledgerPath = join(root, files.ledger);
   const ledger = await readLedger(ledgerPath);
   if (!ledger.intact) throw new Error(`${files.ledger} is not intact: a line was changed or removed`);
-  const earlier = new Map(ledger.entries.filter((e) => e.run === run && e.task === name).map((e) => [e.id, e]));
+  const earlier = new Map(ledger.entries.filter((e) => e.run === run && e.task === name && e.backend === options.backendName).map((e) => [e.id, e]));
   if (earlier.size && !options.resume) throw new Error(`the ledger already has run "${run}" of task "${name}": pass --resume to continue it, or --run to name a new one`);
   const history = ledger.entries.filter((e) => e.task === name && e.backend === options.backendName && e.run !== run);
   const entries: LedgerEntry[] = [];
@@ -234,6 +234,8 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   let committedThreshold: number | undefined;
   try {
     baseConfig = parseLocalConfig(JSON.parse(await readFile(join(root, files.config), 'utf8')), name, schema);
+    // A config is tuned for one runner and model: it is not carried over to another backend.
+    if (baseConfig.backend.runner !== options.backendName) throw new Error(`${files.config} is for backend "${baseConfig.backend.runner}", not "${options.backendName}"`);
     try {
       const calibration = JSON.parse(await readFile(join(root, files.calibration), 'utf8')) as CalibrationFile & { localConfig?: string };
       if (calibration.localConfig === localConfigFingerprint(baseConfig) && calibration.schemaFingerprint === schemaFingerprint(schema)) committedThreshold = calibration.threshold;
@@ -326,7 +328,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     let pending = JSON.parse(await readFile(join(root, files.pending), 'utf8')) as Pending;
     // Written by this very run (it is being resumed): replay what it started from.
     if (pending.run === run) pending = (pending.carried ?? {}) as Pending;
-    if (typeof pending.hypothesis === 'string' && (pending.rung === 'examples' || pending.rung === 'rules')) {
+    if (typeof pending.hypothesis === 'string' && (PROPOSAL_RUNGS as readonly unknown[]).includes(pending.rung)) {
       const config = parseLocalConfig(pending.config, name, schema);
       const fingerprint = localConfigFingerprint(config);
       const chars = contextSize(schema, taskConfig.context, config);
@@ -340,12 +342,12 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
         );
         const validation = await evaluate(config, options.validation, 'carried over');
         const fit = score(validation, { target, seed, resamples: 0 });
-        const member: Member = { id: '', rung: pending.rung, hypothesis: pending.hypothesis, config, fingerprint, chars, validation, threshold: fit.threshold, localShare: fit.localShare, accuracy: fit.accuracy, targetMet: fit.targetMet };
+        const member: Member = { id: '', rung: pending.rung as ProposalRung, hypothesis: pending.hypothesis, config, fingerprint, chars, validation, threshold: fit.threshold, localShare: fit.localShare, accuracy: fit.accuracy, targetMet: fit.targetMet };
         const gain = fit.localShare - base.localShare;
         const kept = fit.targetMet && gain >= settings.minGain;
         member.id = (
           await record({
-            rung: pending.rung,
+            rung: pending.rung as ProposalRung,
             hypothesis: pending.hypothesis,
             parent: base.fingerprint,
             candidate: fingerprint,
@@ -441,7 +443,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
       // Nothing changed since this was last asked in this run: the answer would be the same.
       stale++;
       if (stale >= settings.patience) {
-        rung = rung === 'examples' ? 'rules' : null;
+        rung = PROPOSAL_RUNGS[PROPOSAL_RUNGS.indexOf(rung) + 1] ?? null;
         stale = 0;
       }
       continue;
@@ -470,7 +472,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     }
     spend += cost;
 
-    const { proposals, rejected } = parseProposals(answer.output, rung, trainById, count);
+    const { proposals, rejected } = parseProposals(answer.output, rung, trainById, count, schema);
     for (const reason of rejected) log(`reflector: ${reason}`);
     const share = proposals.length ? cost / proposals.length : cost;
     let keptThisRound = false;
@@ -561,7 +563,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     if (!population.includes(base)) population.push(base);
     stale = keptThisRound ? 0 : stale + 1;
     if (stale >= settings.patience) {
-      rung = rung === 'examples' ? 'rules' : null;
+      rung = PROPOSAL_RUNGS[PROPOSAL_RUNGS.indexOf(rung) + 1] ?? null;
       stale = 0;
     }
   }
@@ -611,12 +613,12 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   if (outcome === 'plateau') {
     notes.push(
       stopped === 'rungs-exhausted'
-        ? `No candidate on rungs 1 to 3 (threshold, examples, rules) beat the baseline's local share by ${(settings.minGain * 100).toFixed(1)} points on validation at the target accuracy.`
+        ? `No candidate on rungs 1 to 4 (threshold, examples, rules, wording) beat the baseline's local share by ${(settings.minGain * 100).toFixed(1)} points on validation at the target accuracy.`
         : `The run stopped early (${stopped}) before any candidate beat the baseline on validation.`,
     );
     if (!base.targetMet) notes.push('The baseline does not hold the target accuracy at any threshold: the cloud side, or the labels, limit it more than the local side does.');
     if (counts.screenedOut && counts.screenedOut === counts.run - (baseAt ? 1 : 0)) notes.push('Every candidate was screened out: adding context made the local model worse on this task.');
-    notes.push('Next: rung 4 (reword the options or split the task), or more labeled traces: with few examples, small gains cannot be told from noise.');
+    notes.push('Next: split the task into two steps or tune weights (not built yet), or more labeled traces: with few examples, small gains cannot be told from noise.');
   } else if (outcome === 'inconclusive') {
     notes.push(
       `The gate could not tell whether the best candidate is as accurate as the baseline: the holdout is too small. Every other check passed. Nothing was written.${gateResult?.holdoutNeeded ? ` About ${gateResult.holdoutNeeded} holdout examples would settle it (there are ${holdoutSize}).` : ''}`,

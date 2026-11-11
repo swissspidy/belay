@@ -148,8 +148,8 @@ Everything tunable about the local side of one task on one backend, as one JSON 
   one-sentence hypothesis. A patch may only touch the roots of its rung, and the patched config
   is parsed again, so a label outside the schema or an unknown field is refused before anything
   runs.
-- `runner`, `judge` and `steps` (rungs 4 and 5) are not in the format yet. They are decided in
-  M5; the version number is there for that.
+- `wording` is rung 4's first half (§11). `steps` (splitting a task) and anything for weights are
+  not in the format yet; the version number is there for that.
 
 ### 4. Ledger (implemented)
 
@@ -171,7 +171,7 @@ Everything tunable about the local side of one task on one backend, as one JSON 
 }
 ```
 
-`rung` is `baseline`, `threshold`, `examples`, `rules` or `gate`; `stage` is `baseline`, `screen`,
+`rung` is `baseline`, `threshold`, `examples`, `rules`, `wording` or `gate`; `stage` is `baseline`, `screen`,
 `validation` or `gate`; `verdict` is `baseline`, `kept`, `discarded`, `promoted`, `rejected`,
 `inconclusive` or `error`. `previous` is the SHA-256 of the line before, so an edited history is detectable, and
 `readLedger()` refuses a broken chain. `protected` is the lock hash of §5. `scores` are always
@@ -446,6 +446,36 @@ model: there was no second Chrome version to drift to.
 Not verified: the two workflow templates have not run on GitHub's runners. They parse as YAML, and
 the `belay` commands in them were run here; the cache, push and `gh` steps were not. Whether a hosted runner can load Chrome's built-in
 model (it needs about 4 GB of download and, without a GPU, 16 GB of memory) is also untested.
+
+### 11. Rung 4 and per-backend configs (implemented, in part)
+
+**Wording.** The fourth rung asks the reflecting model to reword what the local model is asked:
+the question, the descriptions of labels, or both. A candidate is one `add /wording` patch.
+Labels cannot be renamed or added: a proposal that describes a label the task does not have is
+dropped before it runs. The rung comes after rules because it changes the most at once, and
+its order is one list (`PROPOSAL_RUNGS`).
+
+**Not built: the output schema and decomposition.** The brief's rung 4 also names changing the
+output schema and splitting a task into two steps. A local config cannot change the schema: the
+task's values are its contract with the app and the cloud. Splitting (a first step that picks a
+group of labels, a second that picks within it) fits the format as a `steps` field and can be
+run by composing two derived backends, but it doubles the local latency, which the gate's
+default refuses, and nothing measured so far says it is worth that. It is left until a task
+shows a plateau that wording does not move.
+
+**Per-backend configs.** `tune.backends` names a task's other local backends (a runner, its
+judge, a model name); `belay tune --backend <name>` tunes that one. What is per backend: the
+config, the calibration file, the gate record, the pending candidate, the reports
+(`.belay/tune/<task>/<backend>.report.md` and so on), and the history the reflecting model is
+shown. What is shared: the datasets and their holdout, the gate config, the lock, and the one
+ledger file, where entries carry their backend and a run id is unique per task and backend. A
+config names its backend, and the loop refuses to start from a config of another one. `belay
+verify` runs every backend that has a config file, and fails on a config file whose backend the
+config does not name.
+
+**Verified** so far with stub models: a wording candidate is promoted, two backends of one task
+are tuned and verified side by side, and a config handed to another backend is refused. A run
+with two real backends (Chrome's classifier and its Prompt API with a judge) is not done yet.
 
 ## Open questions
 

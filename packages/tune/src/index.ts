@@ -11,7 +11,7 @@ export { appendLedger, LEDGER_VERSION, readLedger } from './ledger.js';
 export type { Ledger, LedgerEntry, LedgerRung, LedgerScores, LedgerStage, LedgerVerdict } from './ledger.js';
 export { createWorkspace, currentState, evaluatorHash, GATE_FILE, INSTRUCTIONS_FILE, loadGateConfig, LOCK_FILE, lockHash, readLock, verifyLock, writeLock } from './protect.js';
 export type { LockFile, ProtectedState, TaskLock, Workspace } from './protect.js';
-export { buildReflectRequest, parseProposals, proposalSchema, reflectorAdapter } from './reflector.js';
+export { buildReflectRequest, parseProposals, PROPOSAL_RUNGS, proposalSchema, reflectorAdapter } from './reflector.js';
 export type { Proposal, ProposalRung, ReflectContext, ReflectExample, ReflectFn } from './reflector.js';
 export { DEFAULT_SETTINGS, tune } from './loop.js';
 export type { StopReason, TuneOptions, TuneOutcome, TuneReport, TuneSettings } from './loop.js';

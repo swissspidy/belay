@@ -86,6 +86,21 @@ export interface TuneConfig {
   /** Cost of one cloud call, for the report's cost per 1,000 runs. */
   cloudPerRun?: number;
   currency?: string;
+  /**
+   * Other local backends of this task, by name: `belay tune --backend <name>` tunes that one and
+   * writes `belay/<task>/<name>.local.json`. A config is tuned for one runner and model, so each
+   * backend has its own. Without `--backend`, the task's own `local` is tuned, under its runner's id.
+   */
+  backends?: Record<string, TuneBackend>;
+}
+
+/** A local backend to tune besides the task's own `local`. */
+export interface TuneBackend {
+  local: BrowserRunnerSpec | LocalRunner<any>;
+  /** Its judge, when the runner reports no confidence of its own (e.g. `prompt-api`). */
+  judge?: BrowserJudgeSpec | Judge<any>;
+  /** The model's name, recorded in the config and the reports. */
+  model?: string;
 }
 
 /**

@@ -9,7 +9,7 @@ import type { ConfigPatchOp } from './local-config.js';
 
 export const LEDGER_VERSION = 1;
 
-export type LedgerRung = 'baseline' | 'threshold' | 'examples' | 'rules' | 'gate';
+export type LedgerRung = 'baseline' | 'threshold' | 'examples' | 'rules' | 'wording' | 'gate';
 export type LedgerStage = 'baseline' | 'screen' | 'validation' | 'gate';
 /**
  * - `baseline`: the starting point of the run;

@@ -290,7 +290,7 @@ export async function verify(options: VerifyOptions): Promise<VerifyReport> {
 
 /** The verify report as Markdown, e.g. for a CI job summary. */
 export function renderVerify(report: VerifyReport): string {
-  const out: string[] = [`# Belay verify: ${report.task}`, '', `**${report.passed ? (report.tuned ? 'The tuned config still holds.' : 'The protected files match the lock.') : 'Failed.'}**`, ''];
+  const out: string[] = [`# Belay verify: ${report.task} (${report.backend})`, '', `**${report.passed ? (report.tuned ? 'The tuned config still holds.' : 'The protected files match the lock.') : 'Failed.'}**`, ''];
   if (report.environment) {
     out.push(`- At the gate: ${report.environment.recorded.userAgent ?? report.environment.recorded.runner}`, `- Now: ${report.environment.current.userAgent ?? report.environment.current.runner}`, '');
   }

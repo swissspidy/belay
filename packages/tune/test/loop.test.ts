@@ -45,8 +45,10 @@ function contextLocal(): LocalRunner<any> & { contexts: Set<string>; updated: bo
     updated: false,
     availability: async () => 'available',
     async run(input, ctx) {
-      const context = ctx.context ?? '';
-      contexts.add(context);
+      // What the model is given: the context, the question and the option descriptions.
+      const options = ctx.schema.type === 'categorical' ? ctx.schema.options.map((o: unknown) => (typeof o === 'string' ? o : `${(o as { label: string }).label}: ${(o as { description?: string }).description ?? ''}`)).join('; ') : '';
+      const context = [ctx.context ?? '', (ctx.schema as { prompt?: string }).prompt ?? '', options].join(' | ');
+      contexts.add(ctx.context ?? '');
       const truth = truthOf(input);
       let confidence = 0.3 + 0.7 * hash01(`conf:${input}`);
       let right = hash01(`right:${input}`) < confidence;
@@ -105,14 +107,16 @@ afterEach(async () => {
 const lock = async () => writeLock(dir, 'ticket-triage', (await currentState(dir, manifest, { evaluatorRoots: [evaluator] })).lock);
 
 /** A reflector that answers each rung from a script and remembers what it was asked. */
-function scripted(answers: { examples?: (ids: string[]) => unknown[]; rules?: unknown[][] }) {
+function scripted(answers: { examples?: (ids: string[]) => unknown[]; rules?: unknown[][]; wording?: unknown[][] }) {
   const requests: ReflectRequest[] = [];
   let ruleRound = 0;
+  let wordingRound = 0;
   const reflector = reflectorAdapter(async (request, { reportUsage }) => {
     requests.push(request);
     reportUsage({ model: 'big', inputTokens: 10_000, outputTokens: 1_000 });
     const ids = [...request.prompt.matchAll(/^\[([\w-]+)\]/gm)].map((m) => m[1]!);
     if (request.prompt.includes('list of training example ids')) return { candidates: answers.examples?.(ids) ?? [] };
+    if (request.prompt.includes('rewords what the small model is asked')) return { candidates: answers.wording?.[wordingRound++] ?? [] };
     return JSON.stringify({ candidates: answers.rules?.[ruleRound++] ?? [] });
   }, 'scripted');
   return { reflector, requests };
@@ -180,7 +184,7 @@ describe('tune', () => {
     expect(calibration.threshold).toBe(report.best.threshold);
     expect((calibration as unknown as { localConfig: string }).localConfig).toBe(localConfigFingerprint(config));
     expect(calibration.expected.localShare).toBeCloseTo(report.best.localShare);
-    const markdown = await readFile(join(dir, '.belay/tune/ticket-triage/report.md'), 'utf8');
+    const markdown = await readFile(join(dir, '.belay/tune/ticket-triage/context-local.report.md'), 'utf8');
     expect(markdown).toMatch(/A candidate passed the gate/);
     expect(markdown).toMatch(/Protected files .*: unchanged/);
 
@@ -211,9 +215,9 @@ describe('tune', () => {
     expect(report.gate).toBeUndefined();
     expect(report.datasets.holdout).toBeNull();
     expect(report.experiments).toMatchObject({ run: 2, kept: 0 });
-    expect(report.notes.join(' ')).toMatch(/No candidate on rungs 1 to 3/);
+    expect(report.notes.join(' ')).toMatch(/No candidate on rungs 1 to 4/);
     expect(existsSync(join(dir, 'belay'))).toBe(false);
-    expect(await readFile(join(dir, '.belay/tune/ticket-triage/report.md'), 'utf8')).toMatch(/Plateau/);
+    expect(await readFile(join(dir, '.belay/tune/ticket-triage/context-local.report.md'), 'utf8')).toMatch(/Plateau/);
   });
 
   it('rejects a candidate that does not hold up on the holdout', async () => {
@@ -242,7 +246,7 @@ describe('tune', () => {
     expect(logs.join('\n')).toMatch(/Warning: The holdout has 200 examples/);
     expect(first.notes.join(' ')).toMatch(/holdout examples would settle it \(there are 200\)/);
     expect(existsSync(join(dir, 'belay'))).toBe(false);
-    expect(await readFile(join(dir, '.belay/tune/ticket-triage/report.md'), 'utf8')).toMatch(/\*\*inconclusive\*\*/);
+    expect(await readFile(join(dir, '.belay/tune/ticket-triage/context-local.report.md'), 'utf8')).toMatch(/\*\*inconclusive\*\*/);
     const pendingFile = join(dir, '.belay/tune/ticket-triage/context-local.pending.json');
     expect(JSON.parse(await readFile(pendingFile, 'utf8'))).toMatchObject({ run: 'night-1', rung: 'rules', config: { rules: ['MAYBE: answer directly.'] } });
     let ledger = await readLedger(join(dir, '.belay/ledger.jsonl'));
@@ -275,11 +279,11 @@ describe('tune', () => {
     const o = await options({ reflector: scripted({ rules: GOOD_RULES }).reflector });
     const report = await tune(o);
     expect(report.outcome).toBe('promoted');
-    expect(report.files).toMatchObject({ record: 'belay/ticket-triage/context-local.gate.json', pullRequest: '.belay/tune/ticket-triage/pull-request.md' });
+    expect(report.files).toMatchObject({ record: 'belay/ticket-triage/context-local.gate.json', pullRequest: '.belay/tune/ticket-triage/context-local.pull-request.md' });
 
-    const title = await readFile(join(dir, '.belay/tune/ticket-triage/pull-request-title.txt'), 'utf8');
+    const title = await readFile(join(dir, '.belay/tune/ticket-triage/context-local.pull-request-title.txt'), 'utf8');
     expect(title).toMatch(/^Belay Tune: ticket-triage keeps \d+\.\d points more local at 90% accuracy\n$/);
-    const body = await readFile(join(dir, '.belay/tune/ticket-triage/pull-request.md'), 'utf8');
+    const body = await readFile(join(dir, '.belay/tune/ticket-triage/context-local.pull-request.md'), 'utf8');
     expect(body).toMatch(/\*\*Change\*\* \(rules\): Naming the pattern/);
     expect(body).toMatch(/\| After, holdout \|/);
     expect(body).toMatch(/\| accuracy \| pass \|/);
@@ -364,12 +368,63 @@ describe('tune', () => {
     expect(second.best.localShare).toBeLessThan(second.baseline.localShare);
     expect(second.gate!.checks.find((c) => c.name === 'local-share')).toMatchObject({ passed: true, skipped: true });
     expect(second.notes[0]).toMatch(/no longer held the target accuracy/);
-    expect(await readFile(join(dir, '.belay/tune/ticket-triage/pull-request-title.txt'), 'utf8')).toBe('Belay Tune: restore 90% accuracy for ticket-triage\n');
+    expect(await readFile(join(dir, '.belay/tune/ticket-triage/context-local.pull-request-title.txt'), 'utf8')).toBe('Belay Tune: restore 90% accuracy for ticket-triage\n');
 
     // And the repaired config verifies in the updated browser.
     const o = await options();
     const verified = await verify({ name: 'ticket-triage', taskConfig: o.taskConfig, root: dir, backend: async () => nodeBackend(local, { task: 'ticket-triage', schema, context: 'Support tickets.' }), backendName: 'context-local', holdout: o.holdout, manifest, evaluatorRoots: [evaluator] });
     expect(verified.passed).toBe(true);
+  });
+
+  it('climbs to the wording rung when examples and rules have stopped helping', async () => {
+    await lock();
+    const { reflector, requests } = scripted({
+      wording: [
+        [
+          { hypothesis: 'Describing the labels by what tickets say settles the unsure ones.', prompt: 'Which team handles this ticket?', options: [{ label: 'bug', description: 'GOOD: something is broken.' }] },
+          { hypothesis: 'A label the task does not have.', prompt: '', options: [{ label: 'refund', description: 'Money back.' }] },
+          { hypothesis: 'Nothing at all.', prompt: '', options: [] },
+        ],
+      ],
+    });
+    const report = await tune(await options({ reflector }));
+    expect(report.outcome).toBe('promoted');
+    expect(report.best.rung).toBe('wording');
+    const asked = requests.at(-1)!;
+    expect(asked.prompt).toMatch(/rewords what the small model is asked/);
+    expect(JSON.stringify(asked.jsonSchema)).toMatch(/"prompt"/);
+    const config = parseLocalConfig(JSON.parse(await readFile(join(dir, 'belay/ticket-triage/context-local.local.json'), 'utf8')), 'ticket-triage', schema);
+    expect(config.wording).toEqual({ prompt: 'Which team handles this ticket?', options: { bug: 'GOOD: something is broken.' } });
+    // The task's own labels are untouched: only their description for the local model changed.
+    expect(report.entries.filter((e) => e.rung === 'wording')).toHaveLength(1);
+  });
+
+  it('keeps a separate config, ledger history and reports per backend', async () => {
+    await lock();
+    const first = await tune(await options({ reflector: scripted({ rules: GOOD_RULES }).reflector }));
+    expect(first.outcome).toBe('promoted');
+
+    // A second backend of the same task: another model, which this rule does not help.
+    const other: LocalRunner<any> = { id: 'other-local', availability: async () => 'available', run: async (input) => ({ value: truthOf(input), confidence: 0.3 + 0.7 * hash01(`other:${input}`) }) };
+    const second = scripted({ rules: [[{ hypothesis: 'A rule for the other model.', rules: ['Tickets "about X" belong to X.'] }]] });
+    const o = await options({ reflector: second.reflector, backend: nodeBackend(other, { task: 'ticket-triage', schema, context: 'Support tickets.' }), backendName: 'other-local' });
+    const report = await tune(o);
+    // It starts from nothing: the first backend's config is not its baseline, and its history is not shown.
+    expect(report.backend).toBe('other-local');
+    expect(report.baseline.contextChars).toBeLessThan(first.best.contextChars!);
+    expect(second.requests[0]!.prompt).not.toMatch(/GOOD/);
+    expect(report.entries[0]!.id).toBe('night-1.000'); // the same run id as the first backend's, without a clash
+    expect(existsSync(join(dir, '.belay/tune/ticket-triage/other-local.report.md'))).toBe(true);
+    expect(await readFile(join(dir, '.belay/tune/ticket-triage/context-local.report.md'), 'utf8')).toMatch(/A candidate passed the gate/);
+    expect(existsSync(join(dir, 'belay/ticket-triage/context-local.local.json'))).toBe(true);
+    const ledger = await readLedger(join(dir, '.belay/ledger.jsonl'));
+    expect(ledger.intact).toBe(true);
+    expect(new Set(ledger.entries.map((e) => e.backend))).toEqual(new Set(['context-local', 'other-local']));
+
+    // A config is not portable: handing one backend's file to the other is refused.
+    await mkdir(join(dir, 'belay/ticket-triage'), { recursive: true });
+    await writeFile(join(dir, 'belay/ticket-triage/third.local.json'), await readFile(join(dir, 'belay/ticket-triage/context-local.local.json'), 'utf8'));
+    await expect(tune(await options({ run: 'night-2', backendName: 'third' }))).rejects.toThrow(/is for backend "context-local", not "third"/);
   });
 
   it('stops at the spend cap and at the experiment cap', async () => {
@@ -390,7 +445,7 @@ describe('tune', () => {
     const reflector = reflectorAdapter(async () => ({ candidates: [] }));
     const report = await tune(await options({ reflector, costPerCall: 0.5 }));
     // One call per rung: asking the same thing again would get the same answer.
-    expect(report.spend).toMatchObject({ calls: 2, reflector: 1 });
+    expect(report.spend).toMatchObject({ calls: 3, reflector: 1.5 });
     expect(report.notes.join(' ')).toMatch(/no usable candidate/);
   });
 
@@ -493,6 +548,7 @@ export default {
       tune: {
         target: 0.9,
         costPerCall: 0.1,
+        backends: { second: { model: 'another model', local: { id: 'cli-second', availability: async () => 'available', run: async (input, ctx) => { const good = (ctx.context ?? '').includes('GOOD'); const c = good ? 0.93 : (input.length % 2 ? 0.9 : 0.5); return { value: c > 0.6 ? truthOf(input) : 'other', confidence: c }; } } } },
         reflector: { id: 'cli-reflector', reflect: async (request) => ({ output: { candidates: request.prompt.includes('complete list of rules') ? [{ hypothesis: 'A rule that helps.', rules: ['GOOD rule'] }] : [] } }) },
       },
     },
@@ -522,19 +578,27 @@ export default {
 
       stdout.mockClear();
       expect(await ledgerCommand(['--task', 'ticket-triage'])).toBe(0);
-      expect(printed()).toMatch(/n1\.000\s+ticket-triage\s+baseline/);
+      expect(printed()).toMatch(/n1\.000\s+ticket-triage\s+cli-local\s+baseline/);
       expect(printed()).toMatch(/A rule that helps\./);
       expect(printed()).toMatch(/1 promoted/);
       stdout.mockClear();
       expect(await ledgerCommand(['--json', '--run', 'n1'])).toBe(0);
       expect(printed().trim().split('\n').map((l) => JSON.parse(l).run)).toContain('n1');
 
-      // CI: the committed config still does what it did at the gate.
+      // A second backend of the same task gets its own config, tuned with its own runner.
+      stdout.mockClear();
+      expect(await tuneCommand(['--backend', 'second', '--max-experiments', '10', '--run', 'n1'])).toBe(0);
+      expect(JSON.parse(await readFile(join(dir, 'belay/ticket-triage/second.local.json'), 'utf8')).backend).toEqual({ runner: 'second', model: 'another model' });
+      expect(JSON.parse(await readFile(join(dir, 'belay/ticket-triage/cli-local.local.json'), 'utf8')).backend).toEqual({ runner: 'cli-local' });
+
+      // CI: both committed configs still do what they did at the gate.
       stdout.mockClear();
       expect(await verifyCommand([])).toBe(0);
+      expect(printed()).toMatch(/Backend\s+cli-local[\s\S]*Backend\s+second/);
+      expect(existsSync(join(dir, '.belay/tune/ticket-triage/second.verify.md'))).toBe(true);
       expect(printed()).toMatch(/Result\s+the tuned config still holds/);
       expect(printed()).toMatch(/Check accuracy\s+pass/);
-      expect(await readFile(join(dir, '.belay/tune/ticket-triage/verify.md'), 'utf8')).toMatch(/The tuned config still holds/);
+      expect(await readFile(join(dir, '.belay/tune/ticket-triage/cli-local.verify.md'), 'utf8')).toMatch(/The tuned config still holds/);
       expect(await verifyCommand(['--help'])).toBe(0);
 
       // An edited ledger is noticed, by the command and by the next run.

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createBackend, datasetsCommand, loadConfig, OutputCache, resolveCreatedAt, type CalibrationTaskConfig, type LocalBackend, type TuneConfig } from '@swissspidy/belay-calibrate';
@@ -38,7 +38,8 @@ Options:
   --max-minutes <n>      Stop proposing after this long
   --run <id>             Names this run in the ledger (default: today's date, UTC)
   --resume               Continue a run that was interrupted: cached outputs are replayed
-  --backend <name>       Names the config and calibration files (default: the runner's id)
+  --backend <name>       Tune this backend from tune.backends, and name the files after it
+                         (default: the task's own local runner, under its runner's id)
   --cloud-accuracy <a>   Cloud accuracy for gold examples without a recorded cloud answer
   --seed <seed>          Seed of the bootstrap intervals (default: 0)
   --config <file>        Config file (default: belay.config.{mjs,js,ts} in the current directory)
@@ -61,6 +62,21 @@ Only with --dry-run:
 
 Exit codes: 0 when a candidate was promoted (dry run: target met and runs agree), 2 otherwise.
 `;
+
+/** The id a task's own local runner gives its files, known without opening a browser. */
+const runnerId = (local: unknown): string => (typeof (local as { runner?: unknown }).runner === 'string' ? (local as { runner: string }).runner : ((local as { id?: string }).id ?? 'local'));
+
+/**
+ * The task as one of its backends sees it. A name from `tune.backends` swaps in that backend's
+ * runner, judge and model; any other name only names the files of the task's own runner.
+ */
+function forBackend(name: string, taskConfig: CalibrationTaskConfig<any>, backend: string | undefined): CalibrationTaskConfig<any> {
+  const named = backend === undefined ? undefined : taskConfig.tune?.backends?.[backend];
+  if (!named) return taskConfig;
+  if (!named.local) throw new Error(`task "${name}": tune.backends["${backend}"] has no local runner`);
+  const { judge: _judge, ...rest } = taskConfig;
+  return { ...rest, local: named.local, ...(named.judge ? { judge: named.judge } : {}), models: { ...taskConfig.models, ...(named.model ? { local: named.model } : {}) } };
+}
 
 const pct = (v: number | null | undefined, d = 1) => (v == null ? '–' : `${(v * 100).toFixed(d)}%`);
 const range = (i: [number, number] | null) => (i ? ` (95% CI ${pct(i[0])}–${pct(i[1])})` : '');
@@ -115,8 +131,9 @@ export async function tuneCommand(argv: string[]): Promise<number> {
   const names = Object.keys(config.tasks);
   const name = values.task ?? (names.length === 1 ? names[0] : undefined);
   if (!name) throw new Error(`--task is required (config has: ${names.join(', ')})`);
-  const taskConfig = config.tasks[name];
-  if (!taskConfig) throw new Error(`task "${name}" is not in ${relative(process.cwd(), configPath)} (has: ${names.join(', ')})`);
+  const ownConfig = config.tasks[name];
+  if (!ownConfig) throw new Error(`task "${name}" is not in ${relative(process.cwd(), configPath)} (has: ${names.join(', ')})`);
+  const taskConfig = forBackend(name, ownConfig, values.backend);
   const local = taskConfig.local;
   if (!local) throw new Error(`task "${name}" has no local runner`);
 
@@ -346,13 +363,14 @@ async function runLoop(args: LoopArgs): Promise<number> {
   }
 }
 
-const LEDGER_HELP = `Usage: belay ledger [--task <name>] [--run <id>] [--file <path>] [--json]
+const LEDGER_HELP = `Usage: belay ledger [--task <name>] [--backend <name>] [--run <id>] [--file <path>] [--json]
 
 Prints the experiment history that belay tune keeps in .belay/ledger.jsonl: every candidate,
 its hypothesis, its scores on validation and why it was kept or discarded.
 
 Options:
   --task <name>   Only this task
+  --backend <name> Only this backend
   --run <id>      Only this run
   --file <path>   The ledger file (default: .belay/ledger.jsonl)
   --json          Print the entries as JSON lines
@@ -363,7 +381,7 @@ Options:
 export async function ledgerCommand(argv: string[]): Promise<number> {
   const { values } = parseArgs({
     args: argv,
-    options: { task: { type: 'string' }, run: { type: 'string' }, file: { type: 'string' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' } },
+    options: { task: { type: 'string' }, backend: { type: 'string' }, run: { type: 'string' }, file: { type: 'string' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' } },
     strict: true,
   });
   if (values.help) {
@@ -372,7 +390,7 @@ export async function ledgerCommand(argv: string[]): Promise<number> {
   }
   const path = values.file ?? '.belay/ledger.jsonl';
   const ledger = await readLedger(path);
-  const entries = ledger.entries.filter((e) => (!values.task || e.task === values.task) && (!values.run || e.run === values.run));
+  const entries = ledger.entries.filter((e) => (!values.task || e.task === values.task) && (!values.backend || e.backend === values.backend) && (!values.run || e.run === values.run));
   if (values.json) {
     process.stdout.write(entries.map((e) => JSON.stringify(e) + '\n').join(''));
   } else if (!entries.length) {
@@ -381,7 +399,7 @@ export async function ledgerCommand(argv: string[]): Promise<number> {
     const lines: string[] = [];
     for (const e of entries) {
       const scores = e.scores ? `${pct(e.scores.localShare).padStart(6)} local  ${pct(e.scores.accuracy).padStart(6)} acc` : e.gate ? `gate ${e.gate.passed ? 'passed' : `failed: ${e.gate.failed.join(', ')}`}` : '';
-      lines.push(`${e.id}  ${e.task}  ${e.rung.padEnd(9)} ${e.verdict.padEnd(9)} ${scores}`);
+      lines.push(`${e.id}  ${e.task}  ${e.backend}  ${e.rung.padEnd(9)} ${e.verdict.padEnd(12)} ${scores}`);
       lines.push(`    ${e.hypothesis}`);
       lines.push(`    ${e.reason}`);
     }
@@ -408,7 +426,7 @@ lock is verified.
 Options:
   --task <name>          Only this task
   --datasets <dir>       Splits and manifest (default: .belay/datasets/<task>)
-  --backend <name>       Names the config files (default: the runner's id)
+  --backend <name>       Only this backend (default: every backend that has a tuned config)
   --cloud-accuracy <a>   Cloud accuracy for gold examples without a recorded cloud answer
   --seed <seed>          Seed of the bootstrap interval (default: 0)
   --config <file>        Config file (default: belay.config.{mjs,js,ts} in the current directory)
@@ -419,7 +437,7 @@ Options:
   --quiet                Only print errors
   -h, --help             Show this help
 
-Writes .belay/tune/<task>/verify.md and verify.json.
+Writes .belay/tune/<task>/<backend>.verify.md and .json.
 Exit codes: 0 when every check passes, 1 otherwise.
 `;
 
@@ -460,62 +478,77 @@ export async function verifyCommand(argv: string[]): Promise<number> {
 
   let failed = false;
   for (const name of names) {
-    const taskConfig = config.tasks[name];
-    if (!taskConfig) throw new Error(`task "${name}" is not in ${relative(process.cwd(), configPath)} (has: ${Object.keys(config.tasks).join(', ')})`);
-    const local = taskConfig.local;
-    if (!local) throw new Error(`task "${name}" has no local runner`);
+    const ownConfig = config.tasks[name];
+    if (!ownConfig) throw new Error(`task "${name}" is not in ${relative(process.cwd(), configPath)} (has: ${Object.keys(config.tasks).join(', ')})`);
+    if (!ownConfig.local) throw new Error(`task "${name}" has no local runner`);
     const datasetsDir = values.datasets ?? `.belay/datasets/${name}`;
     const manifest = await readManifest(datasetsDir);
     if (!manifest) throw new Error(`${datasetsDir}/manifest.json not found: belay verify needs the datasets the lock was written for`);
-    const cloudAccuracy = values['cloud-accuracy'] !== undefined ? Number(values['cloud-accuracy']) : taskConfig.tune?.cloudAccuracy;
+    const cloudAccuracy = values['cloud-accuracy'] !== undefined ? Number(values['cloud-accuracy']) : ownConfig.tune?.cloudAccuracy;
     if (cloudAccuracy !== undefined && !(cloudAccuracy >= 0 && cloudAccuracy <= 1)) throw new Error('--cloud-accuracy must be in [0, 1]');
-    // The files are named after the runner, which is known without opening a browser.
-    const backendName = values.backend ?? (typeof (local as { runner?: unknown }).runner === 'string' ? (local as { runner: string }).runner : ((local as { id?: string }).id ?? 'local'));
-    let last = '';
-    const report = await verify({
-      name,
-      taskConfig,
-      root: process.cwd(),
-      backend: () =>
-        createBackend({
-          name,
-          taskConfig: { ...taskConfig, local },
-          config,
-          cacheDir,
-          ...(values.extension ? { extension: values.extension } : {}),
-          ...(values.browser ? { executablePath: values.browser } : {}),
-          ...(values.headed ? { headed: true } : {}),
-          log,
-        }),
-      backendName,
-      holdout: () => loadSplit(`${datasetsDir}/holdout.jsonl`, taskConfig.schema),
-      manifest,
-      ...(cloudAccuracy !== undefined ? { cloudAccuracy } : {}),
-      ...(values.seed !== undefined ? { seed: values.seed } : {}),
-      log,
-      onProgress: ({ done, total }) => {
-        if (quiet) return;
-        const line = `verify ${name} ${Math.floor((done / total) * 4) * 25}%`;
-        if (line !== last) process.stderr.write(`${line}\n`);
-        last = line;
-      },
-    });
-    const dir = resolve(`.belay/tune/${name}`);
-    await mkdir(dir, { recursive: true });
-    await writeFile(resolve(dir, 'verify.json'), JSON.stringify(report, null, 2) + '\n');
-    await writeFile(resolve(dir, 'verify.md'), renderVerify(report));
-    if (!report.passed) failed = true;
-    if (!quiet || !report.passed) {
-      const lines = [
-        '',
-        `Task            ${name}`,
-        `Result          ${report.passed ? (report.tuned ? 'the tuned config still holds' : 'the protected files match the lock') : 'FAILED'}`,
-        ...(report.environment ? [`Browser         ${report.environment.current.userAgent ?? report.environment.current.runner}${report.environment.changed ? ' (changed since the gate)' : ''}`] : []),
-        ...report.checks.map((c) => `Check ${c.name.padEnd(12)}${c.skipped ? 'info   ' : c.passed ? 'pass   ' : 'FAIL   '} ${c.detail}`),
-        ...report.notes.map((n) => `Note            ${n}`),
-        '',
-      ];
-      (report.passed ? process.stdout : process.stderr).write(lines.join('\n') + '\n');
+
+    // Every backend with a tuned config is verified; without any, the task's own runner stands in for the lock check.
+    const own = runnerId(ownConfig.local);
+    let tuned: string[] = [];
+    try {
+      tuned = (await readdir(resolve(`belay/${name}`))).filter((f) => f.endsWith('.local.json')).map((f) => f.slice(0, -'.local.json'.length)).sort();
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+    }
+    const backends = values.backend ? [values.backend] : tuned.length ? tuned : [own];
+    for (const backendName of backends) {
+      if (backendName !== own && !ownConfig.tune?.backends?.[backendName]) {
+        throw new Error(`task "${name}" has a tuned config for backend "${backendName}", but the config file names no such backend (tune.backends) and its own runner is "${own}"`);
+      }
+      const taskConfig = forBackend(name, ownConfig, backendName);
+      const local = taskConfig.local!;
+      let last = '';
+      const report = await verify({
+        name,
+        taskConfig,
+        root: process.cwd(),
+        backend: () =>
+          createBackend({
+            name,
+            taskConfig: { ...taskConfig, local },
+            config,
+            cacheDir,
+            ...(values.extension ? { extension: values.extension } : {}),
+            ...(values.browser ? { executablePath: values.browser } : {}),
+            ...(values.headed ? { headed: true } : {}),
+            log,
+          }),
+        backendName,
+        holdout: () => loadSplit(`${datasetsDir}/holdout.jsonl`, taskConfig.schema),
+        manifest,
+        ...(cloudAccuracy !== undefined ? { cloudAccuracy } : {}),
+        ...(values.seed !== undefined ? { seed: values.seed } : {}),
+        log,
+        onProgress: ({ done, total }) => {
+          if (quiet) return;
+          const line = `verify ${name} ${backendName} ${Math.floor((done / total) * 4) * 25}%`;
+          if (line !== last) process.stderr.write(`${line}\n`);
+          last = line;
+        },
+      });
+      const dir = resolve(`.belay/tune/${name}`);
+      await mkdir(dir, { recursive: true });
+      await writeFile(resolve(dir, `${backendName}.verify.json`), JSON.stringify(report, null, 2) + '\n');
+      await writeFile(resolve(dir, `${backendName}.verify.md`), renderVerify(report));
+      if (!report.passed) failed = true;
+      if (!quiet || !report.passed) {
+        const lines = [
+          '',
+          `Task            ${name}`,
+          `Backend         ${backendName}`,
+          `Result          ${report.passed ? (report.tuned ? 'the tuned config still holds' : 'the protected files match the lock') : 'FAILED'}`,
+          ...(report.environment ? [`Browser         ${report.environment.current.userAgent ?? report.environment.current.runner}${report.environment.changed ? ' (changed since the gate)' : ''}`] : []),
+          ...report.checks.map((c) => `Check ${c.name.padEnd(12)}${c.skipped ? 'info   ' : c.passed ? 'pass   ' : 'FAIL   '} ${c.detail}`),
+          ...report.notes.map((n) => `Note            ${n}`),
+          '',
+        ];
+        (report.passed ? process.stdout : process.stderr).write(lines.join('\n') + '\n');
+      }
     }
   }
   return failed ? 1 : 0;

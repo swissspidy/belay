@@ -10,10 +10,10 @@ then checks in CI that a merged config still holds when Chrome updates its model
 Its one metric is **local share at a target accuracy**: how much the device can answer while the
 cascade stays as accurate as you require.
 
-> **Status:** experimental (0.x). Built so far: the score, the loop on the first three rungs
-> (threshold, examples, rules), the ledger, the gate and the lock, the pull request text,
-> `belay verify` and the repair of a config that drifted. Not yet: rewording and decomposition,
-> weights. The GitHub Action templates have not been run on GitHub's runners yet. See
+> **Status:** experimental (0.x). Built so far: the score, the loop on four rungs (threshold,
+> examples, rules, wording), a config per backend, the ledger, the gate and the lock, the pull
+> request text, `belay verify` and the repair of a config that drifted. Not yet: splitting a task
+> into two steps, weights. The GitHub Action templates have not been run on GitHub's runners yet. See
 > [ADR 0007](https://github.com/swissspidy/belay/blob/main/docs/adr/0007-belay-tune-foundations.md).
 
 ## Use
@@ -62,8 +62,10 @@ of the cascade is read from your traces, not called again.
    target is fitted.
 2. **Diagnose and propose.** The reflecting model is shown training inputs the local model got
    wrong, got right without being sure, and got right confidently, plus the ledger. It proposes
-   candidates: first few-shot examples, then rules. The loop only moves to rules when examples
-   stopped helping.
+   candidates: first few-shot examples, then rules, then a rewording of the question and of the
+   labels' descriptions for the local model. The loop only moves to the next kind when the one
+   before stopped helping. A rewording never renames a label: the task's values and the cloud's
+   prompt stay as they are.
 3. **Screen, then validate.** Each candidate runs on 60 validation examples; the ones that are not
    clearly worse run on all of them, and their threshold is fitted again, because a changed prompt
    shifts the confidences.
@@ -80,7 +82,7 @@ of the cascade is read from your traces, not called again.
 
 5. **Ship or stop.** On a pass it writes `belay/<task>/<backend>.local.json` and
    `belay/<task>/<backend>.calibration.json`. Otherwise nothing changes. Either way,
-   `.belay/tune/<task>/report.md` has the numbers and the reasons, and `.belay/ledger.jsonl`
+   `.belay/tune/<task>/<backend>.report.md` has the numbers and the reasons, and `.belay/ledger.jsonl`
    has every experiment.
 
 The gate is strict on purpose. With a few hundred holdout examples, the interval on an accuracy
@@ -109,7 +111,7 @@ On a pass, the run also writes:
 - `belay/<task>/<backend>.gate.json`: the gate record. What the config did on the holdout, input
   by input (the confidence and whether the answer was right), without input text. Commit it with
   the config: it is what `belay verify` compares later browsers with.
-- `.belay/tune/<task>/pull-request.md` and `pull-request-title.txt`: the change and its
+- `.belay/tune/<task>/<backend>.pull-request.md` and `.pull-request-title.txt`: the change and its
   hypothesis, the numbers before and after on validation and on the holdout, the gate's checks,
   the experiments that led there, and a checklist for the reviewer. The examples in a config are
   real inputs from your traces, so the first item is to read them.
@@ -178,7 +180,42 @@ const triage = task({
 });
 ```
 
-A config is tuned for one runner and model. Tune again for another backend.
+### More than one backend
+
+A config is tuned for one runner and model, and is not carried over to another: what helps one
+model can hurt the next. Name the task's other backends in the config and tune each:
+
+```js
+tune: {
+  reflector,
+  backends: {
+    // The task's own `local` needs no entry: it is tuned without --backend, under its runner's id.
+    'prompt-api': { local: { runner: 'prompt-api' }, judge: { judge: 'classifier-judge' }, model: 'Gemini Nano' },
+  },
+},
+```
+
+```sh
+npx belay tune --task ticket-triage                        # belay/ticket-triage/classifier-api.*
+npx belay tune --task ticket-triage --backend prompt-api   # belay/ticket-triage/prompt-api.*
+```
+
+Each backend has its own config, calibration file, gate record, reports and history in the
+ledger; they share the datasets, the gate config and the lock. `belay verify` checks every
+backend that has a tuned config. In the app, build the task with the pair that matches the
+runner the browser offers:
+
+```ts
+const useClassifier = 'DecisionModel' in globalThis;
+const triage = task({
+  name: 'ticket-triage',
+  schema,
+  cloud,
+  ...(useClassifier
+    ? { local: withLocalConfig(classifierApi(), classifierConfig), calibration: '/belay/ticket-triage/classifier-api.calibration.json' }
+    : { local: withLocalConfig(promptApi(), promptConfig), judge: classifierJudge(), calibration: '/belay/ticket-triage/prompt-api.calibration.json' }),
+});
+```
 
 ## What the loop cannot do
 

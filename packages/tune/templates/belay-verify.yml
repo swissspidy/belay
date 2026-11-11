@@ -74,5 +74,5 @@ jobs:
         run: |
           code=0
           xvfb-run -a npx belay verify || code=$?
-          cat .belay/tune/*/verify.md >> "$GITHUB_STEP_SUMMARY" || true
+          cat .belay/tune/*/*.verify.md >> "$GITHUB_STEP_SUMMARY" || true
           exit "$code"
