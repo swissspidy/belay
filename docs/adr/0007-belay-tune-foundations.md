@@ -220,7 +220,7 @@ It should not be the evaluator for the gate, for three reasons:
 
 So the evaluator is the calibration harness with `browserBackend()` (§8). The gaps it had:
 example weights, an interval for the local share, and a place for the local config's fingerprint
-in the cache key (closed in M2); per-example latency and a paired bootstrap (open, for the gate). web-ai-evals remains the right tool for the gate's support-matrix check across
+in the cache key (closed in M2); per-example latency and a paired bootstrap (closed in M3). web-ai-evals remains the right tool for the gate's support-matrix check across
 browsers and backends (M5), through `BrowserSession`.
 
 ### 7. Reflector adapter (implemented)
@@ -293,13 +293,85 @@ Chrome 157 no longer exposes this API as `Classifier` but as `DecisionModel`, an
 ADR 0008 moves `@swissspidy/belay-web` to the new API; 40 of the examples, run again without the
 bridge, gave the same outputs.
 
+### 9. The loop and the gate (implemented)
+
+`belay tune --task <name> --budget <amount>` runs one night:
+
+1. **Check the lock** (§5), load train and validation, and score the committed config on
+   validation. That is the baseline, entry 0 of the run.
+2. **Rung 1, threshold.** If a calibration file for this config exists and its threshold is no
+   longer the best one on validation, the refitted threshold is a candidate like any other.
+3. **Rungs 2 and 3, examples and rules.** Each round, the local model's outputs on a sample of
+   the training split (150) are diagnosed, the reflecting model is asked for four candidates, and
+   each is screened on 60 validation examples before it is scored on all of them. A candidate is
+   kept when it beats its parent's local share by half a point at the target accuracy; the best
+   three form the population the next round starts from. Two rounds without a kept candidate
+   move the loop from examples to rules, and then end it.
+4. **The gate**, once, for the best candidate if it beats the baseline: baseline and candidate
+   both run on the holdout, each with the threshold it was given on validation.
+5. **Outputs.** A promoted candidate is written as the local config and its calibration file.
+   In every case the ledger and `.belay/tune/<task>/report.md` and `.json` are written.
+
+The loop stops early on `--budget` (reflector spend), `--max-experiments`, `--max-minutes` or a
+reflector error, and then still gates the best candidate it has. `--resume` continues a run from
+the output cache and the cached reflector answers.
+
+**The gate's checks**, with the defaults of `belay.gate.json`:
+
+| Check | Passes when |
+| --- | --- |
+| accuracy | the lower bound of a paired 95% bootstrap interval of the accuracy difference is above −1 point |
+| local-share | local share is up by 3 points, or not down with a smaller prompt |
+| recall | no label's recall drops by more than 5 points |
+| calibration | the expected calibration error rises by at most 0.01 |
+| latency | the 95th percentile is at most 10% (plus 5 ms) slower |
+| prompt-size | prompt, context, rules and examples are at most 2,000 characters |
+
+With fewer than 100 gold labels on the holdout the gate measures agreement with the cloud and
+says so. Against the brief: the size limit is in characters, not tokens (§3); the latency check
+has a 5 ms allowance, because on fast runners 10% is below the timer's noise; and the report is
+Markdown and JSON, with no HTML and no pull request yet.
+
+**Verified with a built-in model.** Same machine and Chrome as §8, ticket triage with the
+1,500-input stream as gold-labeled traces (915 train, 284 validation, 301 holdout), target 95%,
+Gemini as the reflecting model, `--budget 5usd --max-experiments 20`:
+
+| | Validation | Holdout |
+| --- | --- | --- |
+| Baseline | 96.5% local at 95.2% | 96.0% local at 97.1% |
+| Best candidate (six few-shot examples) | 100.0% local at 95.8% | 100.0% local at 97.3% |
+
+- 20 experiments in about three hours: 5 kept, 15 discarded (11 at screening), no
+  errors. All four rule candidates were screened out: rules made this model less confident.
+- The reflecting model cost 0.19 USD in 5 calls, against a cap of 5.
+- The gate **rejected** the candidate, and nothing was written. Local share passed (+4.0 points,
+  interval +2.0 to +6.3), as did recall, calibration (0.017 against 0.037) and prompt size.
+  Accuracy failed: +0.2 points, but the interval reached −1.5. Latency failed: the 95th
+  percentile rose from 2,145 ms to 2,690 ms (+25%).
+- The lock hash was the same at the start and the end.
+
+What this run says about the design:
+
+- **The accuracy check cannot pass at this size.** On 300 examples the paired interval is about
+  ±2 points wide, so a candidate that is in fact slightly better is still refused by a 1-point
+  margin. The check needs about 1,000 holdout examples, or a wider margin for small holdouts.
+  Which of the two is a decision for the gate's owner, not for the loop: the loop cannot write
+  `belay.gate.json`.
+- **Few-shot examples cost latency on a CPU.** 330 more characters of context made each run
+  about a quarter slower. Whether that is worth four points of local share is a product
+  decision; the gate's default says no.
+- **This task has little headroom.** The baseline already keeps 96% local, so the largest
+  possible gain is barely above the gate's minimum. Content moderation is the better task to
+  show a promotion on.
+- **Rebuilding Belay during a run stops it at the gate**, because the evaluator hash changes.
+  That is the protection working, and worth a line in the docs.
+
 ## Open questions
 
-- May the v1 calibration file gain an optional `local.config` fingerprint (§3)? It is a type and a
-  check in the core, against the brief's "the core gains no code".
+- Should the core check the calibration file's `localConfig` fingerprint (§3)? Today only the
+  loop reads it.
+- Should the gate's accuracy margin depend on the size of the holdout (§9)?
 - Should `BelayResult` carry `explorationWeight`? It would replace the event matching of §1.
-- Which public dataset anchors M3? The four example tasks already have 300 labeled examples and a
-  1,500-input stream each; ticket triage and content moderation are the ones with headroom.
 - Whether built-in models accept adapters (rung 5) is still unconfirmed.
 
 ## Consequences

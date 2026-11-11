@@ -539,7 +539,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     if (counts.screenedOut && counts.screenedOut === counts.run - (baseAt ? 1 : 0)) notes.push('Every candidate was screened out: adding context made the local model worse on this task.');
     notes.push('Next: rung 4 (reword the options or split the task), or more labeled traces: with few examples, small gains cannot be told from noise.');
   } else if (outcome === 'rejected') {
-    notes.push('The best candidate on validation did not hold up on the holdout. Nothing was written. The candidate stays in the ledger as rejected, so it is not proposed again.');
+    notes.push('The best candidate on validation did not pass every check of the gate on the holdout (see the table). Nothing was written. The candidate stays in the ledger as rejected, so it is not proposed again.');
   }
   if (cloudOf(options.validation).assumed) notes.push(`The cloud's accuracy on ${cloudOf(options.validation).assumed} validation examples without a recorded cloud answer is assumed to be ${(cloudOf(options.validation).assumedAccuracy * 100).toFixed(1)}%.`);
 
