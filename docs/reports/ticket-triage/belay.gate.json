@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "accuracyMargin": 0.02,
+  "maxLatencyIncrease": 0.3
+}

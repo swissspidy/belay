@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "task": "ticket-triage",
+  "backend": {
+    "runner": "prompt-api",
+    "model": "Chrome 157 built-in Gemini Nano (Prompt API) with a DecisionModel judge, CPU"
+  },
+  "examples": [
+    {
+      "input": "i have to use the {{Account Category}} profile",
+      "label": "account"
+    },
+    {
+      "input": "help me see how long the bloody reimbursements usually take",
+      "label": "billing"
+    },
+    {
+      "input": "how can i check the current status of my restitution",
+      "label": "billing"
+    },
+    {
+      "input": "where do i see the termination penalties",
+      "label": "order"
+    },
+    {
+      "input": "want help acquiring a few of your article",
+      "label": "order"
+    },
+    {
+      "input": "I can't update my address",
+      "label": "shipping"
+    },
+    {
+      "input": "I don't know what to do to make a reclamation",
+      "label": "feedback"
+    }
+  ]
+}
