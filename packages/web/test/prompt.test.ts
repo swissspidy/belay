@@ -94,6 +94,27 @@ describe('promptApi runner', () => {
     expect(destroyed).toHaveLength(2); // each clone destroyed after its run
   });
 
+  it('tries once more when the browser fails a prompt with UnknownError', async () => {
+    const unknown = () => Object.assign(new Error('An unknown error occurred: kErrorUnknown'), { name: 'UnknownError' });
+    let calls = 0;
+    const flaky = fakeLanguageModel(() => {
+      if (++calls === 1) throw unknown();
+      return '{"title":"ok","urgent":false}';
+    });
+    const runner = promptApi({ languageModel: flaky.api });
+    expect((await runner.run('ticket', ctx)).value).toEqual({ title: 'ok', urgent: false });
+    expect(flaky.prompts).toHaveLength(2);
+    expect(flaky.destroyed).toHaveLength(2); // the failed clone is destroyed too
+
+    // A second failure in a row, and any other error, reach the caller.
+    const broken = promptApi({ languageModel: fakeLanguageModel(() => { throw unknown(); }).api });
+    await expect(broken.run('ticket', ctx)).rejects.toThrow(/kErrorUnknown/);
+    let other = 0;
+    const quota = fakeLanguageModel(() => { other++; throw Object.assign(new Error('too long'), { name: 'QuotaExceededError' }); });
+    await expect(promptApi({ languageModel: quota.api }).run('ticket', ctx)).rejects.toThrow(/too long/);
+    expect(other).toBe(1);
+  });
+
   it('does not tie the cached base session to a per-run signal', async () => {
     const { api } = fakeLanguageModel(() => '{"title":"x","urgent":false}');
     const controller = new AbortController();

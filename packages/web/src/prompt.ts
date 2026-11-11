@@ -101,25 +101,37 @@ export function promptApi(options: PromptApiOptions = {}): LocalRunner<any> {
       const base = await session(ctx);
       // A fresh clone per run keeps runs independent. Without clone(), fall back to a new session.
       const LanguageModel = api()!;
-      const turn = base.clone
-        ? await base.clone(ctx.signal ? { signal: ctx.signal } : {})
-        : await LanguageModel.create({ ...expected, initialPrompts: [{ role: 'system', content: systemPromptFor(ctx) }], ...(ctx.signal ? { signal: ctx.signal } : {}) });
-      try {
-        const text = await turn.prompt(input, {
-          responseConstraint: toJsonSchema(ctx.schema),
-          ...(options.omitResponseConstraintInput ? { omitResponseConstraintInput: true } : {}),
-          ...(ctx.signal ? { signal: ctx.signal } : {}),
-        });
-        let value: unknown = text;
+      const attempt = async (): Promise<string> => {
+        const turn = base.clone
+          ? await base.clone(ctx.signal ? { signal: ctx.signal } : {})
+          : await LanguageModel.create({ ...expected, initialPrompts: [{ role: 'system', content: systemPromptFor(ctx) }], ...(ctx.signal ? { signal: ctx.signal } : {}) });
         try {
-          value = JSON.parse(text);
-        } catch {
-          // Leave the raw text: the task's schema validation reports it as invalid output.
+          return await turn.prompt(input, {
+            responseConstraint: toJsonSchema(ctx.schema),
+            ...(options.omitResponseConstraintInput ? { omitResponseConstraintInput: true } : {}),
+            ...(ctx.signal ? { signal: ctx.signal } : {}),
+          });
+        } finally {
+          turn.destroy();
         }
-        return { value, raw: text };
-      } finally {
-        turn.destroy();
+      };
+      let text: string;
+      try {
+        text = await attempt();
+      } catch (err) {
+        // Chrome 157 fails a constrained prompt with UnknownError shortly after another constrained
+        // session was destroyed, and answers the same prompt when asked again. One more try, on a
+        // fresh clone; anything else, or a second failure, is the caller's to handle.
+        if ((err as { name?: string } | null)?.name !== 'UnknownError' || ctx.signal?.aborted) throw err;
+        text = await attempt();
       }
+      let value: unknown = text;
+      try {
+        value = JSON.parse(text);
+      } catch {
+        // Leave the raw text: the task's schema validation reports it as invalid output.
+      }
+      return { value, raw: text };
     },
 
     async prepare(ctx: Ctx, prepareOptions?: PrepareOptions) {

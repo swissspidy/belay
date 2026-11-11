@@ -66,3 +66,24 @@ not built and run here. The example calibrations in `examples/` were made with i
 - An implementation passed as `classifierApi({ classifier })` must have the new shape.
 - Model-specific notes in earlier ADRs (a 256-token window, Laya's variants) describe the
   extension's model, not Chrome's.
+
+## Addendum: constrained prompts fail after a session is destroyed
+
+Found while tuning a second backend (ADR 0007 §11), on Chrome 157.0.8103.50 with the CPU backend.
+With the Prompt API, a `prompt()` with a `responseConstraint` fails with
+`UnknownError: … kErrorUnknown` when another session that had made a constrained prompt was
+destroyed shortly before. `promptApi()` clones a base session per run and destroys the clone, so
+exactly every third run failed, whatever the input. Measured directly in the page, seven runs
+each:
+
+| Variant | Result |
+| --- | --- |
+| clone, constrained prompt, destroy | fails on runs 3 and 6 |
+| the same with a 1.5 s pause after destroy | fails on runs 3 and 6 |
+| clone, constrained prompt, never destroy | all pass |
+| clone, unconstrained prompt, destroy | all pass |
+| new session per run, constrained prompt, destroy | fails on run 2 |
+
+The failed prompt succeeds when asked again on a fresh clone. Not destroying sessions would leak
+them, so `promptApi()` now tries once more on `UnknownError` and passes on a second failure or
+any other error. Whether the GPU backend or later versions behave the same is not known.
