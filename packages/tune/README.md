@@ -68,7 +68,8 @@ of the cascade is read from your traces, not called again.
    prompt stay as they are.
 3. **Screen, then validate.** Each candidate runs on 60 validation examples; the ones that are not
    clearly worse run on all of them, and their threshold is fitted again, because a changed prompt
-   shifts the confidences.
+   shifts the confidences. The fit also holds every label's recall to within half of the gate's
+   limit of the baseline's, so a candidate does not reach its local share by giving up one label.
 4. **Gate.** The best candidate and the baseline run on the holdout, once. All checks must pass:
 
    | Check | Default |

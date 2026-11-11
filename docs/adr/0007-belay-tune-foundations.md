@@ -303,7 +303,10 @@ bridge, gave the same outputs.
 3. **Rungs 2 and 3, examples and rules.** Each round, the local model's outputs on a sample of
    the training split (150) are diagnosed, the reflecting model is asked for four candidates, and
    each is screened on 60 validation examples before it is scored on all of them. A candidate is
-   kept when it beats its parent's local share by half a point at the target accuracy; the best
+   kept when it beats its parent's local share by half a point at the target accuracy. Its
+   threshold is the lowest one that holds the target and keeps every label's recall within half
+   of the gate's `maxRecallDrop` of the baseline's on validation (added after the first runs
+   with the Prompt API, see section 11). The best
    three form the population the next round starts from. Two rounds without a kept candidate
    move the loop from examples to rules, and then end it.
 4. **The gate**, once, for the best candidate if it beats the baseline: baseline and candidate
