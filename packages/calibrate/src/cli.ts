@@ -68,7 +68,8 @@ export async function main(argv: string[]): Promise<number> {
     try {
       tune = (await import(name)) as typeof tune;
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND') throw err;
+      // Only when the package itself is missing: a missing import of its own is another error.
+      if ((err as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND' || !String((err as Error).message).includes(name)) throw err;
       throw new Error(`belay ${command} needs @swissspidy/belay-tune: npm install --save-dev @swissspidy/belay-tune`, { cause: err });
     }
     return command === 'tune' ? tune.tuneCommand(rest) : command === 'ledger' ? tune.ledgerCommand(rest) : tune.verifyCommand(rest);

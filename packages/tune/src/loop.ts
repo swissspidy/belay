@@ -136,6 +136,9 @@ interface Member {
 const subset = (split: SplitFile, n: number): SplitFile =>
   n >= split.examples.length ? split : { examples: split.examples.slice(0, n), dataset: { examples: split.dataset.examples.slice(0, n), fingerprint: `${split.dataset.fingerprint}:${n}` } };
 
+/** A resumed run that does not retrace its recorded entries. Never recorded as a candidate's error. */
+class ResumeMismatch extends Error {}
+
 /** Runs one night of tuning. Throws when the lock is missing or does not match. */
 export async function tune(options: TuneOptions): Promise<TuneReport> {
   const { name, taskConfig, root, cache, target, run } = options;
@@ -192,6 +195,13 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     const id = `${run}.${String(seq).padStart(3, '0')}`;
     seq++;
     const existing = earlier.get(id);
+    // A resumed run must retrace the recorded one. With other settings (a larger budget after the
+    // gate ran, a config promoted in between) it would not, and the ledger would misreport it.
+    if (existing && (existing.rung !== entry.rung || existing.stage !== entry.stage || existing.candidate !== entry.candidate || existing.parent !== entry.parent)) {
+      throw new ResumeMismatch(
+        `run "${run}" cannot be resumed: entry ${id} was recorded as ${existing.rung}/${existing.stage} of ${existing.candidate}, and is now ${entry.rung}/${entry.stage} of ${entry.candidate}. The settings or the committed config changed since; use --run to start a new run.`,
+      );
+    }
     // A resumed run replays from the caches and writes nothing twice.
     const written =
       existing ??
@@ -367,6 +377,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
       }
     }
   } catch (err) {
+    if (err instanceof ResumeMismatch) throw err;
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log(`Ignoring ${files.pending}: ${err instanceof Error ? err.message : String(err)}`);
   }
 
@@ -553,6 +564,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
           counts.discarded++;
         }
       } catch (err) {
+        if (err instanceof ResumeMismatch) throw err;
         counts.errors++;
         await record({ ...common, candidate: fingerprint, stage: 'screen', verdict: 'error', reason: err instanceof Error ? err.message : String(err) });
       }

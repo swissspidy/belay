@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile, appendFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile, appendFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -240,5 +240,9 @@ describe('jsonlSink and readTraces', () => {
     const blocked = jsonlSink(join(dir, 'file', 'under-a-file.jsonl'));
     await expect(blocked.write(gold('x y z', 'bug', 1))).rejects.toThrow();
     await expect(blocked.flush()).resolves.toBeUndefined();
+    // Once the cause is gone, the same sink writes again: the failed mkdir is not remembered.
+    await rm(join(dir, 'file'));
+    await blocked.write(gold('x y z', 'bug', 2));
+    expect((await readTraces(join(dir, 'file', 'under-a-file.jsonl'))).traces).toHaveLength(1);
   });
 });

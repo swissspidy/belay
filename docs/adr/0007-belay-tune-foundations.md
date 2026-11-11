@@ -1,6 +1,6 @@
 # ADR 0007: Belay Tune foundations: traces, local configs, the ledger and a protected evaluator
 
-- Status: Accepted. §1 and §2 (milestone M1) and §8 (M2) are implemented; §3 to §5 and §7 are the design for M3 and M4.
+- Status: Accepted and implemented (milestones M1 to M4, and M5 in part). §6 is a finding; §11 says what of rung 4 is not built.
 - Date: 2026-11-10
 - Scope: new `@swissspidy/belay-trace` and `@swissspidy/belay-tune`; `belay datasets`, `evaluateLocal()` and `createBackend()` in `@swissspidy/belay-calibrate`
 - Builds on: ADR 0001 (telemetry, privacy, calibration file), ADR 0002 (real-browser evaluation), ADR 0004 §3 and ADR 0005 §1 (`explore`)
@@ -309,7 +309,7 @@ bridge, gave the same outputs.
 4. **The gate**, once, for the best candidate if it beats the baseline: baseline and candidate
    both run on the holdout, each with the threshold it was given on validation.
 5. **Outputs.** A promoted candidate is written as the local config and its calibration file.
-   In every case the ledger and `.belay/tune/<task>/report.md` and `.json` are written.
+   In every case the ledger and `.belay/tune/<task>/<backend>.report.md` and `.json` are written.
 
 The loop stops early on `--budget` (reflector spend), `--max-experiments`, `--max-minutes` or a
 reflector error, and then still gates the best candidate it has. `--resume` continues a run from
@@ -393,8 +393,8 @@ local answer was right, with the threshold, the environment and the aggregate sc
 ids, not input text. It is the only place holdout results are kept, and the loop never reads it,
 so the rule of §4 stands: the reflecting model cannot learn the holdout.
 
-**The pull request.** A promotion also writes `.belay/tune/<task>/pull-request.md` and
-`pull-request-title.txt`: the hypothesis, the numbers on validation and on the holdout, the
+**The pull request.** A promotion also writes `.belay/tune/<task>/<backend>.pull-request.md` and
+`<backend>.pull-request-title.txt`: the hypothesis, the numbers on validation and on the holdout, the
 gate's checks, the kept experiments and a reviewer's checklist. `templates/belay-tune.yml` runs
 the loop nightly and opens the pull request with `gh`, from the workflow's own token. The
 ledger, a pending candidate and the output cache live in the Actions cache between nights, since

@@ -164,7 +164,14 @@ export async function verify(options: VerifyOptions): Promise<VerifyReport> {
 
   // ---- The committed files belong together ----------------------------------------------
   const files = { config: `belay/${name}/${options.backendName}.local.json`, calibration: `belay/${name}/${options.backendName}.calibration.json`, record: `belay/${name}/${options.backendName}.gate.json` };
-  const rawConfig = await readJson(join(root, files.config));
+  let rawConfig: unknown;
+  try {
+    rawConfig = await readJson(join(root, files.config));
+  } catch (err) {
+    checks.push({ name: 'files', passed: false, detail: `${files.config} cannot be read: ${err instanceof Error ? err.message : String(err)}` });
+    notes.push('Run "belay tune" to produce a config that passed the gate, or restore the committed files.');
+    return done({ tuned: true });
+  }
   if (rawConfig === undefined) {
     notes.push(`No tuned config (${files.config}): only the lock and the ledger were checked.`);
     return done();

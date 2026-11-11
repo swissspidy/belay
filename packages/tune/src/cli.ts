@@ -68,11 +68,17 @@ const runnerId = (local: unknown): string => (typeof (local as { runner?: unknow
 
 /**
  * The task as one of its backends sees it. A name from `tune.backends` swaps in that backend's
- * runner, judge and model; any other name only names the files of the task's own runner.
+ * runner, judge and model; the only other name allowed is the id of the task's own runner.
  */
 function forBackend(name: string, taskConfig: CalibrationTaskConfig<any>, backend: string | undefined): CalibrationTaskConfig<any> {
   const named = backend === undefined ? undefined : taskConfig.tune?.backends?.[backend];
-  if (!named) return taskConfig;
+  if (!named) {
+    // A name that is neither would write files `belay verify` cannot match to a runner.
+    if (backend !== undefined && taskConfig.local && backend !== runnerId(taskConfig.local)) {
+      throw new Error(`task "${name}": backend "${backend}" is not in tune.backends and is not the task's own runner ("${runnerId(taskConfig.local)}")`);
+    }
+    return taskConfig;
+  }
   if (!named.local) throw new Error(`task "${name}": tune.backends["${backend}"] has no local runner`);
   const { judge: _judge, ...rest } = taskConfig;
   return { ...rest, local: named.local, ...(named.judge ? { judge: named.judge } : {}), models: { ...taskConfig.models, ...(named.model ? { local: named.model } : {}) } };

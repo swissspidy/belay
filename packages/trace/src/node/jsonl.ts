@@ -14,7 +14,11 @@ export function jsonlSink(path: string): TraceSink & { flush(): Promise<void> } 
     write(trace: Trace): Promise<void> {
       const line = JSON.stringify(trace) + '\n';
       const job = tail.then(async () => {
-        await (ready ??= mkdir(dirname(path), { recursive: true }));
+        // A failed mkdir is not remembered: the next write tries again.
+        await (ready ??= mkdir(dirname(path), { recursive: true }).catch((err: unknown) => {
+          ready = undefined;
+          throw err;
+        }));
         await appendFile(path, line);
       });
       // One failed write must not block the ones after it; the caller still sees the failure.

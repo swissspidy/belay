@@ -91,6 +91,8 @@ jobs:
           REFLECTOR_API_KEY: ${{ secrets.REFLECTOR_API_KEY }}
         run: |
           # For another backend of the task (tune.backends in the config), add: --backend <name>
+          # A pull request text restored from another night or backend must not open one tonight.
+          rm -f .belay/tune/"$TASK"/*.pull-request.md .belay/tune/"$TASK"/*.pull-request-title.txt
           code=0
           xvfb-run -a npx belay tune --task "$TASK" --budget 5usd --max-experiments 40 --max-minutes 240 --run "$(date -u +%F)" --resume || code=$?
           cat .belay/tune/"$TASK"/*.report.md >> "$GITHUB_STEP_SUMMARY" || true

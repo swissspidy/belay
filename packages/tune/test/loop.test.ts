@@ -333,6 +333,11 @@ describe('tune', () => {
     expect(edited.checks.at(-1)!.detail).toMatch(/fitted for another config/);
     await writeFile(configPath, original);
 
+    // A config that is not even JSON fails the same check instead of stopping the command.
+    await writeFile(configPath, '{ not json');
+    expect((await check()).checks.at(-1)).toMatchObject({ name: 'files', passed: false });
+    await writeFile(configPath, original);
+
     // A changed gate config no longer matches the lock.
     await writeFile(join(dir, 'belay.gate.json'), JSON.stringify({ version: 1, accuracyMargin: 0.5 }));
     const unlocked = await check();
@@ -469,6 +474,16 @@ describe('tune', () => {
     expect(second.requests.some((r) => r.prompt === first.requests[0]!.prompt)).toBe(false);
   });
 
+  it('refuses to resume a run that would not retrace its recorded entries', async () => {
+    await lock();
+    const done = await tune(await options({ reflector: scripted({ rules: GOOD_RULES }).reflector }));
+    expect(done.outcome).toBe('promoted');
+    const before = await readFile(join(dir, '.belay/ledger.jsonl'), 'utf8');
+    // The promoted config is now the baseline: the same run id no longer starts where it did.
+    await expect(tune(await options({ reflector: scripted({ rules: GOOD_RULES }).reflector, resume: true }))).rejects.toThrow(/cannot be resumed: entry night-1\.000/);
+    expect(await readFile(join(dir, '.belay/ledger.jsonl'), 'utf8')).toBe(before);
+  });
+
   it('fits the threshold again when the committed one is stale (rung 1)', async () => {
     await lock();
     const config = { version: 1, task: 'ticket-triage', backend: { runner: 'context-local' } };
@@ -590,6 +605,8 @@ export default {
       expect(await tuneCommand(['--backend', 'second', '--max-experiments', '10', '--run', 'n1'])).toBe(0);
       expect(JSON.parse(await readFile(join(dir, 'belay/ticket-triage/second.local.json'), 'utf8')).backend).toEqual({ runner: 'second', model: 'another model' });
       expect(JSON.parse(await readFile(join(dir, 'belay/ticket-triage/cli-local.local.json'), 'utf8')).backend).toEqual({ runner: 'cli-local' });
+
+      await expect(tuneCommand(['--backend', 'secnod'])).rejects.toThrow(/backend "secnod" is not in tune.backends/);
 
       // CI: both committed configs still do what they did at the gate.
       stdout.mockClear();
