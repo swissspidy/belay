@@ -463,8 +463,9 @@ output schema and splitting a task into two steps. A local config cannot change 
 task's values are its contract with the app and the cloud. Splitting (a first step that picks a
 group of labels, a second that picks within it) fits the format as a `steps` field and can be
 run by composing two derived backends, but it doubles the local latency, which the gate's
-default refuses, and nothing measured so far says it is worth that. It is left until a task
-shows a plateau that wording does not move.
+default refuses, and nothing measured so far says it is worth that: on the one task measured,
+both backends reached 100% local share with few-shot examples alone (below). It is left until
+a task shows a plateau that wording does not move.
 
 **Per-backend configs.** `tune.backends` names a task's other local backends (a runner, its
 judge, a model name); `belay tune --backend <name>` tunes that one. What is per backend: the
@@ -515,7 +516,10 @@ machine, in one Chrome version.
 - Should the core check the calibration file's `localConfig` fingerprint (§3)? Today only the
   loop reads it.
 - Should `BelayResult` carry `explorationWeight`? It would replace the event matching of §1.
-- Whether built-in models accept adapters (rung 5) is still unconfirmed.
+  That matching no longer drops events under load (one is kept per run under way), so this is
+  now a question of simplicity, not of correctness.
+- Whether built-in models accept adapters (rung 5) is still unconfirmed. ADR 0009 records the
+  weights spike with a bring-your-own model, and why no weights rung is built.
 - Can a GitHub-hosted runner load Chrome's built-in model (§10)? If not, the nightly loop needs a
   self-hosted runner.
 

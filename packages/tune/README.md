@@ -12,8 +12,9 @@ cascade stays as accurate as you require.
 
 > **Status:** experimental (0.x). Built so far: the score, the loop on four rungs (threshold,
 > examples, rules, wording), a config per backend, the ledger, the gate and the lock, the pull
-> request text, `belay verify` and the repair of a config that drifted. Not yet: splitting a task
-> into two steps, weights. The GitHub Action templates have not been run on GitHub's runners yet. See
+> request text, `belay verify` and the repair of a config that drifted. Not built: splitting a task
+> into two steps, and tuning weights (a spike is recorded in
+> [ADR 0009](https://github.com/swissspidy/belay/blob/main/docs/adr/0009-weights-spike.md)). The GitHub Action templates have not been run on GitHub's runners yet. See
 > [ADR 0007](https://github.com/swissspidy/belay/blob/main/docs/adr/0007-belay-tune-foundations.md), and
 > [five runs on ticket triage, with their ledger](https://github.com/swissspidy/belay/tree/main/docs/reports/ticket-triage).
 
