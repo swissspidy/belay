@@ -1,6 +1,6 @@
 {
   "name": "@swissspidy/belay-tune",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Belay Tune: an overnight loop that makes a Belay task need the cloud less, measured in a real Chrome and gated on a holdout.",
   "license": "Apache-2.0",
   "author": "Pascal Birchler",
@@ -50,9 +50,9 @@
     "provenance": true
   },
   "dependencies": {
-    "@swissspidy/belay-calibrate": "^0.1.1",
-    "@swissspidy/belay-core": "^0.1.1",
-    "@swissspidy/belay-trace": "^0.1.1"
+    "@swissspidy/belay-calibrate": "^0.2.0",
+    "@swissspidy/belay-core": "^0.2.0",
+    "@swissspidy/belay-trace": "^0.2.0"
   },
   "engines": {
     "node": ">=22.12"

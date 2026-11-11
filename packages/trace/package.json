@@ -1,6 +1,6 @@
 {
   "name": "@swissspidy/belay-trace",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Opt-in traces of Belay runs, sent to your own sink, and the labeled datasets built from them.",
   "license": "Apache-2.0",
   "author": "Pascal Birchler",
@@ -39,7 +39,7 @@
     "src"
   ],
   "peerDependencies": {
-    "@swissspidy/belay-core": "^0.1.1"
+    "@swissspidy/belay-core": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.6"
