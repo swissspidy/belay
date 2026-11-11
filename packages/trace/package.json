@@ -42,7 +42,7 @@
     "@swissspidy/belay-core": "^0.1.1"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5"
+    "@types/node": "^26.6.6"
   },
   "scripts": {
     "build": "tsc -b",
