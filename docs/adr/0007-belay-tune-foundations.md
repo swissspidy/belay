@@ -172,8 +172,8 @@ Everything tunable about the local side of one task on one backend, as one JSON 
 ```
 
 `rung` is `baseline`, `threshold`, `examples`, `rules` or `gate`; `stage` is `baseline`, `screen`,
-`validation` or `gate`; `verdict` is `baseline`, `kept`, `discarded`, `promoted`, `rejected` or
-`error`. `previous` is the SHA-256 of the line before, so an edited history is detectable, and
+`validation` or `gate`; `verdict` is `baseline`, `kept`, `discarded`, `promoted`, `rejected`,
+`inconclusive` or `error`. `previous` is the SHA-256 of the line before, so an edited history is detectable, and
 `readLedger()` refuses a broken chain. `protected` is the lock hash of §5. `scores` are always
 validation numbers. A gate entry carries only whether it passed and the names of the failed
 checks, so the reflecting model, which is given the ledger, cannot learn the holdout from one
@@ -354,9 +354,8 @@ What this run says about the design:
 
 - **The accuracy check cannot pass at this size.** On 300 examples the paired interval is about
   ±2 points wide, so a candidate that is in fact slightly better is still refused by a 1-point
-  margin. The check needs about 1,000 holdout examples, or a wider margin for small holdouts.
-  Which of the two is a decision for the gate's owner, not for the loop: the loop cannot write
-  `belay.gate.json`.
+  margin. The check needs about 900 holdout examples, or a wider margin. See "Inconclusive"
+  below for what was decided.
 - **Few-shot examples cost latency on a CPU.** 330 more characters of context made each run
   about a quarter slower. Whether that is worth four points of local share is a product
   decision; the gate's default says no.
@@ -366,11 +365,31 @@ What this run says about the design:
 - **Rebuilding Belay during a run stops it at the gate**, because the evaluator hash changes.
   That is the protection working, and worth a line in the docs.
 
+**Inconclusive (decided after that run).** The margin does not widen with a small holdout. A
+margin that follows the uncertainty is weakest where the evidence is weakest, and since each
+promotion is the next baseline, the allowance could be spent every night: a ratchet. Instead:
+
+- The gate has a third result. It is **inconclusive** when accuracy is the only check that
+  failed and the interval lies on both sides of the margin: the candidate is neither shown to
+  be safe nor shown to be worse. Nothing is written. The ledger entry's verdict is
+  `inconclusive`, and the report gives the holdout size that would settle it, from the width of
+  the interval (it narrows with the square root of the size). For the run above that is about
+  900; that run would still have been rejected, on latency.
+- The candidate is kept in `.belay/tune/<task>/<backend>.pending.json` and is the first
+  experiment of the next run: scored on the then-current validation split and, if it is still
+  the best, gated again on the larger holdout. Any other end of a run removes the file.
+- `belay tune` warns at the start when the locked holdout is probably too small
+  (`holdoutPower()`). The estimate assumes a candidate as accurate as the baseline that changes
+  the outcome of half as many inputs as the baseline gets wrong, which is what the few-shot
+  candidate did above. It is a warning, not a stop: the other rungs' findings are still worth
+  a night.
+- Widening stays a person's choice: `accuracyMargin` in `belay.gate.json`, then
+  `belay tune --lock`.
+
 ## Open questions
 
 - Should the core check the calibration file's `localConfig` fingerprint (§3)? Today only the
   loop reads it.
-- Should the gate's accuracy margin depend on the size of the holdout (§9)?
 - Should `BelayResult` carry `explorationWeight`? It would replace the event matching of §1.
 - Whether built-in models accept adapters (rung 5) is still unconfirmed.
 

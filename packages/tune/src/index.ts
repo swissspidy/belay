@@ -5,7 +5,7 @@ export type { SplitExample, SplitFile } from './split.js';
 export { BASELINE_VERSION, cloudSide, dryRun, toScored } from './dry-run.js';
 export type { Baseline, CloudSide, DryRunOptions } from './dry-run.js';
 export * from './local-config.js';
-export { DEFAULT_GATE, GATE_VERSION, parseGateConfig, runGate } from './gate.js';
+export { DEFAULT_GATE, GATE_VERSION, holdoutPower, parseGateConfig, runGate } from './gate.js';
 export type { GateCheck, GateConfig, GateResult, GateSide } from './gate.js';
 export { appendLedger, LEDGER_VERSION, readLedger } from './ledger.js';
 export type { Ledger, LedgerEntry, LedgerRung, LedgerScores, LedgerStage, LedgerVerdict } from './ledger.js';

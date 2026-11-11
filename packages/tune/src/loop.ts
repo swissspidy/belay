@@ -7,9 +7,9 @@ import type { DatasetManifest } from '@swissspidy/belay-trace/node';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { cloudSide, toScored, type CloudSide } from './dry-run.js';
-import { runGate, type GateResult } from './gate.js';
+import { holdoutPower, runGate, type GateResult } from './gate.js';
 import { appendLedger, readLedger, type LedgerEntry, type LedgerRung, type LedgerScores } from './ledger.js';
-import { applyConfigPatch, applyLocalConfig, contextSize, emptyLocalConfig, localConfigFingerprint, parseLocalConfig, type ConfigPatchOp, type LocalConfig } from './local-config.js';
+import { applyConfigPatch, applyLocalConfig, contextSize, emptyLocalConfig, localConfigFingerprint, parseLocalConfig, TUNABLE_ROOTS, type ConfigPatchOp, type LocalConfig } from './local-config.js';
 import { createWorkspace, currentState, lockHash, readLock, verifyLock, LOCK_FILE } from './protect.js';
 import { renderReport } from './report.js';
 import { buildReflectRequest, parseProposals, type ProposalRung, type ReflectExample } from './reflector.js';
@@ -80,6 +80,8 @@ export type TuneOutcome =
   | 'promoted'
   /** The best candidate failed the gate. Nothing was written but the ledger and the report. */
   | 'rejected'
+  /** The holdout was too small for the gate to tell. Nothing was written; the candidate is tried again next time. */
+  | 'inconclusive'
   /** Nothing beat the baseline on validation. */
   | 'plateau';
 
@@ -150,6 +152,8 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     ledger: '.belay/ledger.jsonl',
     report: `.belay/tune/${name}/report.md`,
     reportJson: `.belay/tune/${name}/report.json`,
+    /** A candidate the gate could not settle, kept for the next run. */
+    pending: `.belay/tune/${name}/${options.backendName}.pending.json`,
   };
   const workspace = createWorkspace(root, [`belay/${name}`, files.ledger, `.belay/tune/${name}`]);
 
@@ -296,6 +300,65 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     }
   }
 
+  // ---- Before the night is spent: can this holdout settle the accuracy check? ---------
+  const notes: string[] = [];
+  const power = holdoutPower(locked.holdout.ids.length, base.accuracy, gate);
+  if (!power.enough) {
+    const warning = `The holdout has ${locked.holdout.ids.length} examples. The gate's accuracy check (at most ${(gate.accuracyMargin * 100).toFixed(1)} points lower) will probably need ${power.needed === null ? 'far more' : `about ${power.needed}`}: expect "inconclusive" rather than a promotion. Collect more traces, or have the gate's owner widen accuracyMargin in belay.gate.json.`;
+    log(`Warning: ${warning}`);
+    notes.push(warning);
+  }
+
+  // ---- A candidate an earlier gate could not settle is tried again first ---------------
+  let pendingFrom: string | null = null;
+  let carried: unknown;
+  try {
+    type Pending = { run?: unknown; id?: unknown; rung?: unknown; hypothesis?: unknown; config?: unknown; carried?: unknown };
+    let pending = JSON.parse(await readFile(join(root, files.pending), 'utf8')) as Pending;
+    // Written by this very run (it is being resumed): replay what it started from.
+    if (pending.run === run) pending = (pending.carried ?? {}) as Pending;
+    if (typeof pending.hypothesis === 'string' && (pending.rung === 'examples' || pending.rung === 'rules')) {
+      const config = parseLocalConfig(pending.config, name, schema);
+      const fingerprint = localConfigFingerprint(config);
+      const chars = contextSize(schema, taskConfig.context, config);
+      if (!seen.has(fingerprint) && chars <= gate.maxContextChars) {
+        seen.add(fingerprint);
+        counts.run++;
+        carried = pending;
+        pendingFrom = String(pending.id ?? pending.run);
+        const patch: ConfigPatchOp[] = TUNABLE_ROOTS.flatMap((key): ConfigPatchOp[] =>
+          config[key] !== undefined ? [{ op: 'add', path: `/${key}`, value: config[key] }] : baseConfig[key] !== undefined ? [{ op: 'remove', path: `/${key}` }] : [],
+        );
+        const validation = await evaluate(config, options.validation, 'carried over');
+        const fit = score(validation, { target, seed, resamples: 0 });
+        const member: Member = { id: '', rung: pending.rung, hypothesis: pending.hypothesis, config, fingerprint, chars, validation, threshold: fit.threshold, localShare: fit.localShare, accuracy: fit.accuracy, targetMet: fit.targetMet };
+        const gain = fit.localShare - base.localShare;
+        const kept = fit.targetMet && gain >= settings.minGain;
+        member.id = (
+          await record({
+            rung: pending.rung,
+            hypothesis: pending.hypothesis,
+            parent: base.fingerprint,
+            candidate: fingerprint,
+            patch,
+            stage: 'validation',
+            scores: scoresOf(member),
+            verdict: kept ? 'kept' : 'discarded',
+            reason: `Carried over from ${pendingFrom}, where the gate was inconclusive. ${kept ? `Local share up ${(gain * 100).toFixed(1)} points on validation at the target accuracy.` : 'It no longer beats the baseline on validation.'}`,
+          })
+        ).id;
+        if (kept) {
+          counts.kept++;
+          population.push(member);
+        } else {
+          counts.discarded++;
+        }
+      }
+    }
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log(`Ignoring ${files.pending}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
   // ---- Rungs 2 and 3: examples, then rules --------------------------------------------
   const trainById = new Map(options.train.examples.map((e) => [e.id, { input: e.input, label: e.label }]));
   const trainLabels = new Map(options.train.dataset.examples.map((e) => [e.id, e.truth]));
@@ -304,7 +367,6 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   let spend = 0;
   let calls = 0;
   let stopped: StopReason = 'rungs-exhausted';
-  const notes: string[] = [];
   const asked = new Set<string>();
   const timeUp = (): boolean => options.budget.maxMinutes !== undefined && (Date.now() - started) / 60000 >= options.budget.maxMinutes;
 
@@ -510,7 +572,7 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     // Both thresholds were fitted on validation: the holdout only scores.
     gateResult = runGate({ examples: baseHoldout, threshold: base.threshold, contextChars: base.chars }, { examples: winnerHoldout, threshold: winner.threshold, contextChars: winner.chars }, gate, { seed });
     holdoutGold = gateResult.candidate.gold;
-    outcome = gateResult.passed ? 'promoted' : 'rejected';
+    outcome = gateResult.passed ? 'promoted' : gateResult.inconclusive ? 'inconclusive' : 'rejected';
     // The ledger is read by the reflecting model: it learns pass or fail, never a holdout number.
     await record({
       rung: 'gate',
@@ -519,9 +581,9 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
       candidate: winner.fingerprint,
       patch: [],
       stage: 'gate',
-      gate: { passed: gateResult.passed, failed: gateResult.checks.filter((c) => !c.passed).map((c) => c.name), basis: gateResult.basis },
-      verdict: gateResult.passed ? 'promoted' : 'rejected',
-      reason: gateResult.passed ? `Passed the gate (${winner.id}).` : `Failed the gate (${winner.id}): ${gateResult.checks.filter((c) => !c.passed).map((c) => c.name).join(', ')}.`,
+      gate: { passed: gateResult.passed, ...(gateResult.inconclusive ? { inconclusive: true } : {}), failed: gateResult.checks.filter((c) => !c.passed).map((c) => c.name), basis: gateResult.basis },
+      verdict: outcome,
+      reason: gateResult.passed ? `Passed the gate (${winner.id}).` : gateResult.inconclusive ? `The gate could not tell (${winner.id}): the holdout is too small for the accuracy check. Every other check passed.` : `Failed the gate (${winner.id}): ${gateResult.checks.filter((c) => !c.passed).map((c) => c.name).join(', ')}.`,
     });
     end = await check('after the gate');
   } else {
@@ -538,6 +600,11 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
     if (!base.targetMet) notes.push('The baseline does not hold the target accuracy at any threshold: the cloud side, or the labels, limit it more than the local side does.');
     if (counts.screenedOut && counts.screenedOut === counts.run - (baseAt ? 1 : 0)) notes.push('Every candidate was screened out: adding context made the local model worse on this task.');
     notes.push('Next: rung 4 (reword the options or split the task), or more labeled traces: with few examples, small gains cannot be told from noise.');
+  } else if (outcome === 'inconclusive') {
+    notes.push(
+      `The gate could not tell whether the best candidate is as accurate as the baseline: the holdout is too small. Every other check passed. Nothing was written.${gateResult?.holdoutNeeded ? ` About ${gateResult.holdoutNeeded} holdout examples would settle it (there are ${holdoutSize}).` : ''}`,
+      `${winner.rung === 'threshold' ? 'The next run fits the threshold again.' : `The candidate is kept in ${files.pending} and is tried again first on the next run.`} To accept a wider margin instead, the gate's owner can raise accuracyMargin in belay.gate.json and run "belay tune --lock".`,
+    );
   } else if (outcome === 'rejected') {
     notes.push('The best candidate on validation did not pass every check of the gate on the holdout (see the table). Nothing was written. The candidate stays in the ledger as rejected, so it is not proposed again.');
   }
@@ -575,6 +642,12 @@ export async function tune(options: TuneOptions): Promise<TuneReport> {
   if (outcome === 'promoted') {
     await workspace.write(files.config, JSON.stringify(winner.config, null, 2) + '\n');
     await workspace.write(files.calibration, JSON.stringify(calibrationOf(winner, { name, schema, environment, target, createdAt: report.createdAt, fingerprint: options.validation.dataset.fingerprint }), null, 2) + '\n');
+  }
+  // A candidate waits for a larger holdout only while the gate cannot tell; any other end settles it.
+  if (outcome === 'inconclusive' && winner.rung !== 'threshold') {
+    await workspace.write(files.pending, JSON.stringify({ version: 1, run, id: winner.id, rung: winner.rung, hypothesis: winner.hypothesis, config: winner.config, ...(carried ? { carried } : {}) }, null, 2) + '\n');
+  } else {
+    await workspace.remove(files.pending);
   }
   await workspace.write(files.reportJson, JSON.stringify(report, null, 2) + '\n');
   await workspace.write(files.report, renderReport(report));

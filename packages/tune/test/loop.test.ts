@@ -30,7 +30,8 @@ const next = (label: string) => LABELS[(LABELS.indexOf(label as (typeof LABELS)[
  * - without help, its confidence is spread over [0.3, 1) and it is right about that often;
  * - a rule or example mentioning "GOOD" makes it surer and nearly always right;
  * - "BAD" makes it wrong about half the time, while staying sure;
- * - "OVERFIT" helps on every input but those marked "holdout".
+ * - "OVERFIT" helps on every input but those marked "holdout";
+ * - "MAYBE" makes it sure and right about as often as the whole cascade was before.
  */
 function contextLocal(): LocalRunner<any> & { contexts: Set<string> } {
   const contexts = new Set<string>();
@@ -44,7 +45,10 @@ function contextLocal(): LocalRunner<any> & { contexts: Set<string> } {
       const truth = truthOf(input);
       let confidence = 0.3 + 0.7 * hash01(`conf:${input}`);
       let right = hash01(`right:${input}`) < confidence;
-      if (context.includes('BAD')) {
+      if (context.includes('MAYBE')) {
+        confidence = 0.97;
+        right = hash01(`maybe:${input}`) < 0.94;
+      } else if (context.includes('BAD')) {
         confidence = 0.9;
         right = hash01(`bad:${input}`) < 0.5;
       } else if (context.includes('GOOD') || (context.includes('OVERFIT') && !input.includes('holdout'))) {
@@ -215,6 +219,47 @@ describe('tune', () => {
     const ledger = await readLedger(join(dir, '.belay/ledger.jsonl'));
     expect(ledger.entries.at(-1)).toMatchObject({ verdict: 'rejected', gate: { passed: false } });
     expect(ledger.entries.at(-1)!.gate!.failed).toContain('accuracy');
+  });
+
+  it('calls a gate the holdout cannot settle inconclusive, and tries the candidate again', async () => {
+    await lock();
+    const maybe = { rules: [[{ hypothesis: 'About as accurate, far more local.', rules: ['MAYBE: answer directly.'] }]] };
+    const logs: string[] = [];
+    const first = await tune(await options({ reflector: scripted(maybe).reflector, log: (line) => logs.push(line) }));
+    expect(first.outcome).toBe('inconclusive');
+    expect(first.gate).toMatchObject({ passed: false, inconclusive: true });
+    expect(first.gate!.checks.filter((c) => !c.passed)).toMatchObject([{ name: 'accuracy', inconclusive: true }]);
+    expect(first.gate!.holdoutNeeded).toBeGreaterThan(200);
+    // Said before the night was spent, and again in the report.
+    expect(logs.join('\n')).toMatch(/Warning: The holdout has 200 examples/);
+    expect(first.notes.join(' ')).toMatch(/holdout examples would settle it \(there are 200\)/);
+    expect(existsSync(join(dir, 'belay'))).toBe(false);
+    expect(await readFile(join(dir, '.belay/tune/ticket-triage/report.md'), 'utf8')).toMatch(/\*\*inconclusive\*\*/);
+    const pendingFile = join(dir, '.belay/tune/ticket-triage/context-local.pending.json');
+    expect(JSON.parse(await readFile(pendingFile, 'utf8'))).toMatchObject({ run: 'night-1', rung: 'rules', config: { rules: ['MAYBE: answer directly.'] } });
+    let ledger = await readLedger(join(dir, '.belay/ledger.jsonl'));
+    expect(ledger.entries.at(-1)).toMatchObject({ verdict: 'inconclusive', gate: { passed: false, inconclusive: true, failed: ['accuracy'] } });
+
+    // The next night proposes nothing new: the candidate is carried over and gated again.
+    const second = await tune(await options({ run: 'night-2' }));
+    expect(second.entries[1]).toMatchObject({ rung: 'rules', verdict: 'kept', patch: [{ op: 'add', path: '/rules', value: ['MAYBE: answer directly.'] }] });
+    expect(second.entries[1]!.reason).toMatch(/Carried over from night-1/);
+    expect(second.outcome).toBe('inconclusive');
+    expect(JSON.parse(await readFile(pendingFile, 'utf8'))).toMatchObject({ run: 'night-2', carried: { run: 'night-1' } });
+
+    // Resuming that night replays it from the caches: same entries, nothing written twice.
+    const resumed = await tune(await options({ run: 'night-2', resume: true }));
+    expect(resumed.entries.map((e) => e.id)).toEqual(second.entries.map((e) => e.id));
+    expect(resumed.outcome).toBe('inconclusive');
+
+    // The gate's owner accepts a wider margin and locks again: the same candidate now ships.
+    await writeFile(join(dir, 'belay.gate.json'), JSON.stringify({ version: 1, accuracyMargin: 0.1 }));
+    await lock();
+    const third = await tune(await options({ run: 'night-3' }));
+    expect(third.outcome).toBe('promoted');
+    expect(existsSync(pendingFile)).toBe(false);
+    ledger = await readLedger(join(dir, '.belay/ledger.jsonl'));
+    expect(ledger.intact).toBe(true);
   });
 
   it('stops at the spend cap and at the experiment cap', async () => {

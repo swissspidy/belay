@@ -17,9 +17,10 @@ export type LedgerStage = 'baseline' | 'screen' | 'validation' | 'gate';
  * - `discarded`: not better, or screened out, or too large;
  * - `promoted`: passed the gate;
  * - `rejected`: failed the gate;
+ * - `inconclusive`: the holdout was too small for the gate to tell; the candidate is tried again;
  * - `error`: could not be evaluated.
  */
-export type LedgerVerdict = 'baseline' | 'kept' | 'discarded' | 'promoted' | 'rejected' | 'error';
+export type LedgerVerdict = 'baseline' | 'kept' | 'discarded' | 'promoted' | 'rejected' | 'inconclusive' | 'error';
 
 export interface LedgerScores {
   localShare: number;
@@ -53,7 +54,7 @@ export interface LedgerEntry {
   /** Scores on validation (on the screening sample for a candidate that stopped there). Never holdout numbers. */
   scores?: LedgerScores;
   /** For a `gate` entry: whether it passed, and the names of the checks that failed. No holdout numbers. */
-  gate?: { passed: boolean; failed: string[]; basis: 'gold' | 'cloud-agreement' };
+  gate?: { passed: boolean; inconclusive?: boolean; failed: string[]; basis: 'gold' | 'cloud-agreement' };
   /** What the proposal cost: the reflecting model's call, shared between the candidates of one round. */
   cost?: { currency: string; reflector: number; usage?: CloudUsage[] };
   verdict: LedgerVerdict;

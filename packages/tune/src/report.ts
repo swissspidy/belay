@@ -6,6 +6,7 @@ const cell = (text: string): string => text.replace(/\|/g, '\\|').replace(/\s+/g
 const OUTCOME: Record<TuneReport['outcome'], string> = {
   promoted: 'A candidate passed the gate.',
   rejected: 'The best candidate failed the gate. Nothing was changed.',
+  inconclusive: 'The gate could not tell: the holdout is too small. Nothing was changed.',
   plateau: 'Plateau: nothing beat the baseline. Nothing was changed.',
 };
 
@@ -37,7 +38,7 @@ export function renderReport(report: TuneReport): string {
     out.push('## Gate, on the holdout', '');
     out.push(g.basis === 'gold' ? 'Accuracy is measured against gold labels.' : 'The holdout has too few gold labels: accuracy here means agreement with the cloud.', '');
     out.push('| Check | Result | Detail |', '| --- | --- | --- |');
-    for (const check of g.checks) out.push(`| ${check.name} | ${check.skipped ? 'skipped' : check.passed ? 'pass' : '**FAIL**'} | ${cell(check.detail)} |`);
+    for (const check of g.checks) out.push(`| ${check.name} | ${check.skipped ? 'skipped' : check.passed ? 'pass' : check.inconclusive ? '**inconclusive**' : '**FAIL**'} | ${cell(check.detail)} |`);
     out.push('');
     out.push(`Holdout: local share ${pct(g.candidate.localShare)} (baseline ${pct(g.baseline.localShare)}), accuracy ${pct(g.candidate.accuracy)} (baseline ${pct(g.baseline.accuracy)}).`, '');
   }

@@ -87,7 +87,7 @@ describe('score', () => {
   });
 });
 
-import { applyConfigPatch, applyLocalConfig, contextSize, createWorkspace, emptyLocalConfig, localConfigFingerprint, pairedBootstrap, parseGateConfig, parseLocalConfig, parseProposals, runGate, scoreAt, withLocalConfig, DEFAULT_GATE } from '../src/index.js';
+import { applyConfigPatch, applyLocalConfig, contextSize, createWorkspace, emptyLocalConfig, holdoutPower, localConfigFingerprint, pairedBootstrap, parseGateConfig, parseLocalConfig, parseProposals, runGate, scoreAt, withLocalConfig, DEFAULT_GATE } from '../src/index.js';
 
 describe('scoreAt and pairedBootstrap', () => {
   const examples = [
@@ -139,6 +139,31 @@ describe('runGate', () => {
     expect(failed({ examples: side(() => true).map((e) => ({ ...e, latencyMs: 200 })), threshold: 0.5, contextChars: 150 })).toEqual(['latency']);
     // Only the "x" label gets worse.
     expect(failed({ examples: side((i) => !(i % 2 && i % 8 === 1)), threshold: 0.5, contextChars: 150 }, { ...DEFAULT_GATE, accuracyMargin: 1, calibrationErrorMargin: 1 })).toEqual(['recall']);
+  });
+
+  it('tells a holdout that is too small from a candidate that is worse', () => {
+    const candidate = (wrongEvery: number) => ({ examples: side((i) => i % wrongEvery !== 0), threshold: 0.5, contextChars: 150 });
+    const gate = { ...DEFAULT_GATE, maxRecallDrop: 1, calibrationErrorMargin: 1 };
+    // 1% worse on 200 examples: the interval reaches below the margin, and above it.
+    const unsure = runGate(baseline, candidate(100), gate);
+    expect(unsure).toMatchObject({ passed: false, inconclusive: true });
+    expect(unsure.checks[0]).toMatchObject({ name: 'accuracy', passed: false, inconclusive: true });
+    expect(unsure.holdoutNeeded).toBeGreaterThan(200);
+    // 10% worse: the whole interval is below the margin.
+    const worse = runGate(baseline, candidate(10), gate);
+    expect(worse).toMatchObject({ passed: false, inconclusive: false });
+    expect(worse.checks[0]!.inconclusive).toBeUndefined();
+    expect(worse.holdoutNeeded).toBeUndefined();
+    // Unsure about accuracy and failing something else is a plain failure.
+    expect(runGate(baseline, { ...candidate(100), contextChars: 5000 }, gate)).toMatchObject({ passed: false, inconclusive: false });
+  });
+
+  it('estimates whether a holdout can settle the accuracy check', () => {
+    expect(holdoutPower(300, 0.952, DEFAULT_GATE)).toEqual({ enough: false, needed: 950 });
+    expect(holdoutPower(1000, 0.952, DEFAULT_GATE)).toEqual({ enough: true, needed: 950 });
+    expect(holdoutPower(300, 0.952, { accuracyMargin: 0.03 })).toMatchObject({ enough: true });
+    expect(holdoutPower(300, 1, DEFAULT_GATE)).toEqual({ enough: true, needed: 0 });
+    expect(holdoutPower(300, 0.9, { accuracyMargin: 0 })).toEqual({ enough: false, needed: null });
   });
 
   it('reads a gate config and rejects unknown fields', () => {

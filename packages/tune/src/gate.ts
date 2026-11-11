@@ -66,6 +66,8 @@ export interface GateSide {
 export interface GateCheck {
   name: 'accuracy' | 'local-share' | 'recall' | 'calibration' | 'latency' | 'prompt-size';
   passed: boolean;
+  /** `true` when the check failed only because the holdout is too small to tell (accuracy). */
+  inconclusive?: boolean;
   /** `true` when the check could not be made (e.g. no latency was measured) and was let through. */
   skipped?: boolean;
   detail: string;
@@ -73,6 +75,13 @@ export interface GateCheck {
 
 export interface GateResult {
   passed: boolean;
+  /**
+   * `true` when accuracy is the only check that failed, and it failed because the interval is
+   * too wide: the candidate is neither shown to be safe nor shown to be worse.
+   */
+  inconclusive: boolean;
+  /** For an inconclusive result: about how many holdout examples would settle it. */
+  holdoutNeeded?: number;
   /** `gold`: accuracy against gold labels. `cloud-agreement`: too few gold labels to say more. */
   basis: 'gold' | 'cloud-agreement';
   checks: GateCheck[];
@@ -92,10 +101,15 @@ export function runGate(baseline: GateSide, candidate: GateSide, gate: GateConfi
   const checks: GateCheck[] = [];
   const eps = 1e-9;
 
+  const [lower, upper] = difference.accuracyInterval;
+  const accurate = lower >= -gate.accuracyMargin - eps;
+  // Not shown to be safe, and not shown to be worse: the margin lies inside the interval.
+  const unsettled = !accurate && upper >= -gate.accuracyMargin - eps;
   checks.push({
     name: 'accuracy',
-    passed: difference.accuracyInterval[0] >= -gate.accuracyMargin - eps,
-    detail: `${pct(c.accuracy)} vs ${pct(b.accuracy)} (${points(difference.accuracy)}, 95% CI ${points(difference.accuracyInterval[0])} to ${points(difference.accuracyInterval[1])}); may not be lower by more than ${pct(gate.accuracyMargin, 0)}`,
+    passed: accurate,
+    ...(unsettled ? { inconclusive: true } : {}),
+    detail: `${pct(c.accuracy)} vs ${pct(b.accuracy)} (${points(difference.accuracy)}, 95% CI ${points(lower)} to ${points(upper)}); may not be lower by more than ${pct(gate.accuracyMargin, 0)}${unsettled ? ' (the holdout is too small to tell)' : ''}`,
   });
 
   const gained = difference.localShare >= gate.minLocalShareGain - eps;
@@ -139,5 +153,23 @@ export function runGate(baseline: GateSide, candidate: GateSide, gate: GateConfi
     detail: `${candidate.contextChars} characters (baseline ${baseline.contextChars}); at most ${gate.maxContextChars}`,
   });
 
-  return { passed: checks.every((check) => check.passed), basis: c.gold >= gate.minGold ? 'gold' : 'cloud-agreement', checks, baseline: b, candidate: c, difference };
+  const failed = checks.filter((check) => !check.passed);
+  const inconclusive = failed.length === 1 && failed[0]!.inconclusive === true;
+  // The interval narrows with the square root of the size; assume the candidate is no better than the baseline.
+  const needed = inconclusive && gate.accuracyMargin > 0 ? Math.ceil((baseline.examples.length * ((difference.accuracy - lower) / gate.accuracyMargin) ** 2) / 50) * 50 : undefined;
+  return { passed: failed.length === 0, inconclusive, ...(needed !== undefined ? { holdoutNeeded: needed } : {}), basis: c.gold >= gate.minGold ? 'gold' : 'cloud-agreement', checks, baseline: b, candidate: c, difference };
+}
+
+/**
+ * A rough check, before a night is spent: can a holdout of this size pass the accuracy check
+ * at all? It assumes a candidate that is exactly as accurate as the baseline and changes the
+ * outcome of half as many inputs as the baseline gets wrong, which is what few-shot examples
+ * did on the first real run (ADR 0007 §9). An estimate, not a guarantee.
+ */
+export function holdoutPower(holdoutSize: number, baselineAccuracy: number, gate: Pick<GateConfig, 'accuracyMargin'>): { enough: boolean; needed: number | null } {
+  const changed = Math.max(0, 1 - baselineAccuracy) / 2;
+  if (changed === 0) return { enough: true, needed: 0 };
+  if (!(gate.accuracyMargin > 0)) return { enough: false, needed: null };
+  const needed = Math.ceil((1.96 ** 2 * changed) / gate.accuracyMargin ** 2 / 50) * 50;
+  return { enough: holdoutSize >= needed, needed };
 }

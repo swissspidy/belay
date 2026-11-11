@@ -326,10 +326,10 @@ async function runLoop(args: LoopArgs): Promise<number> {
       const lines = [
         '',
         `Task            ${name}`,
-        `Outcome         ${report.outcome === 'promoted' ? 'a candidate passed the gate' : report.outcome === 'rejected' ? 'the best candidate failed the gate' : 'plateau: nothing beat the baseline'}`,
+        `Outcome         ${report.outcome === 'promoted' ? 'a candidate passed the gate' : report.outcome === 'rejected' ? 'the best candidate failed the gate' : report.outcome === 'inconclusive' ? 'inconclusive: the holdout is too small for the gate to tell' : 'plateau: nothing beat the baseline'}`,
         `Baseline        ${pct(report.baseline.localShare)} local at ${pct(report.baseline.accuracy)} accuracy (validation)`,
         ...(report.best.id !== report.entries[0]?.id ? [`Best            ${pct(report.best.localShare)} local at ${pct(report.best.accuracy)} accuracy (validation; ${report.best.id}, ${report.best.rung})`] : []),
-        ...(report.gate ? report.gate.checks.map((c) => `Gate ${c.name.padEnd(12)}${c.skipped ? 'skipped' : c.passed ? 'pass   ' : 'FAIL   '} ${c.detail}`) : []),
+        ...(report.gate ? report.gate.checks.map((c) => `Gate ${c.name.padEnd(12)}${c.skipped ? 'skipped' : c.passed ? 'pass   ' : c.inconclusive ? 'unsure ' : 'FAIL   '} ${c.detail}`) : []),
         `Experiments     ${report.experiments.run} run, ${report.experiments.kept} kept, ${report.experiments.discarded} discarded, ${report.experiments.errors} errors (stopped: ${report.stopped})`,
         `Reflector       ${s.reflector.toFixed(4)} ${s.currency} in ${s.calls} calls (cap ${s.cap})`,
         `Protected       ${report.protected.unchanged ? 'unchanged' : 'CHANGED'} (gate config, instructions, evaluator, holdout)`,

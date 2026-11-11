@@ -84,7 +84,21 @@ of the cascade is read from your traces, not called again.
 The gate is strict on purpose. With a few hundred holdout examples, the interval on an accuracy
 difference is several points wide, so a candidate must be clearly no worse to pass. More labeled
 traces make it pass more often for real gains; a looser `accuracyMargin` makes it pass more often
-for noise.
+for noise, and because each promotion is the next baseline, that allowance can be spent night
+after night.
+
+So a holdout that is too small gets its own answer, **inconclusive**, when accuracy is the only
+check that failed and its interval lies on both sides of the margin:
+
+- Nothing is written, as with a failure, and the command exits with 2.
+- The report says about how many holdout examples would settle it.
+- The candidate is kept in `.belay/tune/<task>/<backend>.pending.json` and is the first
+  experiment of the next run, so it is gated again as the holdout grows.
+- `belay tune` also warns at the start when the holdout is probably too small, before the night
+  is spent. That is an estimate from the baseline's accuracy.
+
+To accept a wider margin for a small task, a person sets `accuracyMargin` in `belay.gate.json`
+and runs `belay tune --lock` again. The loop cannot do either.
 
 ## Using a tuned config
 

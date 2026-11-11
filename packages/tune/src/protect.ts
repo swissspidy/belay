@@ -4,7 +4,7 @@
  * See ADR 0007 §5.
  */
 import { createHash } from 'node:crypto';
-import { appendFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalJson } from '@swissspidy/belay-core';
@@ -137,6 +137,7 @@ export function verifyLock(locked: TaskLock, current: TaskLock): string[] {
 export interface Workspace {
   write(path: string, content: string): Promise<void>;
   append(path: string, content: string): Promise<void>;
+  remove(path: string): Promise<void>;
   allows(path: string): boolean;
 }
 
@@ -167,6 +168,9 @@ export function createWorkspace(root: string, allowed: readonly string[]): Works
       const full = check(path);
       await mkdir(dirname(full), { recursive: true });
       await appendFile(full, content);
+    },
+    async remove(path) {
+      await rm(check(path), { force: true });
     },
   };
 }
