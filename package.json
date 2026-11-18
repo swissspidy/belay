@@ -18,7 +18,7 @@
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",
     "@changesets/cli": "^3.0.3",
-    "fake-indexeddb": "^6.2.7",
+    "fake-indexeddb": "^6.2.8",
     "publint": "^0.3.25",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
